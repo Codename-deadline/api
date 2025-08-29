@@ -16,7 +16,7 @@ class NotificationPublishingTask(
     @Value("\${outbox.batch-size}")private val batchSize = 200
 
     @Async
-    @Scheduled(fixedRate = 1000)
+    @Scheduled(fixedRate = 60 * 1000)
     fun run() =
         deadlineNotificationRepository.findNotificationRecipientsAndInsertIntoOutbox(batchSize)
 }

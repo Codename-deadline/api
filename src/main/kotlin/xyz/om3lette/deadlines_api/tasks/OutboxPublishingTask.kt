@@ -12,6 +12,6 @@ class OutboxPublishingTask(
     private val outboxService: OutboxService
 ) {
     @Async
-    @Scheduled(fixedRate = 1000)
+    @Scheduled(fixedRate = 60 * 1000)
     fun run() = outboxService.pollOnce()
 }
