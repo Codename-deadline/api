@@ -1,0 +1,19 @@
+package xyz.om3lette.deadlines_api.controllers.auth
+
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RestController
+import xyz.om3lette.deadlines_api.data.otp.request.provider.TmaRegisterRequest
+import xyz.om3lette.deadlines_api.services.auth.providers.tma.TmaAuthProvider
+
+@RestController
+@RequestMapping("/api/auth")
+class AuthProvidersController(
+    private val tmaAuthProvider: TmaAuthProvider
+) {
+    @PostMapping("/register-tma")
+    fun tmaRegister(
+        @RequestBody request: TmaRegisterRequest
+    ) = tmaAuthProvider.register(request.initData, request.username)
+}
