@@ -1,9 +1,9 @@
 import com.google.protobuf.gradle.id
 
 plugins {
-	kotlin("jvm") version "2.2.0"
-	kotlin("plugin.spring") version "2.2.0"
-    kotlin("plugin.jpa") version "2.2.0"
+	kotlin("jvm") version "2.2.20"
+	kotlin("plugin.spring") version "2.2.20"
+    kotlin("plugin.jpa") version "2.2.20"
 	id("org.springframework.boot") version "3.5.4"
 	id("io.spring.dependency-management") version "1.1.7"
     id("com.google.protobuf") version "0.9.4"

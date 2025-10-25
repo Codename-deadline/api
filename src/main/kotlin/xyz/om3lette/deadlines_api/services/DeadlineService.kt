@@ -10,18 +10,20 @@ import xyz.om3lette.deadlines_api.data.notifications.model.DeadlineNotification
 import xyz.om3lette.deadlines_api.data.notifications.repo.DeadlineNotificationRepository
 import xyz.om3lette.deadlines_api.data.scopes.deadline.model.Deadline
 import xyz.om3lette.deadlines_api.data.scopes.deadline.repo.DeadlineRepository
+import xyz.om3lette.deadlines_api.data.scopes.deadline.response.DeadlineCreatedResponse
+import xyz.om3lette.deadlines_api.data.scopes.deadline.response.DeadlineResponse
 import xyz.om3lette.deadlines_api.data.scopes.enums.ProgressionStatus
 import xyz.om3lette.deadlines_api.data.scopes.thread.repo.ThreadRepository
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeRole
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType
 import xyz.om3lette.deadlines_api.data.scopes.userScope.model.UserScope
 import xyz.om3lette.deadlines_api.data.scopes.userScope.repo.UserScopeRepository
+import xyz.om3lette.deadlines_api.data.scopes.userScope.response.UserScopeResponse
 import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.data.user.repo.UserRepository
 import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
 import xyz.om3lette.deadlines_api.services.permission.PermissionLookupService
 import xyz.om3lette.deadlines_api.services.permission.PermissionService
-import xyz.om3lette.deadlines_api.util.MessageResponse
 import xyz.om3lette.deadlines_api.util.jpaRepository.findByIdOr404
 import xyz.om3lette.deadlines_api.util.requirePermission
 import xyz.om3lette.deadlines_api.util.user.isAdminOr
@@ -52,7 +54,7 @@ class DeadlineService(
         due: Instant,
         currentStatus: ProgressionStatus,
         assigneesUsernames: List<String>
-    ): MessageResponse {
+    ): DeadlineCreatedResponse {
         val now = Instant.now()
         val minExpirationTime = now.plus(minDeadlineExpiryTimeMinutes, ChronoUnit.MINUTES)
         if (due.isBefore(minExpirationTime)) {
@@ -131,10 +133,10 @@ class DeadlineService(
             createNotification(1, ChronoUnit.MONTHS, TimeRemaining.ONE_MONTH),
         ).filterNotNull()
         deadlineNotificationRepository.saveAll(notifications)
-        return MessageResponse.success(mapOf("deadlineId" to deadline.id))
+        return DeadlineCreatedResponse(deadline.id)
     }
 
-    fun deleteDeadline(issuer: User, deadlineId: Long): MessageResponse {
+    fun deleteDeadline(issuer: User, deadlineId: Long) {
         val (deadline, issuerScope) = permissionLookupService.getDeadlineAndHighestRoleUserScopeOr404(issuer, deadlineId)
 
         requirePermission(
@@ -142,12 +144,10 @@ class DeadlineService(
         )
 
         deadlineRepository.delete(deadline)
-
-        return MessageResponse.success("Deadline deleted")
     }
 
     @Transactional
-    fun removeAssignee(issuer: User, deadlineId: Long, assigneeUsername: String): MessageResponse {
+    fun removeAssignee(issuer: User, deadlineId: Long, assigneeUsername: String) {
         if (assigneeUsername.equals(issuer.username, ignoreCase = true)) {
             throw StatusCodeException(400, "Removing yourself is prohibited")
         }
@@ -159,18 +159,16 @@ class DeadlineService(
 
         val userToRemove = userRepository.findByUsernameIgnoreCaseOr404(assigneeUsername)
         userScopeRepository.deleteByUserAndScopeId(userToRemove, deadlineId)
-
-        return MessageResponse.success("Assignee removed")
     }
 
-    fun getDeadlineMetaData(issuer: User, deadlineId: Long): MessageResponse {
+    fun getDeadlineMetaData(issuer: User, deadlineId: Long): DeadlineResponse {
         val (deadline, issuerScope) = permissionLookupService.getDeadlineAndHighestRoleUserScopeOr404(issuer, deadlineId)
 
         requirePermission(
             permissionService.hasDeadlineAccess(issuer, issuerScope, deadline.organization)
         )
 
-        return MessageResponse.success(deadline.toMap())
+        return deadline.toResponse()
     }
 
     fun getDeadlinesByThread(
@@ -178,7 +176,7 @@ class DeadlineService(
         threadId: Long,
         pageNumber: Int,
         pageSize: Int
-    ): MessageResponse {
+    ): List<DeadlineResponse> {
         val (thread, issuerScope) = permissionLookupService.getThreadAndHighestRoleUserScopeOr404(issuer, threadId)
 
         requirePermission(
@@ -186,7 +184,7 @@ class DeadlineService(
         )
 
         val pageRequest = PageRequest.of(pageNumber, pageSize)
-        return MessageResponse.success(deadlineRepository.findAllByThread(thread, pageRequest).map { it.toMap() })
+        return deadlineRepository.findAllByThread(thread, pageRequest).map { it.toResponse() }
     }
 
     @Transactional
@@ -198,12 +196,13 @@ class DeadlineService(
         progress: Short?,
         status: ProgressionStatus?,
         due: Instant?
-    ): MessageResponse {
+    ) {
         if (
             title == null && description == null && progress == null &&
             status == null && due == null
-        )
-            return MessageResponse.success("Update unnecessary")
+        ) {
+            return
+        }
 
         val (deadline, issuerScope) = permissionLookupService.getDeadlineAndHighestRoleUserScopeOr404(issuer, deadlineId)
         requirePermission(
@@ -228,8 +227,6 @@ class DeadlineService(
         if (status != null) deadline.status = status
 
         deadlineRepository.save(deadline)
-
-        return MessageResponse.success("Update successful")
     }
 
     fun getDeadlineAssignees(
@@ -237,7 +234,7 @@ class DeadlineService(
         deadlineId: Long,
         pageNumber: Int,
         pageSize: Int
-    ): MessageResponse {
+    ): List<UserScopeResponse> {
         val (deadline, issuerScope) = permissionLookupService.getDeadlineAndHighestRoleUserScopeOr404(issuer, deadlineId)
 
         requirePermission(
@@ -245,8 +242,6 @@ class DeadlineService(
         )
 
         val pageRequest = PageRequest.of(pageNumber, pageSize, Sort.by("role").descending())
-        return MessageResponse.success(
-            userScopeRepository.findAllByScopeId(deadlineId, pageRequest).map { it.toMap() }
-        )
+        return userScopeRepository.findAllByScopeId(deadlineId, pageRequest).map { it.toResponse() }
     }
 }

@@ -7,17 +7,19 @@ import org.springframework.stereotype.Service
 import xyz.om3lette.deadlines_api.data.scopes.organization.repo.OrganizationRepository
 import xyz.om3lette.deadlines_api.data.scopes.thread.model.Thread
 import xyz.om3lette.deadlines_api.data.scopes.thread.repo.ThreadRepository
+import xyz.om3lette.deadlines_api.data.scopes.thread.response.ThreadCreatedResponse
+import xyz.om3lette.deadlines_api.data.scopes.thread.response.ThreadResponse
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeRole
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType
 import xyz.om3lette.deadlines_api.data.scopes.userScope.model.UserScope
 import xyz.om3lette.deadlines_api.data.scopes.userScope.repo.UserScopeRepository
+import xyz.om3lette.deadlines_api.data.scopes.userScope.response.UserScopeResponse
 import xyz.om3lette.deadlines_api.util.user.isAdminOr
 import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.data.user.repo.UserRepository
 import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
 import xyz.om3lette.deadlines_api.services.permission.PermissionLookupService
 import xyz.om3lette.deadlines_api.services.permission.PermissionService
-import xyz.om3lette.deadlines_api.util.MessageResponse
 import xyz.om3lette.deadlines_api.util.jpaRepository.findByIdOr404
 import xyz.om3lette.deadlines_api.util.requirePermission
 import xyz.om3lette.deadlines_api.util.userRepository.findByUsernameIgnoreCaseOr404
@@ -39,7 +41,7 @@ class ThreadService(
         title: String,
         description: String?,
         assigneesUsernames: List<String>
-    ): MessageResponse {
+    ): ThreadCreatedResponse {
         requirePermission(
             permissionService.canCreateOrDeleteThread(issuer) {
                 userScopeRepository.findByUserAndScopeId(issuer, organizationId)
@@ -79,22 +81,20 @@ class ThreadService(
             )
         }
         userScopeRepository.saveAll(threadAssigneeScopes)
-        return MessageResponse.success(mapOf("threadId" to thread.id))
+        return ThreadCreatedResponse(thread.id)
     }
 
-    fun deleteThread(issuer: User, threadId: Long): MessageResponse {
+    fun deleteThread(issuer: User, threadId: Long) {
         val (thread, issuerScope) = permissionLookupService.getThreadAndHighestRoleUserScopeOr404(issuer, threadId)
         requirePermission(
             permissionService.canCreateOrDeleteThread(issuer, issuerScope)
         )
 
         threadRepository.delete(thread)
-
-        return MessageResponse.success("Thread deleted")
     }
 
     @Transactional
-    fun removeAssignee(issuer: User, threadId: Long, assigneeUsername: String): MessageResponse {
+    fun removeAssignee(issuer: User, threadId: Long, assigneeUsername: String) {
         if (assigneeUsername.equals(issuer.username, ignoreCase = true)) {
             throw StatusCodeException(400, "Removing yourself is prohibited")
         }
@@ -104,16 +104,14 @@ class ThreadService(
             permissionService.canManageThreadAssignees(issuer, issuerScope)
         )
 
+        // RETHINK
+        // Deadline scopes for the user do not exist as he was a THREAD_ASSIGNEE which already grants access
+        // to all deadlines of the given thread
         val userToRemove = userRepository.findByUsernameIgnoreCaseOr404(assigneeUsername)
         userScopeRepository.deleteByUserAndScopeId(userToRemove, threadId)
-
-//      Deadline scopes for the user do not exist as he was a THREAD_ASSIGNEE which already grants access
-//      to all deadlines of the given thread
-
-        return MessageResponse.success("Assignee removed")
     }
 
-    fun getThreadMetaData(issuer: User, threadId: Long): MessageResponse {
+    fun getThreadMetaData(issuer: User, threadId: Long): ThreadResponse {
         val (thread, issuerScope) = permissionLookupService.getThreadAndHighestRoleUserScopeOr404(issuer, threadId)
 
         requirePermission(
@@ -122,7 +120,7 @@ class ThreadService(
             )
         )
 
-        return MessageResponse.success(thread.toMap())
+        return thread.toResponse()
     }
 
     fun getThreadsByOrganization(
@@ -130,7 +128,7 @@ class ThreadService(
         organizationId: Long,
         pageNumber: Int,
         pageSize: Int
-    ): MessageResponse {
+    ): List<ThreadResponse> {
         val organization = organizationRepository.findByIdOr404(organizationId)
 
         requirePermission(
@@ -140,11 +138,13 @@ class ThreadService(
         )
 
         val pageRequest = PageRequest.of(pageNumber, pageSize)
-        return MessageResponse.success(threadRepository.findAllByOrganization(organization, pageRequest).map { it.toMap() })
+        return threadRepository.findAllByOrganization(organization, pageRequest).map { it.toResponse() }
     }
 
-    fun patchThread(issuer: User, threadId: Long, title: String?, description: String?): MessageResponse {
-        if (title == null && description == null) return MessageResponse.success("Update unnecessary")
+    fun patchThread(issuer: User, threadId: Long, title: String?, description: String?) {
+        if (title == null && description == null) {
+            return
+        }
 
         val (thread, issuerScope) = permissionLookupService.getThreadAndHighestRoleUserScopeOr404(issuer, threadId)
 
@@ -156,8 +156,6 @@ class ThreadService(
         if (description != null) thread.description = description
 
         threadRepository.save(thread)
-
-        return MessageResponse.success("Update successful")
     }
 
     fun getThreadAssignees(
@@ -165,7 +163,7 @@ class ThreadService(
         threadId: Long,
         pageNumber: Int,
         pageSize: Int
-    ): MessageResponse {
+    ): List<UserScopeResponse> {
         val (thread, issuerScope) = permissionLookupService.getThreadAndHighestRoleUserScopeOr404(issuer, threadId)
 
         requirePermission(
@@ -173,8 +171,6 @@ class ThreadService(
         )
 
         val pageRequest = PageRequest.of(pageNumber, pageSize, Sort.by("role").descending())
-        return MessageResponse.success(
-            userScopeRepository.findAllByScopeId(threadId, pageRequest).map { it.toMap() }
-        )
+        return userScopeRepository.findAllByScopeId(threadId, pageRequest).map { it.toResponse() }
     }
 }

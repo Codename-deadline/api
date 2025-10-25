@@ -1,7 +1,6 @@
 package xyz.om3lette.deadlines_api.services.auth.otp
 
 import jakarta.annotation.PostConstruct
-import org.apache.kafka.common.metrics.Stat
 import org.slf4j.LoggerFactory
 import org.springframework.security.authentication.AuthenticationManager
 import org.springframework.security.authentication.BadCredentialsException
@@ -10,6 +9,8 @@ import org.springframework.stereotype.Service
 import xyz.om3lette.deadlines_api.data.integration.bot.enums.Language
 import xyz.om3lette.deadlines_api.data.integration.bot.enums.Messenger
 import xyz.om3lette.deadlines_api.data.integration.messengerAccount.repo.UserMessengerAccountRepository
+import xyz.om3lette.deadlines_api.data.otp.response.OtpResponse
+import xyz.om3lette.deadlines_api.data.otp.response.PasswordRequiredResponse
 import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
 import xyz.om3lette.deadlines_api.redisData.otp.enums.OtpChannel
@@ -21,7 +22,6 @@ import xyz.om3lette.deadlines_api.redisData.otp.repo.OtpRegisterRequestRepositor
 import xyz.om3lette.deadlines_api.redisData.otp.repo.OtpRepository
 import xyz.om3lette.deadlines_api.services.auth.AuthService
 import xyz.om3lette.deadlines_api.services.auth.otp.otpSendHandlers.OtpSender
-import xyz.om3lette.deadlines_api.util.MessageResponse
 import xyz.om3lette.deadlines_api.util.generateNumericCode
 import java.util.UUID
 
@@ -36,6 +36,11 @@ class OtpService(
     private val otpPasswordCheckRepository: OtpPasswordCheckRepository,
     otpSenders: List<OtpSender>
 ) {
+    sealed class OtpSignInResponse {
+        data class ok(val data: AuthService.TokenPair) : OtpSignInResponse()
+        data class passwordRequired(val data: PasswordRequiredResponse) : OtpSignInResponse()
+    }
+
     private val topicToOtpSender = otpSenders
         .groupBy { it.channel }
         .mapValues { (k, v) ->
@@ -61,7 +66,7 @@ class OtpService(
         username: String,
         fullName: String,
         language: Language?,
-    ): MessageResponse {
+    ): OtpResponse {
         val registerRequestId = otpRegisterRequestRepository.save(
             OtpRegisterRequest(
                 username = username,
@@ -71,15 +76,16 @@ class OtpService(
                 channel = channel
             )
         ).id
-        val otpId = createAndSendOtp(identifier, channel, language, registerRequestId)
-        return MessageResponse.success(mapOf("otpId" to otpId))
+        return OtpResponse(
+            createAndSendOtp(identifier, channel, language, registerRequestId)
+        )
     }
 
     fun createAndSendOtpForUser(
         identifier: String,
         channel: OtpChannel,
         username: String
-    ): MessageResponse {
+    ): OtpResponse {
 //      TODO: Check for channel not being a messenger
         val accountId: Long = identifier.toLong()
         val messenger = Messenger.valueOf(channel.name)
@@ -89,7 +95,7 @@ class OtpService(
         ) ?: throw StatusCodeException(404, "No linked account or user found")
         val otpId = createAndSendOtp(identifier, channel, linkedAccount.user.language, username = username)
 
-        return MessageResponse.success(mapOf("otpId" to otpId))
+        return OtpResponse(otpId)
     }
 
 
@@ -116,19 +122,19 @@ class OtpService(
         return otp.id
     }
 
-    fun signInOtp(otpId: UUID, code: String): MessageResponse {
+    fun signInOtp(otpId: UUID, code: String): OtpSignInResponse {
         val auth = authenticationManager.authenticate(OtpAuthenticationToken(otpId, code))
         val user = auth.principal as User
         if (auth.authorities.all { it.authority != "OTP_VERIFIED" }) {
-            return authService.signInNoPasswordCheck(user)
+            return OtpSignInResponse.ok(authService.signInNoPasswordCheck(user))
         }
         val requestId = otpPasswordCheckRepository.save(
             OtpPasswordCheck(username = user.username)
         ).id
-        return MessageResponse.success(mapOf("passwordRequired" to true, "requestId" to requestId.toString()))
+        return OtpSignInResponse.passwordRequired(PasswordRequiredResponse(requestId))
     }
 
-    fun completePassword(requestId: UUID, password: String): MessageResponse {
+    fun completePassword(requestId: UUID, password: String): AuthService.TokenPair {
         val request: OtpPasswordCheck = otpPasswordCheckRepository.findById(requestId).orElseThrow {
 //          Imitate authenticationManager error
             BadCredentialsException("")

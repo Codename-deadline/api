@@ -8,29 +8,23 @@ import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.multipart.MultipartFile
-import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody
-import xyz.om3lette.deadlines_api.data.attachments.enums.AttachmentType
 import xyz.om3lette.deadlines_api.data.attachments.model.Attachment
 import xyz.om3lette.deadlines_api.data.attachments.repo.AttachmentRepository
+import xyz.om3lette.deadlines_api.data.attachments.reponse.AttachmentCreatedResponse
+import xyz.om3lette.deadlines_api.data.attachments.reponse.AttachmentResponse
 import xyz.om3lette.deadlines_api.data.scopes.deadline.repo.DeadlineRepository
 import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
 import xyz.om3lette.deadlines_api.services.permission.PermissionLookupService
 import xyz.om3lette.deadlines_api.services.permission.PermissionService
-import xyz.om3lette.deadlines_api.util.MessageResponse
 import xyz.om3lette.deadlines_api.util.jpaRepository.findByIdOr404
 import xyz.om3lette.deadlines_api.util.minioClient.getObject
 import xyz.om3lette.deadlines_api.util.minioClient.putObject
 import xyz.om3lette.deadlines_api.util.minioClient.removeObject
-import xyz.om3lette.deadlines_api.util.minioClient.statObject
 import xyz.om3lette.deadlines_api.util.requirePermission
-import java.net.URLEncoder
-import java.nio.charset.StandardCharsets
 import java.time.Instant
 import java.util.UUID
-import javax.print.attribute.standard.Media
 
 @Service
 class AttachmentsService (
@@ -44,7 +38,12 @@ class AttachmentsService (
 ) {
     private val logger = LoggerFactory.getLogger(AttachmentsService::class.java)
 
-    fun createAttachment(issuer: User, deadlineId: Long, fileStream: MultipartFile, filename: String): MessageResponse {
+    fun createAttachment(
+        issuer: User,
+        deadlineId: Long,
+        fileStream: MultipartFile,
+        filename: String
+    ): AttachmentCreatedResponse {
         val (deadline, issuerScope) = permissionLookupService.getDeadlineAndHighestRoleUserScopeOr404(issuer, deadlineId)
         requirePermission(
             permissionService.canManageDeadlineAttachments(issuer, issuerScope)
@@ -70,7 +69,7 @@ class AttachmentsService (
                     Instant.now()
                 )
             )
-            return MessageResponse.success(mapOf("attachmentId" to attachment.id))
+            return AttachmentCreatedResponse(attachment.id)
         } catch (e: Exception) {
             runCatching {
                 minioClient.removeObject(bucketName, objectKey)
@@ -80,7 +79,7 @@ class AttachmentsService (
         }
     }
 
-    fun replaceAttachment(issuer: User, attachmentId: Long, fileStream: MultipartFile, filename: String?): MessageResponse {
+    fun replaceAttachment(issuer: User, attachmentId: Long, fileStream: MultipartFile, filename: String?) {
         val attachment = attachmentRepository.findByIdOr404(attachmentId)
 //      Avoid a db request by first validating the fileStream
         val (mimeType, newAttachmentType) = fileCheckerService.getAttachmentTypeOr403(fileStream)
@@ -100,14 +99,15 @@ class AttachmentsService (
             if (filename != null) attachment.filename = filename
 
             attachmentRepository.save(attachment)
-            return MessageResponse.success("Attachment updated")
         } catch (_: Exception) {
             throw StatusCodeException(500, "Attachment update failed")
         }
     }
 
-    fun patchAttachmentMetadata(issuer: User, attachmentId: Long, filename: String?): MessageResponse {
-        if (filename == null) return MessageResponse.success("Attachment metadata updated")
+    fun patchAttachmentMetadata(issuer: User, attachmentId: Long, filename: String?) {
+        if (filename == null) {
+            return
+        }
         val attachment = attachmentRepository.findByIdOr404(attachmentId)
         val issuerScope = permissionLookupService.getHighestRoleUserScopeOr404(issuer, attachment.deadline)
         requirePermission(
@@ -116,11 +116,9 @@ class AttachmentsService (
 
         attachment.filename = filename // Check for null if new metadata is added
         attachmentRepository.save(attachment)
-
-        return MessageResponse.success("Attachment metadata updated")
     }
 
-    fun deleteAttachment(issuer: User, attachmentId: Long): MessageResponse {
+    fun deleteAttachment(issuer: User, attachmentId: Long) {
         val attachment = attachmentRepository.findByIdOr404(attachmentId)
         val issuerScope = permissionLookupService.getHighestRoleUserScopeOr404(issuer, attachment.deadline)
         requirePermission(
@@ -131,7 +129,6 @@ class AttachmentsService (
             minioClient.removeObject(bucketName, attachment.objectKey)
 //          FIXME: Potential orphan db entries if `delete` fails
             attachmentRepository.delete(attachment)
-            return MessageResponse.success("Attachment removed")
         } catch (_: Exception) {
             throw StatusCodeException(500, "Attachment removal failed")
         }
@@ -154,15 +151,15 @@ class AttachmentsService (
             .body(resource)
     }
 
-    fun getAttachmentMetadata(issuer: User, attachmentId: Long): MessageResponse =
-        MessageResponse.success(getAttachmentByIdAndCheckPermissions(issuer, attachmentId).toMap())
+    fun getAttachmentMetadata(issuer: User, attachmentId: Long): AttachmentResponse =
+        getAttachmentByIdAndCheckPermissions(issuer, attachmentId).toResponse()
 
     fun getDeadlineAttachmentsMetadata(
         issuer: User,
         deadlineId: Long,
         pageNumber: Int,
         pageSize: Int
-    ): MessageResponse {
+    ): List<AttachmentResponse> {
         val deadline = deadlineRepository.findByIdOr404(deadlineId)
         requirePermission(
             permissionService.hasDeadlineAccess(
@@ -171,12 +168,10 @@ class AttachmentsService (
                 deadline.organization
             )
         )
-        return MessageResponse.success(
-            attachmentRepository.findAllByDeadline(
-                deadline,
-                PageRequest.of(pageNumber, pageSize)
-            ).map { it.toMap() }
-        )
+        return attachmentRepository.findAllByDeadline(
+            deadline,
+            PageRequest.of(pageNumber, pageSize)
+        ).map { it.toResponse() }
     }
 
 

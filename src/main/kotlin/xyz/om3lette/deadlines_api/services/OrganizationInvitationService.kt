@@ -7,6 +7,7 @@ import xyz.om3lette.deadlines_api.data.scopes.organization.model.Organization
 import xyz.om3lette.deadlines_api.data.scopes.organization.model.OrganizationInvitation
 import xyz.om3lette.deadlines_api.data.scopes.organization.repo.OrganizationInvitationRepository
 import xyz.om3lette.deadlines_api.data.scopes.organization.repo.OrganizationRepository
+import xyz.om3lette.deadlines_api.data.scopes.organization.response.member.InvitationCreatedResponse
 import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.data.user.repo.UserRepository
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeRole
@@ -15,7 +16,6 @@ import xyz.om3lette.deadlines_api.data.scopes.userScope.model.UserScope
 import xyz.om3lette.deadlines_api.data.scopes.userScope.repo.UserScopeRepository
 import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
 import xyz.om3lette.deadlines_api.services.permission.PermissionService
-import xyz.om3lette.deadlines_api.util.MessageResponse
 import xyz.om3lette.deadlines_api.util.jpaRepository.findByIdOr404
 import xyz.om3lette.deadlines_api.util.requirePermission
 import xyz.om3lette.deadlines_api.util.userRepository.findByUsernameIgnoreCaseOr404
@@ -29,7 +29,7 @@ class OrganizationInvitationService(
     private val organizationInvitationRepository: OrganizationInvitationRepository,
     private val permissionService: PermissionService
 ) {
-    fun createInvitation(issuer: User, organizationId: Long, usernameToInvite: String, role: ScopeRole): MessageResponse {
+    fun createInvitation(issuer: User, organizationId: Long, usernameToInvite: String, role: ScopeRole): InvitationCreatedResponse {
         if (role == ScopeRole.ORG_OWNER) {
             throw StatusCodeException(400, "Only one owner is allowed")
         }
@@ -53,7 +53,7 @@ class OrganizationInvitationService(
 
         val invitation = organizationInvitationRepository.save(createInvitation(issuer, userToInvite, organization, role))
         // PROPOSAL: Notify of invitation?
-        return MessageResponse.success(mapOf("invitationId" to invitation.id))
+        return InvitationCreatedResponse(invitation.id)
     }
 
     fun getInvitation(issuer: User, invitationId: Long): Map<String, Any?> {
@@ -61,7 +61,7 @@ class OrganizationInvitationService(
         return organizationInvitation.toMap()
     }
 
-    fun resolveInvitation(userAcceptingInvitation: User, invitationId: Long, newStatus: InvitationStatus): MessageResponse {
+    fun resolveInvitation(userAcceptingInvitation: User, invitationId: Long, newStatus: InvitationStatus) {
         val organizationInvitation = organizationInvitationRepository.findByIdOr404(invitationId)
 
         if (organizationInvitation.status != InvitationStatus.PENDING) {
@@ -89,8 +89,6 @@ class OrganizationInvitationService(
                 )
             )
         }
-
-        return MessageResponse.success("Invitation status updated")
     }
 
     fun createInvitation(issuer: User, userToInvite: User, organization: Organization, role: ScopeRole) =

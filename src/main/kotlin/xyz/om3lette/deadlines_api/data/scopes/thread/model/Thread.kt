@@ -5,6 +5,7 @@ import jakarta.validation.constraints.Size
 import org.hibernate.annotations.SQLRestriction
 import xyz.om3lette.deadlines_api.data.scopes.deadline.model.Deadline
 import xyz.om3lette.deadlines_api.data.scopes.organization.model.Organization
+import xyz.om3lette.deadlines_api.data.scopes.thread.response.ThreadResponse
 import xyz.om3lette.deadlines_api.data.scopes.userScope.model.UserScope
 import java.time.Instant
 
@@ -47,5 +48,9 @@ data class Thread(
         "title" to title,
         "description" to description,
         "organizationId" to organization.id
+    )
+
+    fun toResponse() = ThreadResponse(
+        id, title, description, organization.id
     )
 }

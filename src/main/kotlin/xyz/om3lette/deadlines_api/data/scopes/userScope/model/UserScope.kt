@@ -6,6 +6,7 @@ import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.data.scopes.userScope.converters.ScopeTypeConverter
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeRole
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType
+import xyz.om3lette.deadlines_api.data.scopes.userScope.response.UserScopeResponse
 import java.time.Instant
 
 @Entity
@@ -40,5 +41,9 @@ data class UserScope(
         "user" to user.toMap(),
         "role" to role,
         "assignedAt" to assignedAt
+    )
+
+    fun toResponse() = UserScopeResponse(
+        user.toResponse(), role, assignedAt
     )
 }

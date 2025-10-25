@@ -1,13 +1,11 @@
 package xyz.om3lette.deadlines_api.services
 
 import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeRole
 import xyz.om3lette.deadlines_api.data.scopes.userScope.repo.UserScopeRepository
 import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
 import xyz.om3lette.deadlines_api.services.permission.PermissionService
-import xyz.om3lette.deadlines_api.util.MessageResponse
 import xyz.om3lette.deadlines_api.util.requirePermission
 
 @Service
@@ -24,7 +22,7 @@ class RolesService(
         subjectUsername: String,
         newRole: ScopeRole,
         scopeRolePrefix: String
-    ): MessageResponse {
+    ) {
         if (issuer.username.equals(subjectUsername, ignoreCase = true)) {
             throw StatusCodeException(400, "Changing your own role is forbidden")
         }
@@ -43,7 +41,5 @@ class RolesService(
             currentSubjectScope.role = newRole
             userScopeRepository.save(currentSubjectScope)
         }
-
-        return MessageResponse.success()
     }
 }

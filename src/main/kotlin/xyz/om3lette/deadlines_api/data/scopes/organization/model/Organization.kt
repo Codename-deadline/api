@@ -5,6 +5,7 @@ import jakarta.validation.constraints.Size
 import org.hibernate.annotations.SQLRestriction
 
 import xyz.om3lette.deadlines_api.data.scopes.organization.enums.OrganizationType
+import xyz.om3lette.deadlines_api.data.scopes.organization.response.OrganizationResponse
 import xyz.om3lette.deadlines_api.data.scopes.thread.model.Thread
 import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.data.scopes.userScope.model.UserScope
@@ -52,5 +53,9 @@ data class Organization(
         "description" to description,
         "type" to type,
         "createdAt" to createdAt
+    )
+
+    fun toResponse() = OrganizationResponse(
+        id, title, description, type, createdAt
     )
 }

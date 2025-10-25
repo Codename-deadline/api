@@ -9,7 +9,6 @@ import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.spyk
 import io.mockk.verify
-import org.checkerframework.checker.units.qual.t
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
@@ -300,7 +299,7 @@ class ThreadServiceTest {
         }
 
         @Test
-        fun `happy path returns MessageResponse`() {
+        fun `happy path calls threadRepository findAllByOrganization`() {
             threadService.getThreadsByOrganization(
                 dummyUserBob,
                 organization.id,
