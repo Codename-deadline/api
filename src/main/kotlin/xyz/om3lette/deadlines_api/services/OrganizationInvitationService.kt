@@ -7,6 +7,7 @@ import xyz.om3lette.deadlines_api.data.scopes.organization.model.Organization
 import xyz.om3lette.deadlines_api.data.scopes.organization.model.OrganizationInvitation
 import xyz.om3lette.deadlines_api.data.scopes.organization.repo.OrganizationInvitationRepository
 import xyz.om3lette.deadlines_api.data.scopes.organization.repo.OrganizationRepository
+import xyz.om3lette.deadlines_api.data.scopes.organization.response.OrganizationInvitationResponse
 import xyz.om3lette.deadlines_api.data.scopes.organization.response.member.InvitationCreatedResponse
 import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.data.user.repo.UserRepository
@@ -56,10 +57,8 @@ class OrganizationInvitationService(
         return InvitationCreatedResponse(invitation.id)
     }
 
-    fun getInvitation(issuer: User, invitationId: Long): Map<String, Any?> {
-        val organizationInvitation = organizationInvitationRepository.findByIdOr404(invitationId)
-        return organizationInvitation.toMap()
-    }
+    fun getInvitation(issuer: User, invitationId: Long): OrganizationInvitationResponse =
+        organizationInvitationRepository.findByIdOr404(invitationId).toResponse()
 
     fun resolveInvitation(userAcceptingInvitation: User, invitationId: Long, newStatus: InvitationStatus) {
         val organizationInvitation = organizationInvitationRepository.findByIdOr404(invitationId)

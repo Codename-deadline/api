@@ -6,7 +6,7 @@ plugins {
     kotlin("plugin.jpa") version "2.2.20"
 	id("org.springframework.boot") version "3.5.4"
 	id("io.spring.dependency-management") version "1.1.7"
-    id("com.google.protobuf") version "0.9.4"
+    id("com.google.protobuf") version "0.9.5"
 }
 
 group = "xyz.om3lette"
@@ -22,7 +22,7 @@ repositories {
 	mavenCentral()
 }
 
-extra["springGrpcVersion"] = "0.10.0"
+extra["springGrpcVersion"] = "0.12.0"
 
 dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-web")
@@ -38,22 +38,22 @@ dependencies {
 
     implementation("io.github.sanvew:telegram-init-data:1.0.0")
 
-    implementation("io.hypersistence:hypersistence-utils-hibernate-63:3.10.3")
+    implementation("io.hypersistence:hypersistence-utils-hibernate-63:3.11.0")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("redis.clients:jedis")
-	implementation("io.jsonwebtoken:jjwt-api:0.12.6")
-	implementation("io.minio:minio:8.5.17")
-	implementation("org.apache.tika:tika-core:3.1.0")
-    implementation("org.apache.tika:tika-parsers-standard-package:3.1.0")
+	implementation("io.minio:minio:8.6.0")
+	implementation("org.apache.tika:tika-core:3.2.3")
+    implementation("org.apache.tika:tika-parsers-standard-package:3.2.3")
+    implementation("io.jsonwebtoken:jjwt-api:0.13.0")
+    runtimeOnly("io.jsonwebtoken:jjwt-impl:0.13.0")
+    runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.13.0")
 	runtimeOnly("org.postgresql:postgresql")
-	runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.6")
-	runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.6")
 	testImplementation("org.springframework.boot:spring-boot-starter-test") {
 		exclude(module = "mockito-core")
 	}
-    testImplementation("com.h2database:h2:2.3.232")
-	testImplementation("io.mockk:mockk:1.14.5")
+    testImplementation("com.h2database:h2:2.4.240")
+	testImplementation("io.mockk:mockk:1.14.6")
 	testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
     testImplementation("org.springframework.grpc:spring-grpc-test")
 	testImplementation("org.springframework.security:spring-security-test")

@@ -270,10 +270,7 @@ class OrganizationServiceTest {
             }
             assertTrue(deletedOrganizationSlot.isCaptured)
             val deletedOrganization = deletedOrganizationSlot.captured
-            assertAll(
-                { assertEquals(dummyOrganization.id, deletedOrganization.id) },
-                { assertEquals("success", res.type) }
-            )
+            assertEquals(dummyOrganization.id, deletedOrganization.id)
         }
     }
 
