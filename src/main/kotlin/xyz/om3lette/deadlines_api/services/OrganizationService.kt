@@ -13,7 +13,6 @@ import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType
 import xyz.om3lette.deadlines_api.data.scopes.userScope.model.UserScope
 import xyz.om3lette.deadlines_api.data.scopes.userScope.repo.UserScopeRepository
 import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
-import xyz.om3lette.deadlines_api.util.MessageResponse
 import xyz.om3lette.deadlines_api.util.jpaRepository.findByIdOr404
 import xyz.om3lette.deadlines_api.util.userRepository.findByUsernameIgnoreCaseOr404
 import java.time.Instant
@@ -22,7 +21,10 @@ import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import xyz.om3lette.deadlines_api.data.scopes.deadline.repo.DeadlineRepository
 import xyz.om3lette.deadlines_api.data.scopes.organization.model.InvitationDTO
+import xyz.om3lette.deadlines_api.data.scopes.organization.response.OrganizationCreatedResponse
+import xyz.om3lette.deadlines_api.data.scopes.organization.response.OrganizationResponse
 import xyz.om3lette.deadlines_api.data.scopes.thread.repo.ThreadRepository
+import xyz.om3lette.deadlines_api.data.scopes.userScope.response.UserScopeResponse
 import xyz.om3lette.deadlines_api.services.permission.PermissionService
 import xyz.om3lette.deadlines_api.util.requirePermission
 
@@ -43,7 +45,7 @@ class OrganizationService(
         description: String?,
         type: OrganizationType,
         usernameRolePairToInvite: List<InvitationDTO>
-    ): MessageResponse {
+    ): OrganizationCreatedResponse {
         val organization = organizationRepository.save(
             Organization(
                 0, title, description, type, Instant.now()
@@ -80,10 +82,10 @@ class OrganizationService(
             )
         }
         organizationInvitationRepository.saveAll(invitations)
-        return MessageResponse.success(mapOf("organizationId" to organization.id))
+        return OrganizationCreatedResponse(organization.id)
     }
 
-    fun deleteOrganization(issuer: User, organizationId: Long): MessageResponse {
+    fun deleteOrganization(issuer: User, organizationId: Long) {
         val organization: Organization = organizationRepository.findByIdOr404(organizationId)
         requirePermission(
             permissionService.canDeleteOrganization(issuer) {
@@ -92,11 +94,10 @@ class OrganizationService(
         )
 
         organizationRepository.delete(organization)
-        return MessageResponse.success("Organization deleted")
     }
 
     @Transactional
-    fun removeMember(issuer: User, organizationId: Long, memberUsernameToRemove: String): MessageResponse {
+    fun removeMember(issuer: User, organizationId: Long, memberUsernameToRemove: String) {
         if (memberUsernameToRemove.equals(issuer._username, ignoreCase = true)) {
             throw StatusCodeException(400, "Removing yourself is prohibited")
         }
@@ -119,11 +120,9 @@ class OrganizationService(
         if (deadlinesIds.isNotEmpty()) {
             userScopeRepository.deleteByUserAndScopeIdIn(userToRemove, deadlinesIds)
         }
-
-        return MessageResponse.success("Member removed")
     }
 
-    fun getOrganizationMetaData(issuer: User, organizationId: Long): MessageResponse {
+    fun getOrganizationMetaData(issuer: User, organizationId: Long): OrganizationResponse {
         val organization = organizationRepository.findByIdOr404(organizationId)
         requirePermission(
             permissionService.hasOrganizationAccess(issuer, organization) {
@@ -131,19 +130,18 @@ class OrganizationService(
             }
         )
 
-        return MessageResponse.success(organization.toMap())
+        return organization.toResponse()
     }
 
-    fun getOrganizationsMetadataByUser(user: User, pageNumber: Int, pageSize: Int): MessageResponse {
-        return MessageResponse.success(
-            organizationRepository.findAllOrganizationsForUser(
-                user, PageRequest.of(pageNumber, pageSize)
-            ).map { it.toMap() }
-        )
-    }
+    fun getOrganizationsMetadataByUser(user: User, pageNumber: Int, pageSize: Int): List<OrganizationResponse> =
+        organizationRepository.findAllOrganizationsForUser(
+            user, PageRequest.of(pageNumber, pageSize)
+        ).map { it.toResponse() }
 
-    fun patchOrganization(issuer: User, organizationId: Long, title: String?, description: String?): MessageResponse {
-        if (title == null && description == null) return MessageResponse.success("Update unnecessary")
+    fun patchOrganization(issuer: User, organizationId: Long, title: String?, description: String?) {
+        if (title == null && description == null) {
+            return
+        }
 
         val organization: Organization = organizationRepository.findByIdOr404(organizationId)
 
@@ -157,7 +155,6 @@ class OrganizationService(
         if (description != null) organization.description = description
 
         organizationRepository.save(organization)
-        return MessageResponse.success("Update successful")
     }
 
     fun getOrganizationMembers(
@@ -165,7 +162,7 @@ class OrganizationService(
         organizationId: Long,
         pageNumber: Int,
         pageSize: Int
-    ): MessageResponse {
+    ): List<UserScopeResponse> {
         val organization = organizationRepository.findByIdOr404(organizationId)
         requirePermission(
             permissionService.hasOrganizationAccess(issuer, organization) {
@@ -174,14 +171,8 @@ class OrganizationService(
         )
 
         val pageRequest = PageRequest.of(pageNumber, pageSize, Sort.by("role").descending())
-        return MessageResponse.success(
-            userScopeRepository.findAllByScopeId(organizationId, pageRequest).map { member ->
-                mapOf(
-                    "user" to member.user.toMap(),
-                    "joinedOrgAt" to member.assignedAt,
-                    "role" to member.role
-                )
-            }
-        )
+        return userScopeRepository.findAllByScopeId(organizationId, pageRequest).map { member ->
+            member.toResponse()
+        }
     }
 }

@@ -15,7 +15,6 @@ import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.data.user.repo.UserRepository
 import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
 import xyz.om3lette.deadlines_api.services.JwtService
-import xyz.om3lette.deadlines_api.util.MessageResponse
 import java.time.Instant
 
 @Service
@@ -36,7 +35,7 @@ class AuthService(
         fullName: String,
         password: String,
         language: Language?
-    ): MessageResponse {
+    ) {
         try {
             userRepository.save(
                 User(
@@ -51,21 +50,20 @@ class AuthService(
         } catch (_: DataIntegrityViolationException) {
             throw StatusCodeException(409, "User already exists")
         }
-        return MessageResponse.success("User created")
     }
 
 //    Can be used with external auth checks e.g. OTP
-    fun signInNoPasswordCheck(user: User): MessageResponse {
+    fun signInNoPasswordCheck(user: User): TokenPair {
         val openedSessions = refreshTokenRepository.findAllValidByUser(user).count()
 
         if (openedSessions >= maxSessions) {
             throw StatusCodeException(400, "Sessions limit reached: $openedSessions")
         }
 
-        return MessageResponse.success(generateTokenPair(user))
+        return generateTokenPair(user)
     }
 
-    fun signInPassword(username: String, password: String): MessageResponse {
+    fun signInPassword(username: String, password: String): TokenPair {
         val auth = authenticationManager.authenticate(
             UsernamePasswordAuthenticationToken(username, password)
         )
@@ -74,10 +72,8 @@ class AuthService(
         return signInNoPasswordCheck(user)
     }
 
-    fun signOut(user: User): MessageResponse {
+    fun signOut(user: User) =
         invalidateRefreshTokensByUser(user)
-        return MessageResponse.success("Sign out successfully")
-    }
 
     private fun invalidateRefreshTokensByUser(user: User) {
         val userValidTokens = refreshTokenRepository.findAllValidByUser(user)
@@ -86,7 +82,7 @@ class AuthService(
         refreshTokenRepository.saveAll(userValidTokens)
     }
 
-    fun changePassword(user: User, oldPassword: String?, newPassword: String): MessageResponse {
+    fun changePassword(user: User, oldPassword: String?, newPassword: String) {
         if (oldPassword == newPassword) {
             throw StatusCodeException(400, "New password must not match the old one")
         }
@@ -103,10 +99,9 @@ class AuthService(
         userRepository.save(user)
 
         invalidateRefreshTokensByUser(user)
-        return MessageResponse.success("Password updated")
     }
 
-    fun refreshToken(request: HttpServletRequest): MessageResponse {
+    fun refreshToken(request: HttpServletRequest): TokenPair {
         val authHeader = request.getHeader("Authorization")
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             throw StatusCodeException(401, "Invalid header")
@@ -140,7 +135,7 @@ class AuthService(
         refreshTokenEntry.revoked = true
         refreshTokenRepository.save(refreshTokenEntry)
 
-        return MessageResponse.success(generateTokenPair(user))
+        return generateTokenPair(user)
     }
 
 

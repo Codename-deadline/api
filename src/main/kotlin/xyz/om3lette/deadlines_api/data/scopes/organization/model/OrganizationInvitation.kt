@@ -2,6 +2,7 @@ package xyz.om3lette.deadlines_api.data.scopes.organization.model
 
 import jakarta.persistence.*
 import xyz.om3lette.deadlines_api.data.scopes.organization.enums.InvitationStatus
+import xyz.om3lette.deadlines_api.data.scopes.organization.response.OrganizationInvitationResponse
 import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeRole
 import java.time.Instant
@@ -46,5 +47,16 @@ data class OrganizationInvitation(
         "role" to role.toString(),
         "createdAt" to createdAt,
         "answeredAt" to answeredAt
+    )
+
+    fun toResponse() = OrganizationInvitationResponse(
+        id,
+        invitedBy.toResponse(),
+        invitedUser.toResponse(),
+        organization.toResponse(),
+        status.name,
+        role.name,
+        createdAt,
+        answeredAt
     )
 }

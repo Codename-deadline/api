@@ -8,6 +8,7 @@ import org.springframework.security.core.userdetails.UserDetails
 import xyz.om3lette.deadlines_api.data.integration.bot.enums.Language
 import xyz.om3lette.deadlines_api.data.integration.messengerAccount.model.UserMessengerAccount
 import xyz.om3lette.deadlines_api.data.user.enums.UserRole
+import xyz.om3lette.deadlines_api.data.user.response.UserResponse
 import java.time.Instant
 
 @Entity
@@ -64,5 +65,9 @@ data class User(
         "username" to _username,
         "fullName" to fullName,
         "joinedAt" to joinedAt
+    )
+
+    fun toResponse() = UserResponse(
+        id, username, fullName, joinedAt
     )
 }

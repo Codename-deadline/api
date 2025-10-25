@@ -34,7 +34,6 @@ class SecurityConfig(
 ) {
     companion object {
         val PUBLIC_URLS = arrayOf(
-            "/api/auth/register",
             "/api/auth/register-otp",
             "/api/auth/register-tma",
             "/api/auth/sign-in",
@@ -55,11 +54,6 @@ class SecurityConfig(
     fun authenticationManager(http: HttpSecurity): AuthenticationManager {
         val providers = listOf(daoAuthProvider(), otpAuthProvider)
         return ProviderManager(providers)
-//        val builder = http.getSharedObject(AuthenticationManagerBuilder::class.java)
-//        builder
-//            .userDetailsService(userDetailsService())
-//            .passwordEncoder(passwordEncoder())
-//        return builder.build()
     }
 
     @Bean

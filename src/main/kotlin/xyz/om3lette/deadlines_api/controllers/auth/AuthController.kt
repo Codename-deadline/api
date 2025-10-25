@@ -19,16 +19,6 @@ import xyz.om3lette.deadlines_api.services.auth.AuthService
 class AuthController(
     val authService: AuthService
 ) {
-    @PostMapping("/register")
-    fun register(
-        @RequestBody request: RegisterRequest
-    ) = authService.registerWithPassword(
-        request.username,
-        request.fullName,
-        request.password,
-        request.language
-    )
-
     @PostMapping("/sign-in")
     fun signIn(
         @RequestBody request: SignInRequest

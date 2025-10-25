@@ -99,8 +99,7 @@ class AuthServiceTest {
 
         @Test
         fun `happy path creates user`() {
-            val res = service.registerWithPassword("Bob", "Bob the tester", "strong-password", null)
-            assertEquals(res.data, "User created")
+            service.registerWithPassword("Bob", "Bob the tester", "strong-password", null)
             verify { userRepository.save(
                 match { it.username == "Bob" && it.password?.startsWith("encoded") ?: false })
             }
@@ -148,12 +147,9 @@ class AuthServiceTest {
             val savedSlot = slot<RefreshToken>()
             every { refreshTokenRepository.save(capture(savedSlot)) } returnsArgument 0
 
-            val resp = service.signInPassword("bob", "raw‑pw")
-
-            // Assert response wraps the token pair
-            val data = resp.data as AuthService.TokenPair
-            assertEquals(accessToken, data.accessToken)
-            assertEquals(refreshJwt, data.refreshToken)
+            val res = service.signInPassword("bob", "raw‑pw")
+            assertEquals(accessToken, res.accessToken)
+            assertEquals(refreshJwt, res.refreshToken)
 
             // Assert we saved a RefreshToken with correct fields
             val saved = savedSlot.captured
@@ -255,14 +251,12 @@ class AuthServiceTest {
 
             val res = service.refreshToken(request)
             val savedToken = savedSlot.captured
-            val returnedPair = res.data as AuthService.TokenPair
 
             verify { refreshTokenRepository.save(match { it.jti == savedToken.jti }) }
             assertAll(
-                { assertEquals("success", res.type) },
                 { assertEquals(true, dummyRefreshToken.revoked) },
-                { assertEquals("access", returnedPair.accessToken) },
-                { assertEquals("refresh", returnedPair.refreshToken) }
+                { assertEquals("access", res.accessToken) },
+                { assertEquals("refresh", res.refreshToken) }
             )
         }
     }
@@ -323,16 +317,13 @@ class AuthServiceTest {
             every { refreshTokenRepository.findAllValidByUser(dummyUser) } returns dummyTokens
             every { refreshTokenRepository.saveAll(capture(savedTokensSlot)) } returnsArgument 0
 
-            val res = service.changePassword(dummyUser, oldPassword, newPassword)
+            service.changePassword(dummyUser, oldPassword, newPassword)
             val savedUser = savedUserSlot.captured
             val savedTokens = savedTokensSlot.captured
-            assertAll(
-                { assertEquals("success", res.type) },
-                { assertEquals("Password updated", res.data) },
-                { assertEquals(dummyUser.id, savedUser.id) },
-                { assertTrue( savedTokens.all { it.revoked } ) },
-                { assertEquals(dummyTokens.count(), savedTokens.count()) }
-            )
+
+            assertEquals(dummyUser.id, savedUser.id)
+            assertTrue( savedTokens.all { it.revoked } )
+            assertEquals(dummyTokens.count(), savedTokens.count())
         }
     }
 
@@ -349,12 +340,9 @@ class AuthServiceTest {
 
         @Test
         fun `happy path revokes all user's refresh tokens`() {
-            val res = service.signOut(dummyUser)
+            service.signOut(dummyUser)
 
-            assertAll(
-                { assertEquals ("success", res.type) },
-                { savedTokensSlot.captured.all { it.revoked }}
-            )
+            assertTrue(savedTokensSlot.captured.all { it.revoked })
         }
     }
 }

@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Min
 import jakarta.validation.constraints.Size
 import org.hibernate.annotations.SQLRestriction
 import xyz.om3lette.deadlines_api.data.notifications.model.DeadlineNotification
+import xyz.om3lette.deadlines_api.data.scopes.deadline.response.DeadlineResponse
 import xyz.om3lette.deadlines_api.data.scopes.enums.ProgressionStatus
 import xyz.om3lette.deadlines_api.data.scopes.organization.model.Organization
 import xyz.om3lette.deadlines_api.data.scopes.thread.model.Thread
@@ -67,5 +68,9 @@ data class Deadline(
         "due" to due,
         "progress" to progress,
         "status" to status
+    )
+
+    fun toResponse() = DeadlineResponse(
+        id, title, description, createdAt, due, progress, status
     )
 }

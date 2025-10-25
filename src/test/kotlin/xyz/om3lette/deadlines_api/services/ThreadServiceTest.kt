@@ -9,7 +9,6 @@ import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.spyk
 import io.mockk.verify
-import org.checkerframework.checker.units.qual.t
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
@@ -20,6 +19,7 @@ import xyz.om3lette.deadlines_api.data.scopes.organization.model.Organization
 import xyz.om3lette.deadlines_api.data.scopes.organization.repo.OrganizationRepository
 import xyz.om3lette.deadlines_api.data.scopes.thread.model.Thread
 import xyz.om3lette.deadlines_api.data.scopes.thread.repo.ThreadRepository
+import xyz.om3lette.deadlines_api.data.scopes.thread.response.ThreadResponse
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeRole
 import xyz.om3lette.deadlines_api.data.scopes.userScope.model.UserScope
 import xyz.om3lette.deadlines_api.data.scopes.userScope.repo.UserScopeRepository
@@ -146,7 +146,7 @@ class ThreadServiceTest {
                 )
             assertTrue(savedThreadSlot.isCaptured)
             assertEquals(0, savedUserScopesSlot.captured.size)
-            assertEquals(savedThreadSlot.captured.id, (res.data as Map<*, *>)["threadId"])
+            assertEquals(savedThreadSlot.captured.id, res.threadId)
         }
 
         @Test
@@ -159,7 +159,7 @@ class ThreadServiceTest {
                 )
             assertTrue(savedThreadSlot.isCaptured)
             assertTrue(savedUserScopesSlot.isCaptured)
-            assertEquals(savedThreadSlot.captured.id, (res.data as Map<*, *>)["threadId"])
+            assertEquals(savedThreadSlot.captured.id, res.threadId)
             assertAll(
                 { savedUserScopesSlot.captured.size == 1 },
                 { savedUserScopesSlot.captured.first().user.username == dummyUserAlice.username },
@@ -252,7 +252,9 @@ class ThreadServiceTest {
     inner class GetThreadMetaData {
         @BeforeEach
         fun commonHappyStubs() {
-            every { thread.toMap() } returns mapOf("id" to thread.id)
+            every { thread.toResponse() } returns ThreadResponse(
+                thread.id, "mock", "mock", thread.organization.id
+            )
         }
 
         @Test
@@ -270,8 +272,8 @@ class ThreadServiceTest {
             every { permissionService.canManageThreadAssignees(any(), any()) } returns false
 
             val res = threadService.getThreadMetaData(dummyUserBob,thread.id)
-            verify(exactly = 1) { thread.toMap() }
-            assertEquals(thread.id, (res.data as Map<*, *>)["id"])
+            verify(exactly = 1) { thread.toResponse() }
+            assertEquals(thread.id, res.id)
         }
     }
 
@@ -300,7 +302,7 @@ class ThreadServiceTest {
         }
 
         @Test
-        fun `happy path returns MessageResponse`() {
+        fun `happy path calls threadRepository findAllByOrganization`() {
             threadService.getThreadsByOrganization(
                 dummyUserBob,
                 organization.id,
