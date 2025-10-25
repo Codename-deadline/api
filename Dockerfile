@@ -1,4 +1,4 @@
-FROM gradle:latest AS builder
+FROM gradle:8.14.3 AS builder
 
 COPY . /workspace/app
 

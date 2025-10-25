@@ -1,14 +1,14 @@
 package xyz.om3lette.deadlines_api.configs
 
-import io.minio.BucketExistsArgs
-import io.minio.MakeBucketArgs
 import io.minio.MinioClient
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.context.annotation.Profile
 
 
 @Configuration
+@Profile("!test")
 class MinioConfig(
     @param:Value("\${minio.url}")       private val url: String,
     @param:Value("\${minio.accessKey}") private val accessKey: String,
