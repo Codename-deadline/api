@@ -1,5 +1,6 @@
 package xyz.om3lette.deadlines_api.controllers
 
+import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -9,6 +10,7 @@ import xyz.om3lette.deadlines_api.data.integration.request.LinkMessengerAccountR
 import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.services.integration.IntegrationService
 
+@SecurityRequirement(name = "bearerAuth")
 @RestController
 @RequestMapping("/api/integration")
 class IntegrationController(

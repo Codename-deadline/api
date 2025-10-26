@@ -1,5 +1,6 @@
 package xyz.om3lette.deadlines_api.controllers.organization
 
+import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
@@ -15,6 +16,7 @@ import xyz.om3lette.deadlines_api.data.scopes.organization.request.PatchOrganiza
 import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.services.OrganizationService
 
+@SecurityRequirement(name = "bearerAuth")
 @RestController
 @RequestMapping("/api/organization")
 class OrganizationController(

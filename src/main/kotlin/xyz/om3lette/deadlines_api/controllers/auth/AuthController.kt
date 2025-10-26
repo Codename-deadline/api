@@ -1,5 +1,8 @@
 package xyz.om3lette.deadlines_api.controllers.auth
 
+import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.security.SecurityRequirement
+import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.validation.Valid
 import org.springframework.security.core.annotation.AuthenticationPrincipal
@@ -16,14 +19,10 @@ import xyz.om3lette.deadlines_api.services.auth.AuthService
 
 @RestController
 @RequestMapping("/api/auth")
+@Tag(name = "Authentication")
 class AuthController(
     val authService: AuthService
 ) {
-    @PostMapping("/sign-in")
-    fun signIn(
-        @RequestBody request: SignInRequest
-    ) = authService.signInPassword(request.username, request.password)
-
     @PostMapping("/refresh-token")
     fun refreshToken(
         request: HttpServletRequest
@@ -34,6 +33,12 @@ class AuthController(
         @AuthenticationPrincipal user: User
     ) = authService.signOut(user)
 
+//  TODO: Move to the user controller
+    @Operation(
+        summary = "Change password",
+        description = "If user does not have a password set omit oldPassword from the request body",
+        security = [SecurityRequirement(name = "bearerAuth")]
+    )
     @PostMapping("/change-password")
     fun changePassword(
         @RequestBody @Valid request: ChangePasswordRequest,

@@ -1,5 +1,6 @@
 package xyz.om3lette.deadlines_api.controllers
 
+import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import jakarta.validation.Valid
 import org.springframework.http.MediaType
 import org.springframework.security.core.annotation.AuthenticationPrincipal
@@ -20,7 +21,7 @@ import xyz.om3lette.deadlines_api.data.attachments.request.PatchFileMetadataRequ
 import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.services.storage.AttachmentsService
 
-// TODO
+@SecurityRequirement(name = "bearerAuth")
 @RestController
 @RequestMapping("/api/attachments")
 class AttachmentsController(

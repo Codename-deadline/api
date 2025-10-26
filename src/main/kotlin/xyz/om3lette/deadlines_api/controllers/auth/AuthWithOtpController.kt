@@ -1,5 +1,6 @@
 package xyz.om3lette.deadlines_api.controllers.auth
 
+import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
@@ -10,6 +11,7 @@ import xyz.om3lette.deadlines_api.services.auth.otp.OtpService
 
 @RestController
 @RequestMapping("/api/auth")
+@Tag(name = "Authentication")
 class AuthWithOtpController(
     private val otpService: OtpService
 ) {
