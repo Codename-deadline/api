@@ -9,6 +9,11 @@ import org.springframework.context.annotation.Configuration
 
 @Configuration
 class OpenApiConfig {
+    companion object {
+        val TAGS_ORDER = listOf(
+            "Authentication", "Roles"
+        )
+    }
     @Bean
     fun openApi(): OpenAPI {
         val bearerSchema = SecurityScheme()

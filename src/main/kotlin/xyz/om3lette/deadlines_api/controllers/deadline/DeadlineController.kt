@@ -1,6 +1,7 @@
 package xyz.om3lette.deadlines_api.controllers.deadline
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
+import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
@@ -18,6 +19,7 @@ import xyz.om3lette.deadlines_api.services.DeadlineService
 @SecurityRequirement(name = "bearerAuth")
 @RestController
 @RequestMapping("/api/deadlines/{deadlineId}")
+@Tag(name = "Deadlines")
 class DeadlineController(
     val deadlineService: DeadlineService
 ) {

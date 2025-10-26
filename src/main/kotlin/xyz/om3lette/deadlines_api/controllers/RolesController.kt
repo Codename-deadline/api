@@ -1,6 +1,7 @@
 package xyz.om3lette.deadlines_api.controllers
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
+import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.PathVariable
@@ -15,6 +16,7 @@ import xyz.om3lette.deadlines_api.services.RolesService
 @SecurityRequirement(name = "bearerAuth")
 @RestController
 @RequestMapping("/api/role")
+@Tag(name = "Roles", description = "Role management in organization / thread / deadline")
 class RolesController(
     private val rolesService: RolesService
 ) {
