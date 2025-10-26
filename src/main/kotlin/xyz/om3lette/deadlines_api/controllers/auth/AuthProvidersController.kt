@@ -1,5 +1,7 @@
 package xyz.om3lette.deadlines_api.controllers.auth
 
+import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
@@ -9,10 +11,12 @@ import xyz.om3lette.deadlines_api.services.auth.providers.tma.TmaAuthProvider
 
 @RestController
 @RequestMapping("/api/auth")
+@Tag(name = "Authentication")
 class AuthProvidersController(
     private val tmaAuthProvider: TmaAuthProvider
 ) {
     @PostMapping("/register-tma")
+    @Operation(summary = "Register new user using TMA init-data")
     fun tmaRegister(
         @RequestBody request: TmaRegisterRequest
     ) = tmaAuthProvider.register(request.initData, request.username)

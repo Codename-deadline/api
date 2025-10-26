@@ -36,11 +36,12 @@ class SecurityConfig(
         val PUBLIC_URLS = arrayOf(
             "/api/auth/register-otp",
             "/api/auth/register-tma",
-            "/api/auth/sign-in",
             "/api/auth/refresh-token",
             "/api/auth/verify-password",
             "/api/auth/otp",
             "/api/auth/otp/verify",
+            "/v3/api-docs/**",
+            "/swagger-ui/**"
         )
     }
 
