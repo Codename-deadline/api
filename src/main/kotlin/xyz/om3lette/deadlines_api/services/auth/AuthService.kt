@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service
 import xyz.om3lette.deadlines_api.data.integration.bot.enums.Language
 import xyz.om3lette.deadlines_api.data.jwt.model.RefreshToken
 import xyz.om3lette.deadlines_api.data.jwt.repo.RefreshTokenRepository
+import xyz.om3lette.deadlines_api.data.jwt.dto.TokenPair
 import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.data.user.repo.UserRepository
 import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
@@ -26,10 +27,6 @@ class AuthService(
     private val userRepository: UserRepository,
     private val refreshTokenRepository: RefreshTokenRepository
 ) {
-    data class TokenPair(
-        val accessToken: String,
-        val refreshToken: String
-    )
     fun registerWithPassword(
         username: String,
         fullName: String,

@@ -6,6 +6,7 @@ import io.github.sanvew.tg.init.data.type.InitData
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import xyz.om3lette.deadlines_api.data.integration.bot.enums.Language
+import xyz.om3lette.deadlines_api.data.jwt.dto.TokenPair
 import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
 import xyz.om3lette.deadlines_api.redisData.otp.enums.OtpChannel
 import xyz.om3lette.deadlines_api.services.auth.AuthService
@@ -22,7 +23,7 @@ class TmaAuthProvider(
     fun register(
         initData: String,
         preferredUsername: String?
-    ): AuthService.TokenPair {
+    ): TokenPair {
         if (!isValid(initData, botToken)) throw StatusCodeException(403, "Invalid credentials")
         val data: InitData = parse(initData)
 

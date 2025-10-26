@@ -9,8 +9,9 @@ import org.springframework.stereotype.Service
 import xyz.om3lette.deadlines_api.data.integration.bot.enums.Language
 import xyz.om3lette.deadlines_api.data.integration.bot.enums.Messenger
 import xyz.om3lette.deadlines_api.data.integration.messengerAccount.repo.UserMessengerAccountRepository
+import xyz.om3lette.deadlines_api.data.jwt.dto.TokenPair
 import xyz.om3lette.deadlines_api.data.otp.response.OtpResponse
-import xyz.om3lette.deadlines_api.data.otp.response.PasswordRequiredResponse
+import xyz.om3lette.deadlines_api.data.otp.response.OtpSignInResponse
 import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
 import xyz.om3lette.deadlines_api.redisData.otp.enums.OtpChannel
@@ -36,10 +37,6 @@ class OtpService(
     private val otpPasswordCheckRepository: OtpPasswordCheckRepository,
     otpSenders: List<OtpSender>
 ) {
-    sealed class OtpSignInResponse {
-        data class ok(val data: AuthService.TokenPair) : OtpSignInResponse()
-        data class passwordRequired(val data: PasswordRequiredResponse) : OtpSignInResponse()
-    }
 
     private val topicToOtpSender = otpSenders
         .groupBy { it.channel }
@@ -125,16 +122,17 @@ class OtpService(
     fun signInOtp(otpId: UUID, code: String): OtpSignInResponse {
         val auth = authenticationManager.authenticate(OtpAuthenticationToken(otpId, code))
         val user = auth.principal as User
+//      TODO: Consider creating enum for authority
         if (auth.authorities.all { it.authority != "OTP_VERIFIED" }) {
-            return OtpSignInResponse.ok(authService.signInNoPasswordCheck(user))
+            return OtpSignInResponse.OK(authService.signInNoPasswordCheck(user))
         }
         val requestId = otpPasswordCheckRepository.save(
             OtpPasswordCheck(username = user.username)
         ).id
-        return OtpSignInResponse.passwordRequired(PasswordRequiredResponse(requestId))
+        return OtpSignInResponse.PasswordRequired(requestId)
     }
 
-    fun completePassword(requestId: UUID, password: String): AuthService.TokenPair {
+    fun completePassword(requestId: UUID, password: String): TokenPair {
         val request: OtpPasswordCheck = otpPasswordCheckRepository.findById(requestId).orElseThrow {
 //          Imitate authenticationManager error
             BadCredentialsException("")
