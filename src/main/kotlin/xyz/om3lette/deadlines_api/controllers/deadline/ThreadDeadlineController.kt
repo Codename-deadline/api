@@ -1,5 +1,6 @@
 package xyz.om3lette.deadlines_api.controllers.deadline
 
+import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.security.core.annotation.AuthenticationPrincipal
@@ -22,6 +23,7 @@ class ThreadDeadlineController(
     val deadlineService: DeadlineService
 ) {
     @GetMapping
+    @Operation(summary = "Get all deadlines threads")
     fun getDeadlines(
         @AuthenticationPrincipal user: User,
         @PathVariable threadId: Long,
@@ -29,6 +31,7 @@ class ThreadDeadlineController(
     ) = deadlineService.getDeadlinesByThread(user, threadId, pageNumber, 10)
 
     @PostMapping
+    @Operation(summary = "Create new deadline")
     fun createDeadline(
         @AuthenticationPrincipal user: User,
         @PathVariable threadId: Long,

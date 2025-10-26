@@ -24,22 +24,24 @@ class AuthController(
     val authService: AuthService
 ) {
     @PostMapping("/refresh-token")
+    @Operation(summary = "Refresh access token")
     fun refreshToken(
         request: HttpServletRequest
     ) = authService.refreshToken(request)
 
     @GetMapping("/sign-out")
+    @Operation(summary = "Invalidate all user's refresh tokens")
     fun signOut(
         @AuthenticationPrincipal user: User
     ) = authService.signOut(user)
 
 //  TODO: Move to the user controller
+    @PostMapping("/change-password")
     @Operation(
         summary = "Change password",
         description = "If user does not have a password set omit oldPassword from the request body",
         security = [SecurityRequirement(name = "bearerAuth")]
     )
-    @PostMapping("/change-password")
     fun changePassword(
         @RequestBody @Valid request: ChangePasswordRequest,
         @AuthenticationPrincipal user: User

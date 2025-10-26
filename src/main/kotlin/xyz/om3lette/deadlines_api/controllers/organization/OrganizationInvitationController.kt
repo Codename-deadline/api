@@ -1,5 +1,6 @@
 package xyz.om3lette.deadlines_api.controllers.organization
 
+import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.security.core.annotation.AuthenticationPrincipal
@@ -22,6 +23,7 @@ class OrganizationInvitationController(
     private val organizationInvitationService: OrganizationInvitationService
 ) {
     @PostMapping
+    @Operation(summary = "Create a new organization invitation")
     fun sendInvitation(
         @AuthenticationPrincipal user: User,
         @PathVariable organizationId: Long,
@@ -34,12 +36,17 @@ class OrganizationInvitationController(
     )
 
     @GetMapping("/{invitationId}")
+    @Operation(summary = "Get invitation details")
     fun getInvitation(
         @AuthenticationPrincipal user: User,
         @PathVariable invitationId: Long
     ) = organizationInvitationService.getInvitation(user, invitationId)
 
     @PostMapping("/{invitationId}/accept")
+    @Operation(
+        summary = "Accept an invitation",
+        description = "Upon accepting user is added to the organization with a role specified in the invitation."
+    )
     fun acceptInvitation(
         @AuthenticationPrincipal user: User,
         @PathVariable invitationId: Long
@@ -50,6 +57,7 @@ class OrganizationInvitationController(
     )
 
     @PostMapping("/{invitationId}/decline")
+    @Operation(summary = "Decline invitation")
     fun declineInvitation(
         @AuthenticationPrincipal user: User,
         @PathVariable invitationId: Long

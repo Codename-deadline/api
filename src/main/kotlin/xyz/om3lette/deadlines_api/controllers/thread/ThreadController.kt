@@ -1,5 +1,6 @@
 package xyz.om3lette.deadlines_api.controllers.thread
 
+import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.security.core.annotation.AuthenticationPrincipal
@@ -23,18 +24,21 @@ class ThreadController(
     val threadService: ThreadService
 ) {
     @DeleteMapping
+    @Operation(summary = "Delete thread")
     fun deleteThread(
         @AuthenticationPrincipal user: User,
         @PathVariable threadId: Long
     ) = threadService.deleteThread(user, threadId)
 
     @GetMapping
+    @Operation(summary = "Get thread data")
     fun getThread(
         @AuthenticationPrincipal user: User,
         @PathVariable threadId: Long
     ) = threadService.getThreadMetaData(user, threadId)
 
     @PatchMapping
+    @Operation(summary = "Update thread")
     fun patchThread(
         @AuthenticationPrincipal user: User,
         @PathVariable threadId: Long,
@@ -47,6 +51,10 @@ class ThreadController(
     )
 
     @GetMapping("/assignees")
+    @Operation(
+        summary = "Get thread assignees",
+        description = "Returns a list of explicit thread assignees. Higher role organization members are not included."
+    )
     fun getAssignees(
         @AuthenticationPrincipal user: User,
         @PathVariable threadId: Long,
@@ -54,6 +62,7 @@ class ThreadController(
     ) = threadService.getThreadAssignees(user, threadId, pageNumber, 10)
 
     @DeleteMapping("/assignees/{assigneeUsername}")
+    @Operation(summary = "Remove assignee")
     fun removeAssignee(
         @AuthenticationPrincipal user: User,
         @PathVariable threadId: Long,

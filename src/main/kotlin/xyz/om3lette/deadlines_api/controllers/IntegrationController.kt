@@ -1,5 +1,6 @@
 package xyz.om3lette.deadlines_api.controllers
 
+import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.security.core.annotation.AuthenticationPrincipal
@@ -19,6 +20,7 @@ class IntegrationController(
     private val integrationService: IntegrationService
 ) {
     @PostMapping("/account")
+    @Operation(summary = "Link the external platform account to user")
     fun linkAccount(
         @AuthenticationPrincipal user: User,
         @RequestBody request: LinkMessengerAccountRequest

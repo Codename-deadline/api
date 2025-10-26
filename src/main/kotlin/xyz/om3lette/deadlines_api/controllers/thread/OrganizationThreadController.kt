@@ -1,5 +1,6 @@
 package xyz.om3lette.deadlines_api.controllers.thread
 
+import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.security.core.annotation.AuthenticationPrincipal
@@ -22,6 +23,7 @@ class OrganizationThreadController(
     val threadService: ThreadService
 ) {
     @GetMapping
+    @Operation(summary = "Get all organization threads")
     fun getThreads(
         @AuthenticationPrincipal user: User,
         @PathVariable organizationId: Long,
@@ -29,6 +31,7 @@ class OrganizationThreadController(
     ) = threadService.getThreadsByOrganization(user, organizationId, pageNumber, 10)
 
     @PostMapping
+    @Operation(summary = "Create a new thread")
     fun createThread(
         @AuthenticationPrincipal user: User,
         @PathVariable organizationId: Long,

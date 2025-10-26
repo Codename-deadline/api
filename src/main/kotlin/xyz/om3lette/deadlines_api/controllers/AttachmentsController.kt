@@ -1,5 +1,6 @@
 package xyz.om3lette.deadlines_api.controllers
 
+import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
@@ -30,6 +31,7 @@ class AttachmentsController(
     private val attachmentsService: AttachmentsService
 ) {
     @PostMapping("/deadline/{deadlineId}", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
+    @Operation(summary = "Create a deadline attachment")
     fun createAttachment(
         @AuthenticationPrincipal user: User,
         @PathVariable deadlineId: Long,
@@ -38,6 +40,7 @@ class AttachmentsController(
     ) = attachmentsService.createAttachment(user, deadlineId, file, meta.filename)
 
     @PutMapping("/{attachmentId}", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
+    @Operation(summary = "Replace attachment")
     fun replaceAttachment(
         @AuthenticationPrincipal user: User,
         @PathVariable attachmentId: Long,
@@ -46,24 +49,28 @@ class AttachmentsController(
     ) = attachmentsService.replaceAttachment(user, attachmentId, file, meta.filename)
 
     @GetMapping("/{attachmentId}")
+    @Operation(summary = "Get attachment metadata")
     fun getAttachment(
         @AuthenticationPrincipal user: User,
         @PathVariable attachmentId: Long
     ) = attachmentsService.getAttachment(user, attachmentId)
 
     @DeleteMapping("/{attachmentId}")
-    fun deleteAttachmentMetadata(
+    @Operation(summary = "Delete attachment")
+    fun deleteAttachment(
         @AuthenticationPrincipal user: User,
         @PathVariable attachmentId: Long
     ) = attachmentsService.deleteAttachment(user, attachmentId)
 
     @GetMapping("/{attachmentId}/metadata")
+    @Operation(summary = "Get attachment metadata")
     fun getAttachmentMetadata(
         @AuthenticationPrincipal user: User,
         @PathVariable attachmentId: Long
     ) = attachmentsService.getAttachmentMetadata(user, attachmentId)
 
     @GetMapping("/deadline/{deadlineId}")
+    @Operation(summary = "Get metadata of all deadline attachments")
     fun getDeadlineAttachmentsMetadata(
         @AuthenticationPrincipal user: User,
         @PathVariable deadlineId: Long,
@@ -71,6 +78,7 @@ class AttachmentsController(
     ) = attachmentsService.getDeadlineAttachmentsMetadata(user, deadlineId, pageNumber, 10)
 
     @PatchMapping("/{attachmentId}/metadata")
+    @Operation(summary = "Update attachment metadata")
     fun patchAttachmentMetadata(
         @AuthenticationPrincipal user: User,
         @PathVariable attachmentId: Long,

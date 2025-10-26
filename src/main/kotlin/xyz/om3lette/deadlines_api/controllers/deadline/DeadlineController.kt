@@ -1,5 +1,6 @@
 package xyz.om3lette.deadlines_api.controllers.deadline
 
+import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.security.core.annotation.AuthenticationPrincipal
@@ -24,18 +25,21 @@ class DeadlineController(
     val deadlineService: DeadlineService
 ) {
     @DeleteMapping
+    @Operation(summary = "Delete deadline")
     fun deleteDeadline(
         @AuthenticationPrincipal user: User,
         @PathVariable deadlineId: Long
     ) = deadlineService.deleteDeadline(user, deadlineId)
 
     @GetMapping
+    @Operation(summary = "Get deadline data")
     fun getDeadline(
         @AuthenticationPrincipal user: User,
         @PathVariable deadlineId: Long
     ) = deadlineService.getDeadlineMetaData(user, deadlineId)
 
     @PatchMapping
+    @Operation(summary = "Update deadline data")
     fun patchDeadline(
         @AuthenticationPrincipal user: User,
         @PathVariable deadlineId: Long,
@@ -51,6 +55,11 @@ class DeadlineController(
     )
 
     @GetMapping("/assignees")
+    @Operation(
+        summary = "Get deadline assignees",
+        description = "Returns a list of explicit thread assignees." +
+                      "Higher role users in the organization or thread are not included."
+    )
     fun getAssignees(
         @AuthenticationPrincipal user: User,
         @PathVariable deadlineId: Long,
@@ -58,6 +67,7 @@ class DeadlineController(
     ) = deadlineService.getDeadlineAssignees(user, deadlineId, pageNumber, 10)
 
     @DeleteMapping("/assignees/{assigneeUsername}")
+    @Operation(summary = "Remove an assignee")
     fun removeAssignee(
         @AuthenticationPrincipal user: User,
         @PathVariable deadlineId: Long,
