@@ -1,5 +1,6 @@
 package xyz.om3lette.deadlines_api.services.auth.otp
 
+import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.security.authentication.AuthenticationProvider
 import org.springframework.security.authentication.BadCredentialsException
 import org.springframework.security.authentication.CredentialsExpiredException
@@ -12,6 +13,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Component
 import xyz.om3lette.deadlines_api.data.user.model.User
+import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
 import xyz.om3lette.deadlines_api.redisData.otp.model.Otp
 import xyz.om3lette.deadlines_api.redisData.otp.repo.OtpRegisterRequestRepository
 import xyz.om3lette.deadlines_api.redisData.otp.repo.OtpRepository
@@ -24,7 +26,6 @@ class OtpAuthProvider(
     private val otpRepository: OtpRepository,
     private val otpRegisterRequestRepository: OtpRegisterRequestRepository
 ) : AuthenticationProvider {
-
     private val maxOtpAttempts: Int = 3
 
     companion object {
@@ -53,11 +54,17 @@ class OtpAuthProvider(
             throw BadCredentialsException("")
         }
 
+        // TODO: User creation inside of `authenticate` may not be the brightest idea
         // If otp is not issued for a sign-up it is used for a sign-in which guarantees that
         // user exists and username is supplied
-        val username = if (otp.registerRequestId != null) {
-            userProvisioningService.registerUserFromPending(otp.registerRequestId)
-        } else otp.username!!
+        val username = try {
+            if (otp.registerRequestId != null) {
+                userProvisioningService.registerUserFromPending(otp.registerRequestId)
+            } else otp.username!!
+        } catch (_: DataIntegrityViolationException) {
+            cleanupOtp(otp)
+            throw StatusCodeException(409, "User already exists")
+        }
         cleanupOtp(otp)
 
         val userDetails: User = try {

@@ -1,5 +1,6 @@
 package xyz.om3lette.deadlines_api.exceptions.handlers
 
+import org.slf4j.LoggerFactory
 import org.springframework.core.Ordered
 import org.springframework.core.annotation.Order
 import org.springframework.http.ResponseEntity
@@ -12,6 +13,8 @@ import xyz.om3lette.deadlines_api.util.GeneralErrorResponse
 @Order(Ordered.LOWEST_PRECEDENCE)
 @ControllerAdvice
 class GlobalExceptionHandler {
+    private val logger = LoggerFactory.getLogger(javaClass)
+
     @ExceptionHandler(StatusCodeException::class)
     fun handleStatusCodeException(error: StatusCodeException): ResponseEntity<GeneralErrorResponse> {
         return ResponseEntity.status(error.statusCode).body(
@@ -25,8 +28,11 @@ class GlobalExceptionHandler {
             exception is ErrorResponse -> ResponseEntity.status(exception.statusCode).body(
                 GeneralErrorResponse.fromErrorResponse(exception)
             )
-            else -> ResponseEntity.status(500).body(
-                GeneralErrorResponse("No details available.")
-            )
+            else -> {
+                logger.error("Unhandled exception while processing request", exception)
+                ResponseEntity.status(500).body(
+                    GeneralErrorResponse("No details available.")
+                )
+            }
         }
 }

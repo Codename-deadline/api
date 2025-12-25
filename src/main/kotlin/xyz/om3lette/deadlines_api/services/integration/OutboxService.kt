@@ -2,7 +2,6 @@ package xyz.om3lette.deadlines_api.services.integration
 
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
-import org.springframework.context.annotation.Bean
 import org.springframework.stereotype.Service
 import xyz.om3lette.deadlines_api.data.notifications.enums.NotificationStatus
 import xyz.om3lette.deadlines_api.data.outbox.enums.ProcessResult
