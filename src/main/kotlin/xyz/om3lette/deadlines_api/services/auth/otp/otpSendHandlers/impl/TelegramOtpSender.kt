@@ -17,8 +17,11 @@ class TelegramOtpSender(
 
 
     override fun send(identifier: String?, code: String, language: Language) {
-        val accountId = identifier?.toLong() ?:
-            throw StatusCodeException(400, "Invalid account id: $identifier")
+        val accountId = try {
+            identifier?.toLong()
+        } catch (_: NumberFormatException) {
+           null
+        } ?: throw StatusCodeException(400, "Invalid account id: $identifier")
         otpProducer.sendToMessenger(Messenger.TELEGRAM, OtpEvent(code, accountId, language))
     }
 }
