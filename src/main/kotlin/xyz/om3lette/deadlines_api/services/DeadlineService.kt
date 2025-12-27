@@ -21,6 +21,7 @@ import xyz.om3lette.deadlines_api.data.scopes.userScope.repo.UserScopeRepository
 import xyz.om3lette.deadlines_api.data.scopes.userScope.response.UserScopeResponse
 import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.data.user.repo.UserRepository
+import xyz.om3lette.deadlines_api.exceptions.enums.ErrorCode
 import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
 import xyz.om3lette.deadlines_api.services.permission.PermissionLookupService
 import xyz.om3lette.deadlines_api.services.permission.PermissionService
@@ -60,10 +61,16 @@ class DeadlineService(
         if (due.isBefore(minExpirationTime)) {
             val minutesBeforeExpiration = ChronoUnit.MINUTES.between(now, due)
             throw StatusCodeException(
-                400,
-                "Cannot create a deadline with $minutesBeforeExpiration minutes before expiration. Min value: $minDeadlineExpiryTimeMinutes")
+                statusCode = 400,
+                code = ErrorCode.DDL_INVALID_TIMESTAMP,
+                detail = "Cannot create a deadline with $minutesBeforeExpiration minutes before expiration. Min value: $minDeadlineExpiryTimeMinutes",
+                params = mapOf(
+                    "remaining" to minutesBeforeExpiration,
+                    "min" to minDeadlineExpiryTimeMinutes
+                )
+            )
         }
-        val thread = threadRepository.findByIdOr404(threadId)
+        val thread = threadRepository.findByIdOr404(threadId, ErrorCode.THR_NOT_FOUND)
 
         requirePermission(
             permissionService.canCreateOrDeleteDeadline(issuer) {
@@ -149,7 +156,7 @@ class DeadlineService(
     @Transactional
     fun removeAssignee(issuer: User, deadlineId: Long, assigneeUsername: String) {
         if (assigneeUsername.equals(issuer.username, ignoreCase = true)) {
-            throw StatusCodeException(400, "Removing yourself is prohibited")
+            throw StatusCodeException(400, ErrorCode.ACTION_SELF_REMOVAL)
         }
         val (_, issuerScope) = permissionLookupService.getDeadlineAndHighestRoleUserScopeOr404(issuer, deadlineId)
 
@@ -211,7 +218,7 @@ class DeadlineService(
 
         if (due != null) {
             if (due.isBefore(Instant.now())) {
-                throw StatusCodeException(400, "Deadline cannot expire in the past")
+                throw StatusCodeException(400, ErrorCode.DDL_INVALID_TIMESTAMP)
             }
             val timeShiftSeconds = Duration.between(deadline.due, due).toSeconds()
             deadline.due = due

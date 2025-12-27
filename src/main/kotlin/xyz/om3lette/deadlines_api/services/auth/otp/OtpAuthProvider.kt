@@ -13,6 +13,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Component
 import xyz.om3lette.deadlines_api.data.user.model.User
+import xyz.om3lette.deadlines_api.exceptions.enums.ErrorCode
 import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
 import xyz.om3lette.deadlines_api.redisData.otp.model.Otp
 import xyz.om3lette.deadlines_api.redisData.otp.repo.OtpRegisterRequestRepository
@@ -63,7 +64,7 @@ class OtpAuthProvider(
             } else otp.username!!
         } catch (_: DataIntegrityViolationException) {
             cleanupOtp(otp)
-            throw StatusCodeException(409, "User already exists")
+            throw StatusCodeException(409, ErrorCode.USER_ALREADY_EXISTS)
         }
         cleanupOtp(otp)
 

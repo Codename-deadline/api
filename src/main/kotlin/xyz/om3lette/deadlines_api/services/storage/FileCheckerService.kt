@@ -7,6 +7,7 @@ import org.apache.tika.metadata.TikaCoreProperties
 import org.springframework.stereotype.Service
 import org.springframework.web.multipart.MultipartFile
 import xyz.om3lette.deadlines_api.data.attachments.enums.AttachmentType
+import xyz.om3lette.deadlines_api.exceptions.enums.ErrorCode
 import xyz.om3lette.deadlines_api.util.requirePermission
 
 @Service
@@ -29,7 +30,7 @@ class FileCheckerService(
 
         requirePermission(
             isFileAllowed(mimeType),
-            { "Provided file type is not allowed" },
+            { ErrorCode.ATTACHMENT_INVALID_FILE_TYPE to null },
             400
         )
 

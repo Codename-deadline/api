@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity
 import org.springframework.web.ErrorResponse
 import org.springframework.web.bind.annotation.ControllerAdvice
 import org.springframework.web.bind.annotation.ExceptionHandler
+import xyz.om3lette.deadlines_api.exceptions.enums.ErrorCode
 import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
 import xyz.om3lette.deadlines_api.util.GeneralErrorResponse
 
@@ -31,7 +32,7 @@ class GlobalExceptionHandler {
             else -> {
                 logger.error("Unhandled exception while processing request", exception)
                 ResponseEntity.status(500).body(
-                    GeneralErrorResponse("No details available.")
+                    GeneralErrorResponse(code = ErrorCode.UNKNOWN_ERROR, detail = "No details available.")
                 )
             }
         }

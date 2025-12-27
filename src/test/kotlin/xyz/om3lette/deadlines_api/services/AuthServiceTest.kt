@@ -27,6 +27,7 @@ import xyz.om3lette.deadlines_api.data.jwt.model.RefreshToken
 import xyz.om3lette.deadlines_api.data.jwt.repo.RefreshTokenRepository
 import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.data.user.repo.UserRepository
+import xyz.om3lette.deadlines_api.exceptions.enums.ErrorCode
 import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
 import xyz.om3lette.deadlines_api.services.auth.AuthService
 import java.time.Instant
@@ -119,7 +120,7 @@ class AuthServiceTest {
             val res = assertThrows<StatusCodeException> { service.signInPassword(dummyUser.username, "raw-pw") }
 
             assertEquals(res.statusCode, 400)
-            assertTrue { res.detail.contains("Sessions limit reached") }
+            assertEquals(ErrorCode.AUTH_SESSIONS_LIMIT_EXCEEDED, res.code)
         }
 
         @Test
