@@ -2,6 +2,7 @@ package xyz.om3lette.deadlines_api.exceptions.enums
 
 enum class ErrorCode(val code: String) {
     UNKNOWN_ERROR("unknown-error"),
+    DESERIALIZATION_ERROR("deserialization-error"),
 
     AUTH_INSUFFICIENT_PERMISSIONS("auth.insufficient-permissions"),
     AUTH_INVALID_CREDENTIALS("auth.invalid-credentials"),

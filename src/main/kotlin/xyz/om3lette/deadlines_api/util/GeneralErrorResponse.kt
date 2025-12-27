@@ -9,9 +9,7 @@ data class GeneralErrorResponse(
 
     val detail: String? = null,
 
-    val params: Map<String, Any> = emptyMap(),
-
-    val type: String = "error",
+    val params: Map<String, Any> = emptyMap()
 ) {
     companion object {
         fun fromStatusCodeException(error: StatusCodeException): GeneralErrorResponse =
