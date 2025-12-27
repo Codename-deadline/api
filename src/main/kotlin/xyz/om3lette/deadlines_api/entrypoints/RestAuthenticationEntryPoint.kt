@@ -20,7 +20,7 @@ class RestAuthenticationEntryPoint(
     override fun commence(
         request: HttpServletRequest,
         response: HttpServletResponse,
-        authException: AuthenticationException?
+        authException: AuthenticationException
     ) {
         val message = when (authException) {
             is CredentialsExpiredException         -> "Token has expired."

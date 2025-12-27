@@ -4,9 +4,9 @@ plugins {
 	kotlin("jvm") version "2.3.0"
 	kotlin("plugin.spring") version "2.3.0"
     kotlin("plugin.jpa") version "2.3.0"
-	id("org.springframework.boot") version "3.5.4"
+	id("org.springframework.boot") version "4.0.1"
 	id("io.spring.dependency-management") version "1.1.7"
-    id("com.google.protobuf") version "0.9.5"
+    id("com.google.protobuf") version "0.9.6"
 }
 
 group = "xyz.om3lette"
@@ -22,7 +22,7 @@ repositories {
 	mavenCentral()
 }
 
-extra["springGrpcVersion"] = "0.12.0"
+extra["springGrpcVersion"] = "1.0.0"
 
 dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-web")
@@ -32,14 +32,13 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.kafka:spring-kafka")
     implementation("org.springframework.boot:spring-boot-starter-data-redis")
-    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.13")
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.0")
 
     implementation("org.springframework.grpc:spring-grpc-spring-boot-starter")
-    implementation("io.grpc:grpc-netty-shaded")
 
     implementation("io.github.sanvew:telegram-init-data:1.0.0")
 
-    implementation("io.hypersistence:hypersistence-utils-hibernate-63:3.11.0")
+    implementation("io.hypersistence:hypersistence-utils-hibernate-71:3.14.1")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("redis.clients:jedis")
@@ -55,7 +54,7 @@ dependencies {
 		exclude(module = "mockito-core")
 	}
     testImplementation("com.h2database:h2:2.4.240")
-	testImplementation("io.mockk:mockk:1.14.6")
+	testImplementation("io.mockk:mockk:1.14.7")
 	testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
     testImplementation("org.springframework.grpc:spring-grpc-test")
 	testImplementation("org.springframework.security:spring-security-test")
@@ -78,11 +77,11 @@ kotlin {
 
 protobuf {
     protoc {
-        artifact = "com.google.protobuf:protoc"
+        artifact = "com.google.protobuf:protoc:4.33.1"
     }
     plugins {
         id("grpc") {
-            artifact = "io.grpc:protoc-gen-grpc-java"
+            artifact = "io.grpc:protoc-gen-grpc-java:1.78.0"
         }
     }
     generateProtoTasks {

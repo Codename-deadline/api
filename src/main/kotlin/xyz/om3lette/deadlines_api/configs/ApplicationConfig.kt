@@ -31,4 +31,6 @@ class ApplicationConfig(
                 .orElseThrow { UsernameNotFoundException("User not found") }
         }
 
+    @Bean
+    fun objectMapper(): ObjectMapper = ObjectMapper()
 }

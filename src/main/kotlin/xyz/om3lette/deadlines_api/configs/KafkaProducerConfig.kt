@@ -8,7 +8,7 @@ import org.springframework.context.annotation.Configuration
 import org.springframework.kafka.core.DefaultKafkaProducerFactory
 import org.springframework.kafka.core.KafkaTemplate
 import org.springframework.kafka.core.ProducerFactory
-import org.springframework.kafka.support.serializer.JsonSerializer
+import org.springframework.kafka.support.serializer.JacksonJsonSerializer
 import xyz.om3lette.deadlines_api.data.integration.messengerAccount.event.UserMessengerAccountLinkageEvent
 import xyz.om3lette.deadlines_api.data.notifications.event.DeadlineNotificationEvent
 import xyz.om3lette.deadlines_api.data.otp.event.OtpEvent
@@ -30,7 +30,7 @@ class KafkaProducerConfig(
         DefaultKafkaProducerFactory(
             configProps,
             StringSerializer(),
-            JsonSerializer<DeadlineNotificationEvent>().apply {
+            JacksonJsonSerializer<DeadlineNotificationEvent>().apply {
                 isAddTypeInfo = false
             }
         )
@@ -40,7 +40,7 @@ class KafkaProducerConfig(
         DefaultKafkaProducerFactory(
             configProps,
             StringSerializer(),
-            JsonSerializer<UserMessengerAccountLinkageEvent>().apply {
+            JacksonJsonSerializer<UserMessengerAccountLinkageEvent>().apply {
                 isAddTypeInfo = false
             }
         )
@@ -50,7 +50,7 @@ class KafkaProducerConfig(
         DefaultKafkaProducerFactory(
             configProps,
             StringSerializer(),
-            JsonSerializer<OtpEvent>().apply {
+            JacksonJsonSerializer<OtpEvent>().apply {
                 isAddTypeInfo = false
             }
         )
