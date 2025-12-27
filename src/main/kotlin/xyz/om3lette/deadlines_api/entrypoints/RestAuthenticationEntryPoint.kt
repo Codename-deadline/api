@@ -1,5 +1,6 @@
 package xyz.om3lette.deadlines_api.entrypoints
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import org.springframework.security.authentication.BadCredentialsException
@@ -8,10 +9,14 @@ import org.springframework.security.authentication.InsufficientAuthenticationExc
 import org.springframework.security.core.AuthenticationException
 import org.springframework.security.web.AuthenticationEntryPoint
 import org.springframework.stereotype.Component
-import kotlin.reflect.typeOf
+import xyz.om3lette.deadlines_api.exceptions.enums.ErrorCode
+import xyz.om3lette.deadlines_api.util.GeneralErrorResponse
 
 @Component
-class RestAuthenticationEntryPoint : AuthenticationEntryPoint {
+class RestAuthenticationEntryPoint(
+    private val objectMapper: ObjectMapper
+) : AuthenticationEntryPoint {
+
     override fun commence(
         request: HttpServletRequest,
         response: HttpServletResponse,
@@ -26,6 +31,8 @@ class RestAuthenticationEntryPoint : AuthenticationEntryPoint {
 
         response.contentType = "application/json"
         response.status = HttpServletResponse.SC_UNAUTHORIZED
-        response.writer.write("""{ "type": "error", "detail": "$message" }""")
+
+        val error = GeneralErrorResponse(code = ErrorCode.AUTH_INVALID_CREDENTIALS, detail = message)
+        response.writer.write(objectMapper.writeValueAsString(error))
     }
 }
