@@ -13,6 +13,7 @@ import xyz.om3lette.deadlines_api.data.jwt.dto.TokenPair
 import xyz.om3lette.deadlines_api.data.otp.response.OtpResponse
 import xyz.om3lette.deadlines_api.data.otp.response.OtpSignInResponse
 import xyz.om3lette.deadlines_api.data.user.model.User
+import xyz.om3lette.deadlines_api.exceptions.enums.ErrorCode
 import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
 import xyz.om3lette.deadlines_api.redisData.otp.enums.OtpChannel
 import xyz.om3lette.deadlines_api.redisData.otp.model.Otp
@@ -24,7 +25,7 @@ import xyz.om3lette.deadlines_api.redisData.otp.repo.OtpRepository
 import xyz.om3lette.deadlines_api.services.auth.AuthService
 import xyz.om3lette.deadlines_api.services.auth.otp.otpSendHandlers.OtpSender
 import xyz.om3lette.deadlines_api.util.generateNumericCode
-import java.util.UUID
+import java.util.*
 
 @Service
 class OtpService(
@@ -89,7 +90,7 @@ class OtpService(
 
         val linkedAccount = userMessengerAccountRepository.findAccountByUsernameAndMessengerAndAccountId(
             username, messenger, accountId
-        ) ?: throw StatusCodeException(404, "No linked account or user found")
+        ) ?: throw StatusCodeException(404, ErrorCode.INTEGRATION_ACCOUNT_NOT_LINKED)
         val otpId = createAndSendOtp(identifier, channel, linkedAccount.user.language, username = username)
 
         return OtpResponse(otpId)
@@ -153,7 +154,7 @@ class OtpService(
         val sender: OtpSender? = topicToOtpSender[channel]
         if (sender == null) {
             logger.error("No sender found for channel ${channel.name}")
-            throw StatusCodeException(500, "Error occurred")
+            throw StatusCodeException(500, ErrorCode.UNKNOWN_ERROR)
         }
         sender.send(identifier, code, language)
     }

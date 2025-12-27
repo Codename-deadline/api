@@ -8,6 +8,7 @@ import xyz.om3lette.deadlines_api.data.scopes.thread.repo.ThreadRepository
 import xyz.om3lette.deadlines_api.data.scopes.userScope.model.UserScope
 import xyz.om3lette.deadlines_api.data.scopes.userScope.repo.UserScopeRepository
 import xyz.om3lette.deadlines_api.data.user.model.User
+import xyz.om3lette.deadlines_api.exceptions.enums.ErrorCode
 import xyz.om3lette.deadlines_api.util.jpaRepository.findByIdOr404
 import java.util.Optional
 
@@ -24,7 +25,7 @@ class PermissionLookupService(
         )
 
     fun getDeadlineAndHighestRoleUserScopeOr404(issuer: User, deadlineId: Long): Pair<Deadline, () -> Optional<UserScope>> {
-        val deadline: Deadline = deadlineRepository.findByIdOr404(deadlineId)
+        val deadline: Deadline = deadlineRepository.findByIdOr404(deadlineId, ErrorCode.DDL_NOT_FOUND)
         return Pair(
             deadline
         ) {
@@ -44,7 +45,7 @@ class PermissionLookupService(
 
 
     fun getThreadAndHighestRoleUserScopeOr404(issuer: User, threadId: Long): Pair<Thread, () -> Optional<UserScope>> {
-        val thread: Thread = threadRepository.findByIdOr404(threadId)
+        val thread: Thread = threadRepository.findByIdOr404(threadId, ErrorCode.THR_NOT_FOUND)
         return Pair(
             thread
         ) {

@@ -2,16 +2,19 @@ package xyz.om3lette.deadlines_api.util
 
 import io.grpc.Status
 import xyz.om3lette.deadlines_api.data.integration.bot.enums.Language
+import xyz.om3lette.deadlines_api.exceptions.enums.ErrorCode
 import xyz.om3lette.deadlines_api.exceptions.type.GrpcKeyLocaleException
 import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
 
 inline fun requirePermission(
     granted: Boolean,
-    lazyMessage: () -> String = { "Access denied: insufficient permissions." },
-    httpStatus: Int = 403
+    lazyMessage: () -> Pair<ErrorCode, String?> = { ErrorCode.AUTH_INSUFFICIENT_PERMISSIONS to "Insufficient permissions" },
+    httpStatus: Int = 403,
+    params: Map<String, Any> = emptyMap()
 ) {
     if (granted) return
-    throw StatusCodeException(httpStatus, lazyMessage())
+    val (errorCode, message) = lazyMessage();
+    throw StatusCodeException(statusCode = httpStatus, code = errorCode, detail = message, params = params)
 }
 
 fun requirePermissionGrpc(

@@ -7,11 +7,13 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import xyz.om3lette.deadlines_api.data.integration.bot.enums.Language
 import xyz.om3lette.deadlines_api.data.jwt.dto.TokenPair
+import xyz.om3lette.deadlines_api.exceptions.enums.ErrorCode
 import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
 import xyz.om3lette.deadlines_api.redisData.otp.enums.OtpChannel
 import xyz.om3lette.deadlines_api.services.auth.AuthService
 import xyz.om3lette.deadlines_api.services.auth.otp.UserProvisioningService
 
+// TODO: Test or remove. Currently unused and is yet to be tested.
 @Service
 class TmaAuthProvider(
     private val authService: AuthService,
@@ -24,13 +26,13 @@ class TmaAuthProvider(
         initData: String,
         preferredUsername: String?
     ): TokenPair {
-        if (!isValid(initData, botToken)) throw StatusCodeException(403, "Invalid credentials")
+        if (!isValid(initData, botToken)) throw StatusCodeException(403, ErrorCode.AUTH_INVALID_CREDENTIALS)
         val data: InitData = parse(initData)
 
         val userData = data.user
         val username = preferredUsername ?: userData?.username
         if (userData == null || username == null) {
-            throw StatusCodeException(400, "No user data provided")
+            throw StatusCodeException(400, ErrorCode.SIGN_UP_INSUFFICIENT_DATA)
         }
 
         val fullName = userData.firstName + (userData.lastName ?: "")

@@ -25,6 +25,7 @@ import xyz.om3lette.deadlines_api.data.scopes.organization.response.Organization
 import xyz.om3lette.deadlines_api.data.scopes.organization.response.OrganizationResponse
 import xyz.om3lette.deadlines_api.data.scopes.thread.repo.ThreadRepository
 import xyz.om3lette.deadlines_api.data.scopes.userScope.response.UserScopeResponse
+import xyz.om3lette.deadlines_api.exceptions.enums.ErrorCode
 import xyz.om3lette.deadlines_api.services.permission.PermissionService
 import xyz.om3lette.deadlines_api.util.requirePermission
 
@@ -86,7 +87,7 @@ class OrganizationService(
     }
 
     fun deleteOrganization(issuer: User, organizationId: Long) {
-        val organization: Organization = organizationRepository.findByIdOr404(organizationId)
+        val organization: Organization = organizationRepository.findByIdOr404(organizationId, ErrorCode.ORG_NOT_FOUND)
         requirePermission(
             permissionService.canDeleteOrganization(issuer) {
                 userScopeRepository.findByUserAndScopeId(issuer, organizationId)
@@ -99,7 +100,7 @@ class OrganizationService(
     @Transactional
     fun removeMember(issuer: User, organizationId: Long, memberUsernameToRemove: String) {
         if (memberUsernameToRemove.equals(issuer._username, ignoreCase = true)) {
-            throw StatusCodeException(400, "Removing yourself is prohibited")
+            throw StatusCodeException(400, ErrorCode.ACTION_SELF_REMOVAL)
         }
 
         requirePermission(
@@ -123,7 +124,7 @@ class OrganizationService(
     }
 
     fun getOrganizationMetaData(issuer: User, organizationId: Long): OrganizationResponse {
-        val organization = organizationRepository.findByIdOr404(organizationId)
+        val organization = organizationRepository.findByIdOr404(organizationId, ErrorCode.ORG_NOT_FOUND)
         requirePermission(
             permissionService.hasOrganizationAccess(issuer, organization) {
                 userScopeRepository.findByUserAndScopeId(issuer, organization.id)
@@ -143,7 +144,7 @@ class OrganizationService(
             return
         }
 
-        val organization: Organization = organizationRepository.findByIdOr404(organizationId)
+        val organization: Organization = organizationRepository.findByIdOr404(organizationId, ErrorCode.ORG_NOT_FOUND)
 
         requirePermission(
             permissionService.canUpdateOrganization(issuer) {
@@ -163,7 +164,7 @@ class OrganizationService(
         pageNumber: Int,
         pageSize: Int
     ): List<UserScopeResponse> {
-        val organization = organizationRepository.findByIdOr404(organizationId)
+        val organization = organizationRepository.findByIdOr404(organizationId, ErrorCode.ORG_NOT_FOUND)
         requirePermission(
             permissionService.hasOrganizationAccess(issuer, organization) {
                 userScopeRepository.findByUserAndScopeId(issuer, organization.id)

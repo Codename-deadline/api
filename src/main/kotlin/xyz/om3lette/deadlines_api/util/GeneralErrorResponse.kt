@@ -1,18 +1,21 @@
 package xyz.om3lette.deadlines_api.util
 
 import org.springframework.web.ErrorResponse
+import xyz.om3lette.deadlines_api.exceptions.enums.ErrorCode
 import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
 
 data class GeneralErrorResponse(
-    val detail: String,
+    val code: ErrorCode,
 
-    val type: String = "error"
+    val detail: String? = null,
+
+    val params: Map<String, Any> = emptyMap()
 ) {
     companion object {
         fun fromStatusCodeException(error: StatusCodeException): GeneralErrorResponse =
-            GeneralErrorResponse(error.detail)
+            GeneralErrorResponse(code = error.code, detail = error.detail, params = error.params)
 
         fun fromErrorResponse(error: ErrorResponse): GeneralErrorResponse =
-            GeneralErrorResponse(error.body.detail ?: "No details available.")
+            GeneralErrorResponse(code = ErrorCode.UNKNOWN_ERROR, detail = error.body.detail ?: "No details available.")
     }
 }

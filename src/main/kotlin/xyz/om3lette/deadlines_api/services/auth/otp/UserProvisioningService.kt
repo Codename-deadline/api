@@ -9,6 +9,7 @@ import xyz.om3lette.deadlines_api.data.integration.messengerAccount.model.UserMe
 import xyz.om3lette.deadlines_api.data.integration.messengerAccount.repo.UserMessengerAccountRepository
 import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.data.user.repo.UserRepository
+import xyz.om3lette.deadlines_api.exceptions.enums.ErrorCode
 import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
 import xyz.om3lette.deadlines_api.redisData.otp.enums.OtpChannel
 import xyz.om3lette.deadlines_api.redisData.otp.repo.OtpRegisterRequestRepository
@@ -36,7 +37,7 @@ class UserProvisioningService(
     @Transactional
     fun registerUserFromPending(pendingId: UUID): String {
         val userData = otpRegisterRequestRepository.findById(pendingId).orElseThrow {
-            StatusCodeException(404, "Registration data not found")
+            StatusCodeException(404, ErrorCode.SIGN_UP_REGISTRATION_REQUEST_NOT_FOUND)
         }
         return registerUserFromOtpRequest(
             userData.username,
@@ -65,7 +66,7 @@ class UserProvisioningService(
                 )
             )
         } catch (_: DataIntegrityViolationException) {
-            throw StatusCodeException(409, "User already exists")
+            throw StatusCodeException(409, ErrorCode.USER_ALREADY_EXISTS)
         }
         // TODO: Check for channel not being a messenger
         val messenger = Messenger.valueOf(channel.name)
@@ -76,7 +77,7 @@ class UserProvisioningService(
                 )
             )
         } catch (_: DataIntegrityViolationException) {
-            throw StatusCodeException(409, "Account already in use")
+            throw StatusCodeException(409, ErrorCode.INTEGRATION_ACCOUNT_ALREADY_IN_USE)
         }
         return user
     }

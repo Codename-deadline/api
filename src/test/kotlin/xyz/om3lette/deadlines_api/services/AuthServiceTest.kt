@@ -1,19 +1,10 @@
 package xyz.om3lette.deadlines_api.services
 
 import io.jsonwebtoken.Claims
-import io.mockk.CapturingSlot
-import io.mockk.every
+import io.mockk.*
 import io.mockk.junit5.MockKExtension
-import io.mockk.mockk
-import io.mockk.slot
-import io.mockk.verify
 import jakarta.servlet.http.HttpServletRequest
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Nested
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.TestInstance
-import org.junit.jupiter.api.assertAll
-import org.junit.jupiter.api.assertThrows
+import org.junit.jupiter.api.*
 import org.junit.jupiter.api.extension.ExtendWith
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
@@ -27,11 +18,11 @@ import xyz.om3lette.deadlines_api.data.jwt.model.RefreshToken
 import xyz.om3lette.deadlines_api.data.jwt.repo.RefreshTokenRepository
 import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.data.user.repo.UserRepository
+import xyz.om3lette.deadlines_api.exceptions.enums.ErrorCode
 import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
 import xyz.om3lette.deadlines_api.services.auth.AuthService
 import java.time.Instant
-import java.util.Date
-import java.util.Optional
+import java.util.*
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -119,7 +110,7 @@ class AuthServiceTest {
             val res = assertThrows<StatusCodeException> { service.signInPassword(dummyUser.username, "raw-pw") }
 
             assertEquals(res.statusCode, 400)
-            assertTrue { res.detail.contains("Sessions limit reached") }
+            assertEquals(ErrorCode.AUTH_SESSIONS_LIMIT_EXCEEDED, res.code)
         }
 
         @Test
@@ -196,22 +187,22 @@ class AuthServiceTest {
             Arguments.of(null, null)
         ).stream()
 
-        private fun assertInvalidCredentials(errorMessage: String = "Invalid credentials", stubBlock: () -> Unit) {
+        private fun assertInvalidCredentials(errorCode: ErrorCode = ErrorCode.AUTH_INVALID_CREDENTIALS, stubBlock: () -> Unit) {
             stubBlock()
             val ex = assertThrows<StatusCodeException> { service.refreshToken(request) }
             assertEquals(401, ex.statusCode)
-            assertEquals(errorMessage, ex.detail)
+            assertEquals(errorCode, ex.code)
         }
 
         @Test
-        fun `missing Authorization header throws StatusCodeException 401`() = assertInvalidCredentials("Invalid header") {
+        fun `missing Authorization header throws StatusCodeException 401`() = assertInvalidCredentials {
             request = mockk<HttpServletRequest> {
                 every { getHeader("Authorization") } returns null
             }
         }
 
         @Test
-        fun `invalid Authorization header format throws StatusCodeException 401`() = assertInvalidCredentials("Invalid header") {
+        fun `invalid Authorization header format throws StatusCodeException 401`() = assertInvalidCredentials {
             request = mockk<HttpServletRequest> {
                 every { getHeader("Authorization") } returns "Bearer-jwt"
             }

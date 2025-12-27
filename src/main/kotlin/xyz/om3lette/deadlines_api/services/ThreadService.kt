@@ -17,6 +17,7 @@ import xyz.om3lette.deadlines_api.data.scopes.userScope.response.UserScopeRespon
 import xyz.om3lette.deadlines_api.util.user.isAdminOr
 import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.data.user.repo.UserRepository
+import xyz.om3lette.deadlines_api.exceptions.enums.ErrorCode
 import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
 import xyz.om3lette.deadlines_api.services.permission.PermissionLookupService
 import xyz.om3lette.deadlines_api.services.permission.PermissionService
@@ -48,7 +49,7 @@ class ThreadService(
             }
         )
 
-        val organization = organizationRepository.findByIdOr404(organizationId)
+        val organization = organizationRepository.findByIdOr404(organizationId, ErrorCode.ORG_NOT_FOUND)
         val thread = threadRepository.save(
             Thread(
                 0, title, description, organization, Instant.now()
@@ -96,7 +97,7 @@ class ThreadService(
     @Transactional
     fun removeAssignee(issuer: User, threadId: Long, assigneeUsername: String) {
         if (assigneeUsername.equals(issuer.username, ignoreCase = true)) {
-            throw StatusCodeException(400, "Removing yourself is prohibited")
+            throw StatusCodeException(400, ErrorCode.ACTION_SELF_REMOVAL)
         }
         val (_, issuerScope) = permissionLookupService.getThreadAndHighestRoleUserScopeOr404(issuer, threadId)
 
@@ -129,7 +130,7 @@ class ThreadService(
         pageNumber: Int,
         pageSize: Int
     ): List<ThreadResponse> {
-        val organization = organizationRepository.findByIdOr404(organizationId)
+        val organization = organizationRepository.findByIdOr404(organizationId, ErrorCode.ORG_NOT_FOUND)
 
         requirePermission(
             permissionService.hasOrganizationAccess(issuer, organization) {

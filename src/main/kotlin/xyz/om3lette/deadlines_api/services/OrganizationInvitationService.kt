@@ -15,6 +15,7 @@ import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeRole
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType
 import xyz.om3lette.deadlines_api.data.scopes.userScope.model.UserScope
 import xyz.om3lette.deadlines_api.data.scopes.userScope.repo.UserScopeRepository
+import xyz.om3lette.deadlines_api.exceptions.enums.ErrorCode
 import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
 import xyz.om3lette.deadlines_api.services.permission.PermissionService
 import xyz.om3lette.deadlines_api.util.jpaRepository.findByIdOr404
@@ -32,24 +33,23 @@ class OrganizationInvitationService(
 ) {
     fun createInvitation(issuer: User, organizationId: Long, usernameToInvite: String, role: ScopeRole): InvitationCreatedResponse {
         if (role == ScopeRole.ORG_OWNER) {
-            throw StatusCodeException(400, "Only one owner is allowed")
+            throw StatusCodeException(400, ErrorCode.INVITATION_INVALID_ROLE)
         }
 
-        val organization = organizationRepository.findByIdOr404(organizationId)
+        val organization = organizationRepository.findByIdOr404(organizationId, ErrorCode.ORG_NOT_FOUND)
         if (organization.type == OrganizationType.PERSONAL) {
-            throw StatusCodeException(400, "Can not invite users to a Personal organization")
+            throw StatusCodeException(400, ErrorCode.INVITATION_PERSONAL_ORG)
         }
 
         val userToInvite = userRepository.findByUsernameIgnoreCaseOr404(usernameToInvite)
         userScopeRepository.findByUserAndScopeId(userToInvite, organizationId).ifPresent {
-            throw StatusCodeException(400, "Can not invite organization member")
+            throw StatusCodeException(400, ErrorCode.INVITATION_ALREADY_ORG_MEMBER)
         }
 
         requirePermission(
             permissionService.canSendOrganizationInvitation(issuer) {
                 userScopeRepository.findByUserAndScopeId(issuer, organizationId)
-            },
-            { "Access denied: insufficient permissions." }
+            }
         )
 
         val invitation = organizationInvitationRepository.save(createInvitation(issuer, userToInvite, organization, role))
@@ -58,17 +58,19 @@ class OrganizationInvitationService(
     }
 
     fun getInvitation(issuer: User, invitationId: Long): OrganizationInvitationResponse =
-        organizationInvitationRepository.findByIdOr404(invitationId).toResponse()
+        organizationInvitationRepository.findByIdOr404(invitationId, ErrorCode.INVITATION_NOT_FOUND).toResponse()
 
     fun resolveInvitation(userAcceptingInvitation: User, invitationId: Long, newStatus: InvitationStatus) {
-        val organizationInvitation = organizationInvitationRepository.findByIdOr404(invitationId)
+        val organizationInvitation = organizationInvitationRepository.findByIdOr404(
+            invitationId, ErrorCode.INVITATION_NOT_FOUND
+        )
 
         if (organizationInvitation.status != InvitationStatus.PENDING) {
-            throw StatusCodeException(400, "This invitation has already been resolved")
+            throw StatusCodeException(400, ErrorCode.INVITATION_ALREADY_ANSWERED)
         }
 
         if (organizationInvitation.invitedUser.id != userAcceptingInvitation.id) {
-            throw StatusCodeException(403, "Access denied: invitation is for another user")
+            throw StatusCodeException(403, ErrorCode.AUTH_INSUFFICIENT_PERMISSIONS)
         }
 
         organizationInvitation.status = newStatus

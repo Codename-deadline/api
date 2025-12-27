@@ -15,6 +15,7 @@ import xyz.om3lette.deadlines_api.data.attachments.reponse.AttachmentCreatedResp
 import xyz.om3lette.deadlines_api.data.attachments.reponse.AttachmentResponse
 import xyz.om3lette.deadlines_api.data.scopes.deadline.repo.DeadlineRepository
 import xyz.om3lette.deadlines_api.data.user.model.User
+import xyz.om3lette.deadlines_api.exceptions.enums.ErrorCode
 import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
 import xyz.om3lette.deadlines_api.services.permission.PermissionLookupService
 import xyz.om3lette.deadlines_api.services.permission.PermissionService
@@ -24,7 +25,7 @@ import xyz.om3lette.deadlines_api.util.minioClient.putObject
 import xyz.om3lette.deadlines_api.util.minioClient.removeObject
 import xyz.om3lette.deadlines_api.util.requirePermission
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 @Service
 class AttachmentsService (
@@ -75,12 +76,12 @@ class AttachmentsService (
                 minioClient.removeObject(bucketName, objectKey)
             }
             logger.error("Attachment upload failed: $e")
-            throw StatusCodeException(500, "Attachment upload failed")
+            throw StatusCodeException(500, ErrorCode.ATTACHMENT_UPLOAD_FAILED)
         }
     }
 
     fun replaceAttachment(issuer: User, attachmentId: Long, fileStream: MultipartFile, filename: String?) {
-        val attachment = attachmentRepository.findByIdOr404(attachmentId)
+        val attachment = attachmentRepository.findByIdOr404(attachmentId, ErrorCode.ATTACHMENT_NOT_FOUND)
 //      Avoid a db request by first validating the fileStream
         val (mimeType, newAttachmentType) = fileCheckerService.getAttachmentTypeOr403(fileStream)
         val issuerScope = permissionLookupService.getHighestRoleUserScopeOr404(issuer, attachment.deadline)
@@ -100,7 +101,7 @@ class AttachmentsService (
 
             attachmentRepository.save(attachment)
         } catch (_: Exception) {
-            throw StatusCodeException(500, "Attachment update failed")
+            throw StatusCodeException(500, ErrorCode.ATTACHMENT_UPLOAD_FAILED)
         }
     }
 
@@ -108,7 +109,7 @@ class AttachmentsService (
         if (filename == null) {
             return
         }
-        val attachment = attachmentRepository.findByIdOr404(attachmentId)
+        val attachment = attachmentRepository.findByIdOr404(attachmentId, ErrorCode.ATTACHMENT_NOT_FOUND)
         val issuerScope = permissionLookupService.getHighestRoleUserScopeOr404(issuer, attachment.deadline)
         requirePermission(
             permissionService.canManageDeadlineAttachments(issuer, issuerScope)
@@ -119,7 +120,7 @@ class AttachmentsService (
     }
 
     fun deleteAttachment(issuer: User, attachmentId: Long) {
-        val attachment = attachmentRepository.findByIdOr404(attachmentId)
+        val attachment = attachmentRepository.findByIdOr404(attachmentId, ErrorCode.ATTACHMENT_NOT_FOUND)
         val issuerScope = permissionLookupService.getHighestRoleUserScopeOr404(issuer, attachment.deadline)
         requirePermission(
             permissionService.canManageDeadlineAttachments(issuer, issuerScope)
@@ -130,7 +131,7 @@ class AttachmentsService (
 //          FIXME: Potential orphan db entries if `delete` fails
             attachmentRepository.delete(attachment)
         } catch (_: Exception) {
-            throw StatusCodeException(500, "Attachment removal failed")
+            throw StatusCodeException(500, ErrorCode.ATTACHMENT_UPLOAD_FAILED)
         }
     }
 
@@ -160,7 +161,7 @@ class AttachmentsService (
         pageNumber: Int,
         pageSize: Int
     ): List<AttachmentResponse> {
-        val deadline = deadlineRepository.findByIdOr404(deadlineId)
+        val deadline = deadlineRepository.findByIdOr404(deadlineId, ErrorCode.DDL_NOT_FOUND)
         requirePermission(
             permissionService.hasDeadlineAccess(
                 issuer,
@@ -176,7 +177,7 @@ class AttachmentsService (
 
 
     private fun getAttachmentByIdAndCheckPermissions(issuer: User, attachmentId: Long): Attachment {
-        val attachment = attachmentRepository.findByIdOr404(attachmentId)
+        val attachment = attachmentRepository.findByIdOr404(attachmentId, ErrorCode.ATTACHMENT_NOT_FOUND)
         val deadline = attachment.deadline
         requirePermission(
             permissionService.hasDeadlineAccess(
