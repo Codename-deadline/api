@@ -30,12 +30,16 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-security")
 	implementation("org.springframework.security:spring-security-crypto")
 	implementation("org.springframework.boot:spring-boot-starter-validation")
-    implementation("org.springframework.kafka:spring-kafka")
     implementation("org.springframework.boot:spring-boot-starter-data-redis")
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.0")
 
-    implementation("org.springframework.grpc:spring-grpc-spring-boot-starter")
+    implementation("org.springframework.kafka:spring-kafka") {
+        exclude(module = "lz4-java")
+    }
+    // Original package is archived. Community maintained fork.
+    implementation("at.yawk.lz4:lz4-java:1.10.2")
 
+    implementation("org.springframework.grpc:spring-grpc-spring-boot-starter")
     implementation("io.github.sanvew:telegram-init-data:1.0.0")
 
     implementation("io.hypersistence:hypersistence-utils-hibernate-71:3.14.1")
