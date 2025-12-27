@@ -6,7 +6,7 @@ data class StatusCodeException(
     val statusCode: Int,
     val code: ErrorCode,
     val detail: String? = null,
-    val params: Map<String, Any> = emptyMap()
+    val params: Map<String, Any>? = null
 ) : RuntimeException(
     "Status code: $statusCode, detail: $detail, code: $code"
 )

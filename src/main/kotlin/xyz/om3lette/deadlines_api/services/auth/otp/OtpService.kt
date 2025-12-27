@@ -106,7 +106,7 @@ class OtpService(
         username: String? = null
     ): UUID {
         val code = generateNumericCode(6)
-        val hashedCode = passwordEncoder.encode(code)
+        val hashedCode: String = passwordEncoder.encode(code)!!
 
         val otp = otpRepository.save(
             Otp(

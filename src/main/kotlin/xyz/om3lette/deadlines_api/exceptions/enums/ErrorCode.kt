@@ -1,5 +1,7 @@
 package xyz.om3lette.deadlines_api.exceptions.enums
 
+import com.fasterxml.jackson.annotation.JsonValue
+
 enum class ErrorCode(val code: String) {
     UNKNOWN_ERROR("unknown-error"),
     DESERIALIZATION_ERROR("deserialization-error"),
@@ -43,5 +45,8 @@ enum class ErrorCode(val code: String) {
 
     ATTACHMENT_NOT_FOUND("attachment.not-found"),
     ATTACHMENT_UPLOAD_FAILED("attachment.upload-failed"),
-    ATTACHMENT_INVALID_FILE_TYPE("attachment.invalid-file-type")
+    ATTACHMENT_INVALID_FILE_TYPE("attachment.invalid-file-type");
+
+    @JsonValue
+    fun toJson(): String = code
 }
