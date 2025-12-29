@@ -1,5 +1,6 @@
 package xyz.om3lette.deadlines_api.data.user.response
 
+import xyz.om3lette.deadlines_api.data.integration.bot.enums.Language
 import java.time.Instant
 
 data class UserResponse(
@@ -9,5 +10,7 @@ data class UserResponse(
 
     val fullName: String,
 
-    val joinedAt: Instant
+    val joinedAt: Instant,
+
+    val language: Language
 )

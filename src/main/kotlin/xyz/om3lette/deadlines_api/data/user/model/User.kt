@@ -64,10 +64,11 @@ data class User(
         "id" to id,
         "username" to _username,
         "fullName" to fullName,
-        "joinedAt" to joinedAt
+        "joinedAt" to joinedAt,
+        "language" to language
     )
 
     fun toResponse() = UserResponse(
-        id, username, fullName, joinedAt
+        id, username, fullName, joinedAt, language
     )
 }

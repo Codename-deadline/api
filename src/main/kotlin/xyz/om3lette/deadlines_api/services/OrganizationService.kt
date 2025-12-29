@@ -134,11 +134,6 @@ class OrganizationService(
         return organization.toResponse()
     }
 
-    fun getOrganizationsMetadataByUser(user: User, pageNumber: Int, pageSize: Int): List<OrganizationResponse> =
-        organizationRepository.findAllOrganizationsForUser(
-            user, PageRequest.of(pageNumber, pageSize)
-        ).map { it.toResponse() }
-
     fun patchOrganization(issuer: User, organizationId: Long, title: String?, description: String?) {
         if (title == null && description == null) {
             return
