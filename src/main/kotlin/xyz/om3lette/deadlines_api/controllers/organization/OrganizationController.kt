@@ -26,11 +26,11 @@ class OrganizationController(
     private val organizationService: OrganizationService
 ) {
     @GetMapping("/{organizationId}")
-    @Operation(summary = "Get organization metadata")
+    @Operation(summary = "Get organization data")
     fun getOrganizationMetadata(
         @AuthenticationPrincipal user: User,
         @PathVariable organizationId: Long
-    ) = organizationService.getOrganizationMetaData(user, organizationId)
+    ) = organizationService.getOrganization(user, organizationId)
 
     @PostMapping
     @Operation(summary = "Create a new organization")
@@ -42,7 +42,7 @@ class OrganizationController(
         request.title,
         request.description,
         request.type,
-        request.usernamesToInvite
+        request.usersToInvite
     )
 
     @DeleteMapping("/{organizationId}")

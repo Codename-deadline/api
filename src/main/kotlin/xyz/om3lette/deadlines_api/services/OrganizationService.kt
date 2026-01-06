@@ -20,9 +20,10 @@ import jakarta.transaction.Transactional
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import xyz.om3lette.deadlines_api.data.scopes.deadline.repo.DeadlineRepository
-import xyz.om3lette.deadlines_api.data.scopes.organization.model.InvitationDTO
+import xyz.om3lette.deadlines_api.data.scopes.organization.dto.InvitationDTO
 import xyz.om3lette.deadlines_api.data.scopes.organization.response.OrganizationCreatedResponse
 import xyz.om3lette.deadlines_api.data.scopes.organization.response.OrganizationResponse
+import xyz.om3lette.deadlines_api.data.scopes.organization.response.OrganizationWithStatsResponse
 import xyz.om3lette.deadlines_api.data.scopes.thread.repo.ThreadRepository
 import xyz.om3lette.deadlines_api.data.scopes.userScope.response.UserScopeResponse
 import xyz.om3lette.deadlines_api.exceptions.enums.ErrorCode
@@ -123,15 +124,17 @@ class OrganizationService(
         }
     }
 
-    fun getOrganizationMetaData(issuer: User, organizationId: Long): OrganizationResponse {
+    fun getOrganization(issuer: User, organizationId: Long): OrganizationWithStatsResponse {
         val organization = organizationRepository.findByIdOr404(organizationId, ErrorCode.ORG_NOT_FOUND)
         requirePermission(
             permissionService.hasOrganizationAccess(issuer, organization) {
                 userScopeRepository.findByUserAndScopeId(issuer, organization.id)
             }
         )
+        // TODO: Rethink. Perhaps make another endpoint for org + stats to only make one db trip
+        val organizationStats = organizationRepository.findOrganizationStats(organizationId)
 
-        return organization.toResponse()
+        return OrganizationWithStatsResponse.fromResponseAndStats(organization.toResponse(), organizationStats)
     }
 
     fun patchOrganization(issuer: User, organizationId: Long, title: String?, description: String?) {
