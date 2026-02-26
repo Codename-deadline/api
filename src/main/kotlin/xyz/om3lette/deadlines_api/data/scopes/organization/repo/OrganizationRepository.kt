@@ -1,5 +1,6 @@
 package xyz.om3lette.deadlines_api.data.scopes.organization.repo
 
+import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
@@ -13,6 +14,6 @@ interface OrganizationRepository : JpaRepository<Organization, Long> {
         JOIN UserScope us ON us.scopeId = o.id AND us.scopeType = 'O'
         WHERE us.user = :user
     """)
-    fun findAllOrganizationsForUser(@Param("user") user: User, pageable: Pageable): List<Organization>
+    fun findAllOrganizationsForUser(@Param("user") user: User, pageable: Pageable): Page<Organization>
 
 }

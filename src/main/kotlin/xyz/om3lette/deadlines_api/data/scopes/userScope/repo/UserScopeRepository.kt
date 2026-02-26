@@ -1,6 +1,7 @@
 package xyz.om3lette.deadlines_api.data.scopes.userScope.repo
 
 import jakarta.transaction.Transactional
+import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Modifying
@@ -51,7 +52,7 @@ interface UserScopeRepository : JpaRepository<UserScope, Long> {
     fun findAllByScopeId(
         scopeId: Long,
         pageable: Pageable
-    ): List<UserScope>
+    ): Page<UserScope>
 
 
     @Modifying

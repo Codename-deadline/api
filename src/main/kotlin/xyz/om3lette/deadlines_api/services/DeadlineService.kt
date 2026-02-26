@@ -4,6 +4,7 @@ import jakarta.transaction.Transactional
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import org.springframework.stereotype.Service
+import xyz.om3lette.deadlines_api.data.common.response.PaginationResponse
 import xyz.om3lette.deadlines_api.data.notifications.enums.NotificationStatus
 import xyz.om3lette.deadlines_api.data.notifications.enums.TimeRemaining
 import xyz.om3lette.deadlines_api.data.notifications.model.DeadlineNotification
@@ -26,6 +27,7 @@ import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
 import xyz.om3lette.deadlines_api.services.permission.PermissionLookupService
 import xyz.om3lette.deadlines_api.services.permission.PermissionService
 import xyz.om3lette.deadlines_api.util.jpaRepository.findByIdOr404
+import xyz.om3lette.deadlines_api.util.page.toPaginationResponse
 import xyz.om3lette.deadlines_api.util.requirePermission
 import xyz.om3lette.deadlines_api.util.user.isAdminOr
 import xyz.om3lette.deadlines_api.util.userRepository.findByUsernameIgnoreCaseOr404
@@ -183,15 +185,16 @@ class DeadlineService(
         threadId: Long,
         pageNumber: Int,
         pageSize: Int
-    ): List<DeadlineResponse> {
+    ): PaginationResponse<DeadlineResponse> {
         val (thread, issuerScope) = permissionLookupService.getThreadAndHighestRoleUserScopeOr404(issuer, threadId)
 
         requirePermission(
             permissionService.hasThreadAccess(issuer, issuerScope, thread.organization)
         )
 
-        val pageRequest = PageRequest.of(pageNumber, pageSize)
-        return deadlineRepository.findAllByThread(thread, pageRequest).map { it.toResponse() }
+        return deadlineRepository.findAllByThread(
+            thread, PageRequest.of(pageNumber, pageSize)
+        ).toPaginationResponse { it.toResponse() }
     }
 
     @Transactional
@@ -241,7 +244,7 @@ class DeadlineService(
         deadlineId: Long,
         pageNumber: Int,
         pageSize: Int
-    ): List<UserScopeResponse> {
+    ): PaginationResponse<UserScopeResponse> {
         val (deadline, issuerScope) = permissionLookupService.getDeadlineAndHighestRoleUserScopeOr404(issuer, deadlineId)
 
         requirePermission(
@@ -249,6 +252,8 @@ class DeadlineService(
         )
 
         val pageRequest = PageRequest.of(pageNumber, pageSize, Sort.by("role").descending())
-        return userScopeRepository.findAllByScopeId(deadlineId, pageRequest).map { it.toResponse() }
+        return userScopeRepository.findAllByScopeId(
+            deadlineId, pageRequest
+        ).toPaginationResponse { it.toResponse() }
     }
 }

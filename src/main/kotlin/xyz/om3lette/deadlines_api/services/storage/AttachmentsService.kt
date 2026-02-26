@@ -13,6 +13,7 @@ import xyz.om3lette.deadlines_api.data.attachments.model.Attachment
 import xyz.om3lette.deadlines_api.data.attachments.repo.AttachmentRepository
 import xyz.om3lette.deadlines_api.data.attachments.reponse.AttachmentCreatedResponse
 import xyz.om3lette.deadlines_api.data.attachments.reponse.AttachmentResponse
+import xyz.om3lette.deadlines_api.data.common.response.PaginationResponse
 import xyz.om3lette.deadlines_api.data.scopes.deadline.repo.DeadlineRepository
 import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.exceptions.enums.ErrorCode
@@ -23,6 +24,7 @@ import xyz.om3lette.deadlines_api.util.jpaRepository.findByIdOr404
 import xyz.om3lette.deadlines_api.util.minioClient.getObject
 import xyz.om3lette.deadlines_api.util.minioClient.putObject
 import xyz.om3lette.deadlines_api.util.minioClient.removeObject
+import xyz.om3lette.deadlines_api.util.page.toPaginationResponse
 import xyz.om3lette.deadlines_api.util.requirePermission
 import java.time.Instant
 import java.util.*
@@ -160,7 +162,7 @@ class AttachmentsService (
         deadlineId: Long,
         pageNumber: Int,
         pageSize: Int
-    ): List<AttachmentResponse> {
+    ): PaginationResponse<AttachmentResponse> {
         val deadline = deadlineRepository.findByIdOr404(deadlineId, ErrorCode.DDL_NOT_FOUND)
         requirePermission(
             permissionService.hasDeadlineAccess(
@@ -172,7 +174,7 @@ class AttachmentsService (
         return attachmentRepository.findAllByDeadline(
             deadline,
             PageRequest.of(pageNumber, pageSize)
-        ).map { it.toResponse() }
+        ).toPaginationResponse { it.toResponse() }
     }
 
 

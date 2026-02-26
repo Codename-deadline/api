@@ -4,6 +4,7 @@ import jakarta.transaction.Transactional
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import org.springframework.stereotype.Service
+import xyz.om3lette.deadlines_api.data.common.response.PaginationResponse
 import xyz.om3lette.deadlines_api.data.scopes.organization.repo.OrganizationRepository
 import xyz.om3lette.deadlines_api.data.scopes.thread.model.Thread
 import xyz.om3lette.deadlines_api.data.scopes.thread.repo.ThreadRepository
@@ -22,6 +23,7 @@ import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
 import xyz.om3lette.deadlines_api.services.permission.PermissionLookupService
 import xyz.om3lette.deadlines_api.services.permission.PermissionService
 import xyz.om3lette.deadlines_api.util.jpaRepository.findByIdOr404
+import xyz.om3lette.deadlines_api.util.page.toPaginationResponse
 import xyz.om3lette.deadlines_api.util.requirePermission
 import xyz.om3lette.deadlines_api.util.userRepository.findByUsernameIgnoreCaseOr404
 import java.time.Instant
@@ -129,7 +131,7 @@ class ThreadService(
         organizationId: Long,
         pageNumber: Int,
         pageSize: Int
-    ): List<ThreadResponse> {
+    ): PaginationResponse<ThreadResponse> {
         val organization = organizationRepository.findByIdOr404(organizationId, ErrorCode.ORG_NOT_FOUND)
 
         requirePermission(
@@ -139,7 +141,9 @@ class ThreadService(
         )
 
         val pageRequest = PageRequest.of(pageNumber, pageSize)
-        return threadRepository.findAllByOrganization(organization, pageRequest).map { it.toResponse() }
+        return threadRepository.findAllByOrganization(
+            organization, pageRequest
+        ).toPaginationResponse { it.toResponse() }
     }
 
     fun patchThread(issuer: User, threadId: Long, title: String?, description: String?) {
@@ -164,7 +168,7 @@ class ThreadService(
         threadId: Long,
         pageNumber: Int,
         pageSize: Int
-    ): List<UserScopeResponse> {
+    ): PaginationResponse<UserScopeResponse> {
         val (thread, issuerScope) = permissionLookupService.getThreadAndHighestRoleUserScopeOr404(issuer, threadId)
 
         requirePermission(
@@ -172,6 +176,8 @@ class ThreadService(
         )
 
         val pageRequest = PageRequest.of(pageNumber, pageSize, Sort.by("role").descending())
-        return userScopeRepository.findAllByScopeId(threadId, pageRequest).map { it.toResponse() }
+        return userScopeRepository.findAllByScopeId(
+            threadId, pageRequest
+        ).toPaginationResponse { it.toResponse() }
     }
 }

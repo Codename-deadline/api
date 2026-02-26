@@ -19,6 +19,7 @@ import java.time.Instant
 import jakarta.transaction.Transactional
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
+import xyz.om3lette.deadlines_api.data.common.response.PaginationResponse
 import xyz.om3lette.deadlines_api.data.scopes.deadline.repo.DeadlineRepository
 import xyz.om3lette.deadlines_api.data.scopes.organization.model.InvitationDTO
 import xyz.om3lette.deadlines_api.data.scopes.organization.response.OrganizationCreatedResponse
@@ -27,6 +28,7 @@ import xyz.om3lette.deadlines_api.data.scopes.thread.repo.ThreadRepository
 import xyz.om3lette.deadlines_api.data.scopes.userScope.response.UserScopeResponse
 import xyz.om3lette.deadlines_api.exceptions.enums.ErrorCode
 import xyz.om3lette.deadlines_api.services.permission.PermissionService
+import xyz.om3lette.deadlines_api.util.page.toPaginationResponse
 import xyz.om3lette.deadlines_api.util.requirePermission
 
 @Service
@@ -158,7 +160,7 @@ class OrganizationService(
         organizationId: Long,
         pageNumber: Int,
         pageSize: Int
-    ): List<UserScopeResponse> {
+    ): PaginationResponse<UserScopeResponse> {
         val organization = organizationRepository.findByIdOr404(organizationId, ErrorCode.ORG_NOT_FOUND)
         requirePermission(
             permissionService.hasOrganizationAccess(issuer, organization) {
@@ -167,8 +169,8 @@ class OrganizationService(
         )
 
         val pageRequest = PageRequest.of(pageNumber, pageSize, Sort.by("role").descending())
-        return userScopeRepository.findAllByScopeId(organizationId, pageRequest).map { member ->
-            member.toResponse()
-        }
+        return userScopeRepository.findAllByScopeId(
+            organizationId, pageRequest
+        ).toPaginationResponse { it.toResponse() }
     }
 }
