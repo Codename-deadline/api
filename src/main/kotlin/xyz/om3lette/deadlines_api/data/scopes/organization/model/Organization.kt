@@ -1,13 +1,26 @@
 package xyz.om3lette.deadlines_api.data.scopes.organization.model
 
-import jakarta.persistence.*
+import jakarta.persistence.CascadeType
+import jakarta.persistence.Column
+import jakarta.persistence.ConstraintMode
+import jakarta.persistence.Entity
+import jakarta.persistence.EnumType
+import jakarta.persistence.Enumerated
+import jakarta.persistence.ForeignKey
+import jakarta.persistence.GeneratedValue
+import jakarta.persistence.GenerationType
+import jakarta.persistence.Id
+import jakarta.persistence.JoinColumn
+import jakarta.persistence.OneToMany
+import jakarta.persistence.SequenceGenerator
+import jakarta.persistence.Table
 import jakarta.validation.constraints.Size
 import org.hibernate.annotations.SQLRestriction
-
+import xyz.om3lette.deadlines_api.data.scopes.organization.dto.OrganizationDTO
+import xyz.om3lette.deadlines_api.data.scopes.organization.dto.OrganizationStatsDTO
 import xyz.om3lette.deadlines_api.data.scopes.organization.enums.OrganizationType
 import xyz.om3lette.deadlines_api.data.scopes.organization.response.OrganizationResponse
 import xyz.om3lette.deadlines_api.data.scopes.thread.model.Thread
-import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.data.scopes.userScope.model.UserScope
 import java.time.Instant
 
@@ -55,7 +68,12 @@ data class Organization(
         "createdAt" to createdAt
     )
 
-    fun toResponse() = OrganizationResponse(
+    fun toResponse() = OrganizationDTO(
         id, title, description, type, createdAt
+    )
+
+    fun toStatsResponse(stats: OrganizationStatsDTO) = OrganizationResponse(
+        organization = toResponse(),
+        stats = stats.toResponse()
     )
 }

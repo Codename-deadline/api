@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertAll
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
+import org.springframework.data.domain.PageImpl
 import xyz.om3lette.deadlines_api.data.scopes.organization.model.Organization
 import xyz.om3lette.deadlines_api.data.scopes.organization.repo.OrganizationRepository
 import xyz.om3lette.deadlines_api.data.scopes.thread.model.Thread
@@ -282,7 +283,7 @@ class ThreadServiceTest {
         @BeforeEach
         fun commonHappyStubs() {
             every { permissionService.hasOrganizationAccess(dummyUserBob, organization, any())} returns true
-            every { threadRepository.findAllByOrganization(organization, any()) } returns emptyList()
+            every { threadRepository.findAllByOrganization(organization, any()) } returns PageImpl(emptyList())
         }
 
         @Test
@@ -351,7 +352,7 @@ class ThreadServiceTest {
         @BeforeEach
         fun commonHappyStubs() {
             val threadId = thread.id
-            every { userScopeRepository.findAllByScopeId(threadId, any()) } returns emptyList()
+            every { userScopeRepository.findAllByScopeId(threadId, any()) } returns PageImpl(emptyList())
         }
 
         @Test

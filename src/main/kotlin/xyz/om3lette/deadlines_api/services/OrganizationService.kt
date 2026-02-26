@@ -21,8 +21,9 @@ import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import xyz.om3lette.deadlines_api.data.common.response.PaginationResponse
 import xyz.om3lette.deadlines_api.data.scopes.deadline.repo.DeadlineRepository
-import xyz.om3lette.deadlines_api.data.scopes.organization.model.InvitationDTO
+import xyz.om3lette.deadlines_api.data.scopes.organization.dto.InvitationDTO
 import xyz.om3lette.deadlines_api.data.scopes.organization.response.OrganizationCreatedResponse
+import xyz.om3lette.deadlines_api.data.scopes.organization.dto.OrganizationDTO
 import xyz.om3lette.deadlines_api.data.scopes.organization.response.OrganizationResponse
 import xyz.om3lette.deadlines_api.data.scopes.thread.repo.ThreadRepository
 import xyz.om3lette.deadlines_api.data.scopes.userScope.response.UserScopeResponse
@@ -133,7 +134,8 @@ class OrganizationService(
             }
         )
 
-        return organization.toResponse()
+        val stats = organizationRepository.getOrganizationsStats(listOf(organizationId))[0]
+        return organization.toStatsResponse(stats)
     }
 
     fun patchOrganization(issuer: User, organizationId: Long, title: String?, description: String?) {
