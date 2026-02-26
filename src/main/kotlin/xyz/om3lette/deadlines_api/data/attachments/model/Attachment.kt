@@ -21,7 +21,7 @@ data class Attachment(
     @field:Size(min = 1, max = 64)
     var filename: String,
 
-    @Enumerated(value = EnumType.ORDINAL)
+    @Enumerated(value = EnumType.STRING)
     var type: AttachmentType,
 
     @ManyToOne(fetch = FetchType.EAGER)

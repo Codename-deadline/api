@@ -5,7 +5,6 @@ import io.hypersistence.utils.hibernate.type.json.JsonType
 import jakarta.persistence.Column
 import jakarta.persistence.Convert
 import jakarta.persistence.Entity
-import jakarta.persistence.EnumType
 import jakarta.persistence.Enumerated
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
@@ -15,7 +14,6 @@ import org.hibernate.annotations.Type
 import xyz.om3lette.deadlines_api.data.integration.bot.enums.Messenger
 import xyz.om3lette.deadlines_api.data.notifications.converters.NotificationStatusConverter
 import xyz.om3lette.deadlines_api.data.notifications.enums.NotificationStatus
-import xyz.om3lette.deadlines_api.data.notifications.model.DeadlineNotification
 import xyz.om3lette.deadlines_api.data.outbox.enums.OutboxSource
 import java.time.Instant
 

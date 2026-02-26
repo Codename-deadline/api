@@ -27,7 +27,7 @@ data class OrganizationInvitation(
     @JoinColumn(name = "organization_id")
     val organization: Organization,
 
-    @Enumerated(value = EnumType.ORDINAL)
+    @Enumerated(value = EnumType.STRING)
     var status: InvitationStatus,
 
     val role: ScopeRole,

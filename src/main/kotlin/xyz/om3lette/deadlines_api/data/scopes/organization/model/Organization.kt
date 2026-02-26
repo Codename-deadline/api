@@ -25,7 +25,7 @@ data class Organization(
     @field:Size(max = 2048)
     var description: String?,
 
-    @Enumerated(value = EnumType.ORDINAL)
+    @Enumerated(value = EnumType.STRING)
     val type: OrganizationType,
 
     @Column(columnDefinition = "TIMESTAMP WITH TIME ZONE")
