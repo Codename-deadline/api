@@ -57,9 +57,23 @@ interface UserScopeRepository : JpaRepository<UserScope, Long> {
 
     @Modifying
     @Transactional
+    @Query(
+        """
+            DELETE FROM user_scopes us
+            WHERE us.user_id = :userId
+                AND (
+                    (us.scope_type = 'ORG' AND us.scope_id = :orgId)
+                    OR (us.scope_type = 'THR' AND us.scope_id = :thrId)
+                    OR (us.scope_type = 'DDL' AND us.scope_id = :ddlId)
+                )
+        """,
+        nativeQuery = true
+    )
     fun deleteByUserAndScopeId(
         user: User,
-        scopeId: Long
+        orgId: Long?,
+        thrId: Long?,
+        ddlId: Long?,
     ): Int
 
     @Modifying

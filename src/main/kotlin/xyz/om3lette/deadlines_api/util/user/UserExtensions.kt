@@ -1,5 +1,6 @@
 package xyz.om3lette.deadlines_api.util.user
 
+import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeRole
 import xyz.om3lette.deadlines_api.data.user.enums.UserRole
 import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.data.scopes.userScope.model.UserScope
@@ -21,5 +22,11 @@ inline fun User.isAdminOrHasRoleAnd(userScope: Optional<UserScope>, then: (userS
 inline fun User.isAdminOrHasRoleAnd(userScopeLazy: () -> Optional<UserScope>, then: (userScope: UserScope) -> Boolean): Boolean =
     isAdminOr {
         val scope: UserScope = userScopeLazy().getOrNull() ?: return false
+        return then(scope)
+    }
+
+inline fun User.isAdminOrHasRoleAnd(roleLazy: () -> ScopeRole?, then: (role: ScopeRole) -> Boolean): Boolean =
+    isAdminOr {
+        val scope: ScopeRole = roleLazy() ?: return false
         return then(scope)
     }
