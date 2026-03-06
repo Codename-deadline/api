@@ -12,7 +12,7 @@ import xyz.om3lette.deadlines_api.data.user.model.User
 interface OrganizationRepository : JpaRepository<Organization, Long> {
     @Query("""
         SELECT o FROM Organization o
-        JOIN UserScope us ON us.scopeId = o.id AND us.scopeType = 'O'
+        JOIN UserScope us ON us.scopeId = o.id AND us.scopeType = 'ORG'
         WHERE us.user = :user
     """)
     fun findAllOrganizationsForUser(@Param("user") user: User, pageable: Pageable): Page<Organization>

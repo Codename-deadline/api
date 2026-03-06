@@ -57,7 +57,7 @@ data class Deadline(
         insertable = false, updatable = false,
         foreignKey = ForeignKey(ConstraintMode.NO_CONSTRAINT)
     )
-    @SQLRestriction("scope_type = 'D'")
+    @SQLRestriction("scope_type = 'DDL'")
     val assignees: MutableList<UserScope> = mutableListOf(),
 ) {
     fun toMap() = mapOf(

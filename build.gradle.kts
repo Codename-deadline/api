@@ -22,7 +22,7 @@ repositories {
 	mavenCentral()
 }
 
-extra["springGrpcVersion"] = "1.0.0"
+extra["springGrpcVersion"] = "1.0.2"
 
 dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-web")
@@ -31,7 +31,7 @@ dependencies {
 	implementation("org.springframework.security:spring-security-crypto")
 	implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-data-redis")
-    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.0")
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.2")
 
     implementation("org.springframework.kafka:spring-kafka") {
         exclude(module = "lz4-java")

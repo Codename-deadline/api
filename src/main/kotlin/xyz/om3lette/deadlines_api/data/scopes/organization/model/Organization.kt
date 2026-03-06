@@ -51,7 +51,7 @@ data class Organization(
         insertable = false, updatable = false,
         foreignKey = ForeignKey(ConstraintMode.NO_CONSTRAINT)
     )
-    @SQLRestriction("scope_type = 'O'")
+    @SQLRestriction("scope_type = 'ORG'")
     val members: MutableList<UserScope> = mutableListOf(),
 
     @OneToMany(mappedBy = "organization", cascade = [CascadeType.ALL], orphanRemoval = true)

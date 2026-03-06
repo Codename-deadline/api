@@ -36,7 +36,7 @@ class DeadlineNotificationCustomRepositoryImpl(
                        1 AS precedence
                 FROM moved m
                 JOIN deadlines d ON d.id = m.deadline_id
-                JOIN chat_subscriptions cs ON cs.scope_type = 'D' AND cs.scope_id = d.id
+                JOIN chat_subscriptions cs ON cs.scope_type = 'DDL' AND cs.scope_id = d.id
                 
                 UNION ALL
                 
@@ -46,7 +46,7 @@ class DeadlineNotificationCustomRepositoryImpl(
                        2 AS precedence
                 FROM moved m
                 JOIN deadlines d ON d.id = m.deadline_id
-                JOIN chat_subscriptions cs ON cs.scope_type = 'T' AND cs.scope_id = d.thread_id
+                JOIN chat_subscriptions cs ON cs.scope_type = 'THR' AND cs.scope_id = d.thread_id
                 
                 UNION ALL
                 
@@ -56,7 +56,7 @@ class DeadlineNotificationCustomRepositoryImpl(
                        3 AS precedence
                 FROM moved m
                 JOIN deadlines d ON d.id = m.deadline_id
-                JOIN chat_subscriptions cs ON cs.scope_type = 'O' AND cs.scope_id = d.organization_id
+                JOIN chat_subscriptions cs ON cs.scope_type = 'ORG' AND cs.scope_id = d.organization_id
             ),
             selected AS (
                 SELECT
