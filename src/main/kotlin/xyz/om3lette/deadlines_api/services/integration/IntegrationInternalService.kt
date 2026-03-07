@@ -15,13 +15,15 @@ import xyz.om3lette.deadlines_api.data.integration.chat.repo.ChatRepository
 import xyz.om3lette.deadlines_api.data.integration.chat.repo.ChatSubscriptionRepository
 import xyz.om3lette.deadlines_api.data.integration.messengerAccount.model.UserMessengerAccount
 import xyz.om3lette.deadlines_api.data.integration.messengerAccount.repo.UserMessengerAccountRepository
+import xyz.om3lette.deadlines_api.data.scopes.deadline.model.Deadline
+import xyz.om3lette.deadlines_api.data.scopes.deadline.repo.DeadlineRepository
 import xyz.om3lette.deadlines_api.data.scopes.organization.repo.OrganizationRepository
+import xyz.om3lette.deadlines_api.data.scopes.thread.model.Thread
+import xyz.om3lette.deadlines_api.data.scopes.thread.repo.ThreadRepository
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType
-import xyz.om3lette.deadlines_api.data.scopes.userScope.repo.UserScopeRepository
 import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.data.user.repo.UserRepository
 import xyz.om3lette.deadlines_api.exceptions.type.GrpcKeyLocaleException
-import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
 import xyz.om3lette.deadlines_api.proto.DeregisterChatRequest
 import xyz.om3lette.deadlines_api.proto.GeneralResponse
 import xyz.om3lette.deadlines_api.proto.IntegrationServiceGrpc
@@ -34,10 +36,10 @@ import xyz.om3lette.deadlines_api.proto.UnsubscribeFromAllRequest
 import xyz.om3lette.deadlines_api.proto.UnsubscribeFromRequest
 import xyz.om3lette.deadlines_api.proto.UpdateChatInfoRequest
 import xyz.om3lette.deadlines_api.redisData.integration.messengerAccount.repo.AccountLinkageRepository
-import xyz.om3lette.deadlines_api.services.permission.PermissionLookupService
 import xyz.om3lette.deadlines_api.services.permission.PermissionService
 import xyz.om3lette.deadlines_api.util.requirePermissionGrpc
 import java.time.Instant
+import java.util.Optional
 import kotlin.jvm.optionals.getOrNull
 
 @GrpcService
@@ -49,9 +51,9 @@ class IntegrationInternalService(
     private val chatSubscriptionRepository: ChatSubscriptionRepository,
     private val botRepository: BotRepository,
     private val userRepository: UserRepository,
-    private val userScopeRepository: UserScopeRepository,
+    private val deadlineRepository: DeadlineRepository,
+    private val threadRepository: ThreadRepository,
     private val accountLinkageRepository: AccountLinkageRepository,
-    private val permissionLookupService: PermissionLookupService
 ) : IntegrationServiceGrpc.IntegrationServiceImplBase() {
 
     private val logger = LoggerFactory.getLogger(IntegrationService::class.java)
@@ -166,9 +168,7 @@ class IntegrationInternalService(
             GrpcKeyLocaleException(Status.NOT_FOUND, "errors.organization_not_found", getLanguageByAccountId(request.issuerAccountId))
         }
         requirePermissionGrpc(
-            permissionService.hasOrganizationAccess(issuer, organization) {
-                userScopeRepository.findByUserAndScopeId(issuer, organization.id)
-            },
+            permissionService.hasOrganizationAccess(issuer, organization),
             "error.organization_access_denied",
             { getLanguageByAccountId(request.issuerAccountId) }
         )
@@ -179,11 +179,8 @@ class IntegrationInternalService(
         request: SubscribeToRequest,
         responseObserver: StreamObserver<GeneralResponse>
     ) = subscribeTo(request, ScopeType.THREAD, responseObserver) { issuer ->
-        val (thread, issuerScopeLazy) = try {
-            permissionLookupService.getThreadAndHighestRoleUserScopeOr404(
-                issuer, request.targetId
-            )
-        } catch (_: StatusCodeException) {
+        val thread: Optional<Thread> = threadRepository.findById(request.targetId)
+        if (thread.isEmpty) {
             throw GrpcKeyLocaleException(
                 Status.NOT_FOUND,
                 "errors.thread_not_found",
@@ -191,21 +188,19 @@ class IntegrationInternalService(
             )
         }
         requirePermissionGrpc(
-            permissionService.hasThreadAccess(issuer, issuerScopeLazy
-            ) { thread.organization },
+            permissionService.hasThreadAccess(issuer, thread.get()),
             "errors.thread_access_denied",
             { getLanguageByAccountId(request.issuerAccountId) }
         )
-        thread.id
+        thread.get().id
     }
 
     override fun subscribeToDeadline(
         request: SubscribeToRequest,
         responseObserver: StreamObserver<GeneralResponse>
     ) = subscribeTo(request, ScopeType.DEADLINE, responseObserver) { issuer ->
-        val (deadline, issuerScopeLazy) = try {
-            permissionLookupService.getDeadlineAndHighestRoleUserScopeOr404(issuer, request.targetId)
-        } catch (_: StatusCodeException) {
+        val deadline: Optional<Deadline> = deadlineRepository.findById(request.targetId)
+        if (deadline.isEmpty) {
             throw GrpcKeyLocaleException(
                 Status.NOT_FOUND,
                 "errors.deadline_not_found",
@@ -213,11 +208,11 @@ class IntegrationInternalService(
             )
         }
         requirePermissionGrpc(
-            permissionService.hasDeadlineAccess(issuer, issuerScopeLazy, deadline.organization),
+            permissionService.hasDeadlineAccess(issuer, deadline.get()),
             "errors.deadline_access_denied",
             { getLanguageByAccountId(request.issuerAccountId) }
         )
-        deadline.id
+        deadline.get().id
     }
 
     private fun unsubscribeFrom(

@@ -12,19 +12,6 @@ inline fun User.isAdminOr(then: () -> Boolean): Boolean {
     return then()
 }
 
-inline fun User.isAdminOrHasRoleAnd(userScope: Optional<UserScope>, then: (userScope: UserScope) -> Boolean): Boolean =
-    isAdminOr {
-        val scope: UserScope = userScope.getOrNull() ?: return false
-        return then(scope)
-    }
-
-
-inline fun User.isAdminOrHasRoleAnd(userScopeLazy: () -> Optional<UserScope>, then: (userScope: UserScope) -> Boolean): Boolean =
-    isAdminOr {
-        val scope: UserScope = userScopeLazy().getOrNull() ?: return false
-        return then(scope)
-    }
-
 inline fun User.isAdminOrHasRoleAnd(roleLazy: () -> ScopeRole?, then: (role: ScopeRole) -> Boolean): Boolean =
     isAdminOr {
         val scope: ScopeRole = roleLazy() ?: return false

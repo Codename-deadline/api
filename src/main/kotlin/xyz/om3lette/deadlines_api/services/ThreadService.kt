@@ -5,6 +5,7 @@ import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import org.springframework.stereotype.Service
 import xyz.om3lette.deadlines_api.data.common.response.PaginationResponse
+import xyz.om3lette.deadlines_api.data.permissions.dto.ThreadScope
 import xyz.om3lette.deadlines_api.data.scopes.organization.repo.OrganizationRepository
 import xyz.om3lette.deadlines_api.data.scopes.thread.model.Thread
 import xyz.om3lette.deadlines_api.data.scopes.thread.repo.ThreadRepository
@@ -15,12 +16,10 @@ import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType
 import xyz.om3lette.deadlines_api.data.scopes.userScope.model.UserScope
 import xyz.om3lette.deadlines_api.data.scopes.userScope.repo.UserScopeRepository
 import xyz.om3lette.deadlines_api.data.scopes.userScope.response.UserScopeResponse
-import xyz.om3lette.deadlines_api.util.user.isAdminOr
 import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.data.user.repo.UserRepository
 import xyz.om3lette.deadlines_api.exceptions.enums.ErrorCode
 import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
-import xyz.om3lette.deadlines_api.services.permission.PermissionLookupService
 import xyz.om3lette.deadlines_api.services.permission.PermissionService
 import xyz.om3lette.deadlines_api.util.jpaRepository.findByIdOr404
 import xyz.om3lette.deadlines_api.util.page.toPaginationResponse
@@ -90,9 +89,11 @@ class ThreadService(
         if (assigneeUsername.equals(issuer.username, ignoreCase = true)) {
             throw StatusCodeException(400, ErrorCode.ACTION_SELF_REMOVAL)
         }
-        val thread = threadRepository.findByIdOr404(threadId, ErrorCode.THR_NOT_FOUND)
+
         requirePermission(
-            permissionService.canManageThreadAssignees(issuer, thread)
+            permissionService.canManageAssignees(issuer, ThreadScope(
+                threadRepository.findByIdOr404(threadId, ErrorCode.THR_NOT_FOUND)
+            ))
         )
 
         // FIXME: RETHINK

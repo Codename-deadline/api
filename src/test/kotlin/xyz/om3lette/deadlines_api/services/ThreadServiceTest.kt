@@ -28,7 +28,6 @@ import xyz.om3lette.deadlines_api.data.user.enums.UserRole
 import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.data.user.repo.UserRepository
 import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
-import xyz.om3lette.deadlines_api.services.permission.PermissionLookupService
 import xyz.om3lette.deadlines_api.services.permission.PermissionService
 import java.util.Optional
 import kotlin.test.assertEquals
@@ -51,9 +50,6 @@ class ThreadServiceTest {
 
     @MockK
     lateinit var permissionService: PermissionService
-
-    @MockK
-    lateinit var permissionLookupService: PermissionLookupService
 
     @InjectMockKs
     lateinit var threadService: ThreadService

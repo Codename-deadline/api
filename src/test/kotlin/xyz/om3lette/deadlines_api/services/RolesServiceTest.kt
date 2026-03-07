@@ -25,7 +25,6 @@ import xyz.om3lette.deadlines_api.data.scopes.userScope.model.UserScope
 import xyz.om3lette.deadlines_api.data.scopes.userScope.repo.UserScopeRepository
 import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
-import xyz.om3lette.deadlines_api.services.permission.PermissionLookupService
 import xyz.om3lette.deadlines_api.services.permission.PermissionService
 import java.util.Optional
 import kotlin.test.assertEquals
@@ -36,9 +35,6 @@ import kotlin.test.assertTrue
 class RolesServiceTest {
     @MockK
     lateinit var userScopeRepository: UserScopeRepository
-
-    @MockK
-    lateinit var permissionLookupService: PermissionLookupService
 
     @MockK
     lateinit var permissionService: PermissionService
@@ -70,7 +66,7 @@ class RolesServiceTest {
             } returns Optional.of(it.second)
         }
         every {
-            userScopeRepository.findByUsernameAndScopeIdIgnoreCase("alice-the-tester", scopeId)
+            userScopeRepository.findByScopeTypeAndScopeIdAndUsernameIgnoreCase("alice-the-tester", scopeId)
         } returns Optional.of(dummyUserScopeAlice)
     }
 
@@ -203,7 +199,7 @@ class RolesServiceTest {
 
         @Test
         fun `subject UserScope not found throws StatusCodeException 400`() {
-            every { userScopeRepository.findByUsernameAndScopeIdIgnoreCase(any(), any()) } returns Optional.empty()
+            every { userScopeRepository.findByScopeTypeAndScopeIdAndUsernameIgnoreCase(any(), any()) } returns Optional.empty()
 
             val res = assertThrows<StatusCodeException> {
                 rolesService.changeRole(

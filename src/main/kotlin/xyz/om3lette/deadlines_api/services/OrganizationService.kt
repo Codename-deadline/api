@@ -20,10 +20,10 @@ import jakarta.transaction.Transactional
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import xyz.om3lette.deadlines_api.data.common.response.PaginationResponse
+import xyz.om3lette.deadlines_api.data.permissions.dto.OrganizationScope
 import xyz.om3lette.deadlines_api.data.scopes.deadline.repo.DeadlineRepository
 import xyz.om3lette.deadlines_api.data.scopes.organization.dto.InvitationDTO
 import xyz.om3lette.deadlines_api.data.scopes.organization.response.OrganizationCreatedResponse
-import xyz.om3lette.deadlines_api.data.scopes.organization.dto.OrganizationDTO
 import xyz.om3lette.deadlines_api.data.scopes.organization.response.OrganizationResponse
 import xyz.om3lette.deadlines_api.data.scopes.thread.repo.ThreadRepository
 import xyz.om3lette.deadlines_api.data.scopes.userScope.response.UserScopeResponse
@@ -92,35 +92,31 @@ class OrganizationService(
     fun deleteOrganization(issuer: User, organizationId: Long) {
         val organization: Organization = organizationRepository.findByIdOr404(organizationId, ErrorCode.ORG_NOT_FOUND)
         requirePermission(
-            permissionService.canDeleteOrganization(issuer) {
-                userScopeRepository.findByUserAndScopeId(issuer, organizationId)
-            }
+            permissionService.canDeleteOrganization(issuer, organizationId)
         )
 
         organizationRepository.delete(organization)
     }
 
     @Transactional
-    fun removeMember(issuer: User, organizationId: Long, memberUsernameToRemove: String) {
+    fun removeMember(issuer: User, orgId: Long, memberUsernameToRemove: String) {
         if (memberUsernameToRemove.equals(issuer._username, ignoreCase = true)) {
             throw StatusCodeException(400, ErrorCode.ACTION_SELF_REMOVAL)
         }
 
         requirePermission(
-            permissionService.canManageOrganizationMembers(issuer) {
-                userScopeRepository.findByUserAndScopeId(issuer, organizationId)
-            }
+            permissionService.canManageAssignees(issuer, OrganizationScope(orgId))
         )
 
         val userToRemove = userRepository.findByUsernameIgnoreCaseOr404(memberUsernameToRemove)
-        userScopeRepository.deleteByUserAndScopeId(userToRemove, organizationId)
+        userScopeRepository.deleteByUserAndScopeId(userToRemove, orgId, null, null)
 
-        val threadIds = threadRepository.findAllIdsByOrganizationId(organizationId)
+        val threadIds = threadRepository.findAllIdsByOrganizationId(orgId)
         if (threadIds.isNotEmpty()) {
             userScopeRepository.deleteByUserAndScopeIdIn(userToRemove, threadIds)
         }
 
-        val deadlinesIds = deadlineRepository.findAllIdsByOrganizationId(organizationId)
+        val deadlinesIds = deadlineRepository.findAllIdsByOrganizationId(orgId)
         if (deadlinesIds.isNotEmpty()) {
             userScopeRepository.deleteByUserAndScopeIdIn(userToRemove, deadlinesIds)
         }
@@ -129,9 +125,7 @@ class OrganizationService(
     fun getOrganizationMetaData(issuer: User, organizationId: Long): OrganizationResponse {
         val organization = organizationRepository.findByIdOr404(organizationId, ErrorCode.ORG_NOT_FOUND)
         requirePermission(
-            permissionService.hasOrganizationAccess(issuer, organization) {
-                userScopeRepository.findByUserAndScopeId(issuer, organization.id)
-            }
+            permissionService.hasOrganizationAccess(issuer, organization)
         )
 
         val stats = organizationRepository.getOrganizationsStats(listOf(organizationId))[0]
@@ -146,9 +140,7 @@ class OrganizationService(
         val organization: Organization = organizationRepository.findByIdOr404(organizationId, ErrorCode.ORG_NOT_FOUND)
 
         requirePermission(
-            permissionService.canUpdateOrganization(issuer) {
-                userScopeRepository.findByUserAndScopeId(issuer, organizationId)
-            }
+            permissionService.canUpdateOrganization(issuer, organizationId)
         )
 
         if (title != null) organization.title = title
@@ -165,9 +157,7 @@ class OrganizationService(
     ): PaginationResponse<UserScopeResponse> {
         val organization = organizationRepository.findByIdOr404(organizationId, ErrorCode.ORG_NOT_FOUND)
         requirePermission(
-            permissionService.hasOrganizationAccess(issuer, organization) {
-                userScopeRepository.findByUserAndScopeId(issuer, organization.id)
-            }
+            permissionService.hasOrganizationAccess(issuer, organization)
         )
 
         val pageRequest = PageRequest.of(pageNumber, pageSize, Sort.by("role").descending())

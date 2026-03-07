@@ -18,7 +18,6 @@ import xyz.om3lette.deadlines_api.data.scopes.deadline.repo.DeadlineRepository
 import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.exceptions.enums.ErrorCode
 import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
-import xyz.om3lette.deadlines_api.services.permission.PermissionLookupService
 import xyz.om3lette.deadlines_api.services.permission.PermissionService
 import xyz.om3lette.deadlines_api.util.jpaRepository.findByIdOr404
 import xyz.om3lette.deadlines_api.util.minioClient.getObject
@@ -27,13 +26,12 @@ import xyz.om3lette.deadlines_api.util.minioClient.removeObject
 import xyz.om3lette.deadlines_api.util.page.toPaginationResponse
 import xyz.om3lette.deadlines_api.util.requirePermission
 import java.time.Instant
-import java.util.*
+import java.util.UUID
 
 @Service
 class AttachmentsService (
     private val minioClient: MinioClient,
     private val bucketName: String = "attachments", // TODO: Replace with @Value?
-    private val permissionLookupService: PermissionLookupService,
     private val permissionService: PermissionService,
     private val attachmentRepository: AttachmentRepository,
     private val deadlineRepository: DeadlineRepository,
@@ -47,9 +45,9 @@ class AttachmentsService (
         fileStream: MultipartFile,
         filename: String
     ): AttachmentCreatedResponse {
-        val (deadline, issuerScope) = permissionLookupService.getDeadlineAndHighestRoleUserScopeOr404(issuer, deadlineId)
+        val deadline = deadlineRepository.findByIdOr404(deadlineId, ErrorCode.DDL_NOT_FOUND)
         requirePermission(
-            permissionService.canManageDeadlineAttachments(issuer, issuerScope)
+            permissionService.canManageDeadlineAttachments(issuer, deadline)
         )
 
         val (mimeType, attachmentType) = fileCheckerService.getAttachmentTypeOr403(fileStream)
@@ -84,11 +82,11 @@ class AttachmentsService (
 
     fun replaceAttachment(issuer: User, attachmentId: Long, fileStream: MultipartFile, filename: String?) {
         val attachment = attachmentRepository.findByIdOr404(attachmentId, ErrorCode.ATTACHMENT_NOT_FOUND)
-//      Avoid a db request by first validating the fileStream
+        // Avoid a db request by first validating the fileStream
         val (mimeType, newAttachmentType) = fileCheckerService.getAttachmentTypeOr403(fileStream)
-        val issuerScope = permissionLookupService.getHighestRoleUserScopeOr404(issuer, attachment.deadline)
+
         requirePermission(
-            permissionService.canManageDeadlineAttachments(issuer, issuerScope)
+            permissionService.canManageDeadlineAttachments(issuer, attachment.deadline)
         )
 
         try {
@@ -112,9 +110,8 @@ class AttachmentsService (
             return
         }
         val attachment = attachmentRepository.findByIdOr404(attachmentId, ErrorCode.ATTACHMENT_NOT_FOUND)
-        val issuerScope = permissionLookupService.getHighestRoleUserScopeOr404(issuer, attachment.deadline)
         requirePermission(
-            permissionService.canManageDeadlineAttachments(issuer, issuerScope)
+            permissionService.canManageDeadlineAttachments(issuer, attachment.deadline)
         )
 
         attachment.filename = filename // Check for null if new metadata is added
@@ -123,9 +120,9 @@ class AttachmentsService (
 
     fun deleteAttachment(issuer: User, attachmentId: Long) {
         val attachment = attachmentRepository.findByIdOr404(attachmentId, ErrorCode.ATTACHMENT_NOT_FOUND)
-        val issuerScope = permissionLookupService.getHighestRoleUserScopeOr404(issuer, attachment.deadline)
+
         requirePermission(
-            permissionService.canManageDeadlineAttachments(issuer, issuerScope)
+            permissionService.canManageDeadlineAttachments(issuer, attachment.deadline)
         )
 
         try {
@@ -165,11 +162,7 @@ class AttachmentsService (
     ): PaginationResponse<AttachmentResponse> {
         val deadline = deadlineRepository.findByIdOr404(deadlineId, ErrorCode.DDL_NOT_FOUND)
         requirePermission(
-            permissionService.hasDeadlineAccess(
-                issuer,
-                permissionLookupService.getHighestRoleUserScopeOr404(issuer, deadline),
-                deadline.organization
-            )
+            permissionService.hasDeadlineAccess(issuer, deadline)
         )
         return attachmentRepository.findAllByDeadline(
             deadline,
@@ -182,11 +175,7 @@ class AttachmentsService (
         val attachment = attachmentRepository.findByIdOr404(attachmentId, ErrorCode.ATTACHMENT_NOT_FOUND)
         val deadline = attachment.deadline
         requirePermission(
-            permissionService.hasDeadlineAccess(
-                issuer,
-                permissionLookupService.getHighestRoleUserScopeOr404(issuer, deadline),
-                deadline.organization
-            )
+            permissionService.hasDeadlineAccess(issuer, deadline)
         )
         return attachment
     }

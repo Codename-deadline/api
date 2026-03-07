@@ -8,7 +8,6 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
-import org.junit.jupiter.api.assertAll
 import org.junit.jupiter.api.extension.ExtendWith
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
@@ -216,7 +215,7 @@ class PermissionServiceTest {
         }
 
         @Test
-        fun canCreateOrDeleteDeadline() = testForMinAcceptableRole(ScopeRole.THR_ASSIGNEE, permissionService::canCreateOrDeleteDeadline)
+        fun canCreateOrDeleteDeadline() = testForMinAcceptableRole(ScopeRole.THR_ASSIGNEE, permissionService::canCreateDeadline)
 
         @Test
         fun canUpdateDeadline() = testForMinAcceptableRole(ScopeRole.THR_ASSIGNEE, permissionService::canUpdateDeadline)
