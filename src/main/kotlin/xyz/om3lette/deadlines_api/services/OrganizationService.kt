@@ -92,7 +92,7 @@ class OrganizationService(
     fun deleteOrganization(issuer: User, organizationId: Long) {
         val organization: Organization = organizationRepository.findByIdOr404(organizationId, ErrorCode.ORG_NOT_FOUND)
         requirePermission(
-            permissionService.canDeleteOrganization(issuer, organizationId)
+            permissionService.canDelete(issuer, OrganizationScope(organizationId))
         )
 
         organizationRepository.delete(organization)

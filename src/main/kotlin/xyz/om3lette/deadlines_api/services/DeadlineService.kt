@@ -141,7 +141,7 @@ class DeadlineService(
         val deadline = deadlineRepository.findByIdOr404(deadlineId, ErrorCode.DDL_NOT_FOUND)
 
         requirePermission(
-            permissionService.canDeleteDeadline(issuer, deadline)
+            permissionService.canDelete(issuer, DeadlineScope(deadline))
         )
 
         deadlineRepository.delete(deadline)

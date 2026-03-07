@@ -79,7 +79,7 @@ class ThreadService(
     fun deleteThread(issuer: User, threadId: Long) {
         val thread = threadRepository.findByIdOr404(threadId, ErrorCode.THR_NOT_FOUND)
         requirePermission(
-            permissionService.canDeleteThread(issuer, thread)
+            permissionService.canDelete(issuer, ThreadScope(thread))
         )
 
         threadRepository.delete(thread)
