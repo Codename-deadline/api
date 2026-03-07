@@ -5,6 +5,7 @@ import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import org.springframework.stereotype.Service
 import xyz.om3lette.deadlines_api.data.common.response.PaginationResponse
+import xyz.om3lette.deadlines_api.data.permissions.dto.OrganizationScope
 import xyz.om3lette.deadlines_api.data.permissions.dto.ThreadScope
 import xyz.om3lette.deadlines_api.data.scopes.organization.repo.OrganizationRepository
 import xyz.om3lette.deadlines_api.data.scopes.thread.model.Thread
@@ -107,7 +108,7 @@ class ThreadService(
         val thread: Thread = threadRepository.findByIdOr404(threadId, ErrorCode.THR_NOT_FOUND)
 
         requirePermission(
-            permissionService.hasThreadAccess(issuer, thread)
+            permissionService.hasAccess(issuer, ThreadScope(thread))
         )
 
         return thread.toResponse()
@@ -122,7 +123,9 @@ class ThreadService(
         val organization = organizationRepository.findByIdOr404(organizationId, ErrorCode.ORG_NOT_FOUND)
 
         requirePermission(
-            permissionService.hasOrganizationAccess(issuer, organization)
+            permissionService.hasAccess(issuer, OrganizationScope(
+                organizationId, organization
+            ))
         )
 
         val pageRequest = PageRequest.of(pageNumber, pageSize)
@@ -156,7 +159,7 @@ class ThreadService(
         val thread: Thread = threadRepository.findByIdOr404(threadId, ErrorCode.THR_NOT_FOUND)
 
         requirePermission(
-            permissionService.hasThreadAccess(issuer, thread)
+            permissionService.hasAccess(issuer, ThreadScope(thread))
         )
 
         val pageRequest = PageRequest.of(pageNumber, pageSize, Sort.by("role").descending())

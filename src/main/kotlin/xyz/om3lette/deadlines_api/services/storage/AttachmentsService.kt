@@ -14,6 +14,7 @@ import xyz.om3lette.deadlines_api.data.attachments.repo.AttachmentRepository
 import xyz.om3lette.deadlines_api.data.attachments.reponse.AttachmentCreatedResponse
 import xyz.om3lette.deadlines_api.data.attachments.reponse.AttachmentResponse
 import xyz.om3lette.deadlines_api.data.common.response.PaginationResponse
+import xyz.om3lette.deadlines_api.data.permissions.dto.DeadlineScope
 import xyz.om3lette.deadlines_api.data.scopes.deadline.repo.DeadlineRepository
 import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.exceptions.enums.ErrorCode
@@ -162,7 +163,7 @@ class AttachmentsService (
     ): PaginationResponse<AttachmentResponse> {
         val deadline = deadlineRepository.findByIdOr404(deadlineId, ErrorCode.DDL_NOT_FOUND)
         requirePermission(
-            permissionService.hasDeadlineAccess(issuer, deadline)
+            permissionService.hasAccess(issuer, DeadlineScope(deadline))
         )
         return attachmentRepository.findAllByDeadline(
             deadline,
@@ -175,7 +176,7 @@ class AttachmentsService (
         val attachment = attachmentRepository.findByIdOr404(attachmentId, ErrorCode.ATTACHMENT_NOT_FOUND)
         val deadline = attachment.deadline
         requirePermission(
-            permissionService.hasDeadlineAccess(issuer, deadline)
+            permissionService.hasAccess(issuer, DeadlineScope(deadline))
         )
         return attachment
     }

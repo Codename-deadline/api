@@ -125,7 +125,9 @@ class OrganizationService(
     fun getOrganizationMetaData(issuer: User, organizationId: Long): OrganizationResponse {
         val organization = organizationRepository.findByIdOr404(organizationId, ErrorCode.ORG_NOT_FOUND)
         requirePermission(
-            permissionService.hasOrganizationAccess(issuer, organization)
+            permissionService.hasAccess(issuer, OrganizationScope(
+                organizationId, organization
+            ))
         )
 
         val stats = organizationRepository.getOrganizationsStats(listOf(organizationId))[0]
@@ -157,7 +159,9 @@ class OrganizationService(
     ): PaginationResponse<UserScopeResponse> {
         val organization = organizationRepository.findByIdOr404(organizationId, ErrorCode.ORG_NOT_FOUND)
         requirePermission(
-            permissionService.hasOrganizationAccess(issuer, organization)
+            permissionService.hasAccess(issuer, OrganizationScope(
+                organizationId, organization
+            ))
         )
 
         val pageRequest = PageRequest.of(pageNumber, pageSize, Sort.by("role").descending())

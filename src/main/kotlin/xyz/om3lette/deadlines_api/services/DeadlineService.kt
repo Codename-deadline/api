@@ -10,6 +10,7 @@ import xyz.om3lette.deadlines_api.data.notifications.enums.TimeRemaining
 import xyz.om3lette.deadlines_api.data.notifications.model.DeadlineNotification
 import xyz.om3lette.deadlines_api.data.notifications.repo.DeadlineNotificationRepository
 import xyz.om3lette.deadlines_api.data.permissions.dto.DeadlineScope
+import xyz.om3lette.deadlines_api.data.permissions.dto.ThreadScope
 import xyz.om3lette.deadlines_api.data.scopes.deadline.model.Deadline
 import xyz.om3lette.deadlines_api.data.scopes.deadline.repo.DeadlineRepository
 import xyz.om3lette.deadlines_api.data.scopes.deadline.response.DeadlineCreatedResponse
@@ -166,7 +167,7 @@ class DeadlineService(
         val deadline = deadlineRepository.findByIdOr404(deadlineId, ErrorCode.DDL_NOT_FOUND)
 
         requirePermission(
-            permissionService.hasDeadlineAccess(issuer, deadline)
+            permissionService.hasAccess(issuer, DeadlineScope(deadline))
         )
 
         return deadline.toResponse()
@@ -181,7 +182,7 @@ class DeadlineService(
         val thread = threadRepository.findByIdOr404(threadId, ErrorCode.THR_NOT_FOUND)
 
         requirePermission(
-            permissionService.hasThreadAccess(issuer, thread)
+            permissionService.hasAccess(issuer, ThreadScope(thread))
         )
 
         return deadlineRepository.findAllByThread(
@@ -240,7 +241,7 @@ class DeadlineService(
         val deadline = deadlineRepository.findByIdOr404(deadlineId, ErrorCode.DDL_NOT_FOUND)
 
         requirePermission(
-            permissionService.hasDeadlineAccess(issuer, deadline)
+            permissionService.hasAccess(issuer, DeadlineScope(deadline))
         )
 
         val pageRequest = PageRequest.of(pageNumber, pageSize, Sort.by("role").descending())

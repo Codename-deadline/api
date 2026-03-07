@@ -15,6 +15,9 @@ import xyz.om3lette.deadlines_api.data.integration.chat.repo.ChatRepository
 import xyz.om3lette.deadlines_api.data.integration.chat.repo.ChatSubscriptionRepository
 import xyz.om3lette.deadlines_api.data.integration.messengerAccount.model.UserMessengerAccount
 import xyz.om3lette.deadlines_api.data.integration.messengerAccount.repo.UserMessengerAccountRepository
+import xyz.om3lette.deadlines_api.data.permissions.dto.DeadlineScope
+import xyz.om3lette.deadlines_api.data.permissions.dto.OrganizationScope
+import xyz.om3lette.deadlines_api.data.permissions.dto.ThreadScope
 import xyz.om3lette.deadlines_api.data.scopes.deadline.model.Deadline
 import xyz.om3lette.deadlines_api.data.scopes.deadline.repo.DeadlineRepository
 import xyz.om3lette.deadlines_api.data.scopes.organization.repo.OrganizationRepository
@@ -168,7 +171,9 @@ class IntegrationInternalService(
             GrpcKeyLocaleException(Status.NOT_FOUND, "errors.organization_not_found", getLanguageByAccountId(request.issuerAccountId))
         }
         requirePermissionGrpc(
-            permissionService.hasOrganizationAccess(issuer, organization),
+            permissionService.hasAccess(issuer, OrganizationScope(
+                organization.id,organization
+            )),
             "error.organization_access_denied",
             { getLanguageByAccountId(request.issuerAccountId) }
         )
@@ -188,7 +193,7 @@ class IntegrationInternalService(
             )
         }
         requirePermissionGrpc(
-            permissionService.hasThreadAccess(issuer, thread.get()),
+            permissionService.hasAccess(issuer, ThreadScope(thread.get())),
             "errors.thread_access_denied",
             { getLanguageByAccountId(request.issuerAccountId) }
         )
@@ -208,7 +213,7 @@ class IntegrationInternalService(
             )
         }
         requirePermissionGrpc(
-            permissionService.hasDeadlineAccess(issuer, deadline.get()),
+            permissionService.hasAccess(issuer, DeadlineScope(deadline.get())),
             "errors.deadline_access_denied",
             { getLanguageByAccountId(request.issuerAccountId) }
         )

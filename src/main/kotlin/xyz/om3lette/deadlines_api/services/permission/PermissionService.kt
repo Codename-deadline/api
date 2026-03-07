@@ -1,5 +1,6 @@
 package xyz.om3lette.deadlines_api.services.permission
 
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import xyz.om3lette.deadlines_api.data.permissions.dto.DeadlineScope
@@ -11,13 +12,10 @@ import xyz.om3lette.deadlines_api.data.scopes.organization.enums.OrganizationTyp
 import xyz.om3lette.deadlines_api.data.scopes.organization.model.Organization
 import xyz.om3lette.deadlines_api.data.scopes.thread.model.Thread
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeRole
-import xyz.om3lette.deadlines_api.data.scopes.userScope.model.UserScope
 import xyz.om3lette.deadlines_api.data.scopes.userScope.repo.PermissionsRepository
 import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.util.user.isAdminOr
 import xyz.om3lette.deadlines_api.util.user.isAdminOrHasRoleAnd
-import java.util.Optional
-import kotlin.jvm.optionals.getOrNull
 
 @Service
 class PermissionService(
@@ -27,7 +25,9 @@ class PermissionService(
     @Value("\${users.max-linked-accounts-per-messenger}")
     private var maxLinkedAccountsPerMessenger: Int = 5
 
-    fun roleForOrganizationLazy(user: User, organizationId: Long): () -> ScopeRole? =
+    private val logger = LoggerFactory.getLogger(PermissionService::class.java)
+
+    private fun roleForOrganizationLazy(user: User, organizationId: Long): () -> ScopeRole? =
         {
             val key = "ORG:${user.id}@$organizationId"
             permissionContext.getOrLoad(key) {
@@ -40,7 +40,7 @@ class PermissionService(
             }
         }
 
-        fun roleForThreadLazy(user: User, thread: Thread): () -> ScopeRole? =
+        private fun roleForThreadLazy(user: User, thread: Thread): () -> ScopeRole? =
         {
             val key = "THR:${user.id}@$thread.id"
             permissionContext.getOrLoad(key) {
@@ -53,7 +53,7 @@ class PermissionService(
             }
         }
 
-    fun roleForDeadlineLazy(user: User, deadline: Deadline): () -> ScopeRole? =
+    private fun roleForDeadlineLazy(user: User, deadline: Deadline): () -> ScopeRole? =
         {
             val key = "DDL:${user.id}@$deadline.id"
             permissionContext.getOrLoad(key) {
@@ -76,7 +76,7 @@ class PermissionService(
     /*
         Organization permissions:
      */
-    fun hasOrganizationAccess(issuer: User, organization: Organization): Boolean =
+    private fun hasOrganizationAccess(issuer: User, organization: Organization): Boolean =
         issuer.isAdminOr {
             if (organization.type == OrganizationType.PUBLIC) return true
             return permissionsRepository.findHighestRoleByUser(issuer.id, organization.id, null, null) != null
@@ -100,7 +100,7 @@ class PermissionService(
     /*
         Thread permissions:
      */
-    fun hasThreadAccess(issuer: User, thread: Thread): Boolean {
+    private fun hasThreadAccess(issuer: User, thread: Thread): Boolean {
         if (thread.organization.type == OrganizationType.PUBLIC) return true
         return issuer.isAdminOrHasRoleAnd(roleForThreadLazy(issuer, thread)) { role ->
             role >= ScopeRole.THR_ASSIGNEE
@@ -130,7 +130,7 @@ class PermissionService(
     /*
         Deadline permissions:
      */
-    fun hasDeadlineAccess(issuer: User, deadline: Deadline): Boolean {
+    private fun hasDeadlineAccess(issuer: User, deadline: Deadline): Boolean {
         if (deadline.organization.type == OrganizationType.PUBLIC) return true
         return issuer.isAdminOrHasRoleAnd(roleForDeadlineLazy(issuer, deadline)) { role ->
             role >= ScopeRole.DDL_ASSIGNEE
@@ -170,6 +170,24 @@ class PermissionService(
             is OrganizationScope -> canManageOrganizationMembers(issuer, permissionScope.orgId)
             is ThreadScope -> canManageThreadAssignees(issuer, permissionScope.thread)
             is DeadlineScope -> canManageDeadlineAssignees(issuer, permissionScope.deadline)
+        }
+
+    /**
+     * Checks if a user has access to a scope.
+     *
+     * **WARNING**: `OrganizationScope.organization` must be provided
+     */
+    fun hasAccess(issuer: User, permissionScope: PermissionScope) =
+        when (permissionScope) {
+            is OrganizationScope ->
+                if (permissionScope.organization != null) {
+                    hasOrganizationAccess(issuer, permissionScope.organization)
+                } else {
+                    logger.error("Organization field was not provided. Unable to verify organization access")
+                    false
+                }
+            is ThreadScope -> hasThreadAccess(issuer, permissionScope.thread)
+            is DeadlineScope -> hasDeadlineAccess(issuer, permissionScope.deadline)
         }
 
     /*
