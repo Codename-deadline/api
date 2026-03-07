@@ -209,7 +209,7 @@ class DeadlineService(
 
         val deadline = deadlineRepository.findByIdOr404(deadlineId, ErrorCode.DDL_NOT_FOUND)
         requirePermission(
-            permissionService.canUpdateDeadline(issuer, deadline)
+            permissionService.canUpdate(issuer, DeadlineScope(deadline))
         )
 
         if (due != null) {

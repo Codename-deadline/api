@@ -141,7 +141,7 @@ class ThreadService(
 
         val thread: Thread = threadRepository.findByIdOr404(threadId, ErrorCode.THR_NOT_FOUND)
         requirePermission(
-            permissionService.canUpdateThread(issuer, thread)
+            permissionService.canUpdate(issuer, ThreadScope(thread))
         )
 
         if (title != null) thread.title = title

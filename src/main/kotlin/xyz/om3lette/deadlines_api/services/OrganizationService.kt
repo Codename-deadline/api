@@ -142,7 +142,7 @@ class OrganizationService(
         val organization: Organization = organizationRepository.findByIdOr404(organizationId, ErrorCode.ORG_NOT_FOUND)
 
         requirePermission(
-            permissionService.canUpdateOrganization(issuer, organizationId)
+            permissionService.canUpdate(issuer, OrganizationScope(organizationId))
         )
 
         if (title != null) organization.title = title

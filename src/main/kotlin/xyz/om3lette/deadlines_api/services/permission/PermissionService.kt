@@ -87,7 +87,7 @@ class PermissionService(
             role >= ScopeRole.ORG_OWNER
         }
 
-    fun canUpdateOrganization(issuer: User, organizationId: Long): Boolean =
+    private fun canUpdateOrganization(issuer: User, organizationId: Long): Boolean =
         issuer.isAdminOrHasRoleAnd(roleForOrganizationLazy(issuer, organizationId)) { role ->
             role >= ScopeRole.ORG_OWNER
         }
@@ -117,7 +117,7 @@ class PermissionService(
             role >= ScopeRole.ORG_ADMIN
         }
 
-    fun canUpdateThread(issuer: User, thread: Thread): Boolean =
+    private fun canUpdateThread(issuer: User, thread: Thread): Boolean =
         issuer.isAdminOrHasRoleAnd(roleForThreadLazy(issuer, thread)) { role ->
             role >= ScopeRole.ORG_ADMIN
         }
@@ -147,7 +147,7 @@ class PermissionService(
             role >= ScopeRole.THR_ASSIGNEE
         }
 
-    fun canUpdateDeadline(issuer: User, deadline: Deadline): Boolean =
+    private fun canUpdateDeadline(issuer: User, deadline: Deadline): Boolean =
         issuer.isAdminOrHasRoleAnd(roleForDeadlineLazy(issuer, deadline)) { role ->
             role >= ScopeRole.THR_ASSIGNEE
         }
@@ -195,6 +195,13 @@ class PermissionService(
             is OrganizationScope -> canDeleteOrganization(issuer, permissionScope.orgId)
             is ThreadScope -> canDeleteThread(issuer, permissionScope.thread)
             is DeadlineScope -> canDeleteDeadline(issuer, permissionScope.deadline)
+        }
+
+    fun canUpdate(issuer: User, permissionScope: PermissionScope) =
+        when (permissionScope) {
+            is OrganizationScope -> canUpdateOrganization(issuer, permissionScope.orgId)
+            is ThreadScope -> canUpdateThread(issuer, permissionScope.thread)
+            is DeadlineScope -> canUpdateDeadline(issuer, permissionScope.deadline)
         }
 
     /*
