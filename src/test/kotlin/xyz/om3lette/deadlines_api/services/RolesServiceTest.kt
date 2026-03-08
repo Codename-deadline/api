@@ -19,13 +19,18 @@ import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
 import org.springframework.test.util.ReflectionTestUtils
+import xyz.om3lette.deadlines_api.DomainObjectBuilder
+import xyz.om3lette.deadlines_api.data.scopes.deadline.model.Deadline
+import xyz.om3lette.deadlines_api.data.scopes.deadline.repo.DeadlineRepository
+import xyz.om3lette.deadlines_api.data.scopes.organization.model.Organization
+import xyz.om3lette.deadlines_api.data.scopes.thread.model.Thread
+import xyz.om3lette.deadlines_api.data.scopes.thread.repo.ThreadRepository
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeRole
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType
 import xyz.om3lette.deadlines_api.data.scopes.userScope.model.UserScope
 import xyz.om3lette.deadlines_api.data.scopes.userScope.repo.UserScopeRepository
 import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
-import xyz.om3lette.deadlines_api.services.permission.PermissionLookupService
 import xyz.om3lette.deadlines_api.services.permission.PermissionService
 import java.util.Optional
 import kotlin.test.assertEquals
@@ -38,7 +43,10 @@ class RolesServiceTest {
     lateinit var userScopeRepository: UserScopeRepository
 
     @MockK
-    lateinit var permissionLookupService: PermissionLookupService
+    lateinit var deadlineRepository: DeadlineRepository
+
+    @MockK
+    lateinit var threadsRepository: ThreadRepository
 
     @MockK
     lateinit var permissionService: PermissionService
@@ -46,31 +54,32 @@ class RolesServiceTest {
     @InjectMockKs
     lateinit var rolesService: RolesService
 
-    private val dummyUserBob: User = mockk()
+    private lateinit var organization: Organization
+    private lateinit var thread: Thread
+    private lateinit var deadline: Deadline
+
+    private lateinit var dummyUserBob: User
     private val dummyUserScopeBob: UserScope = mockk()
 
-    private val dummyUserAlice: User = mockk()
+    private lateinit var dummyUserAlice: User
     private val dummyUserScopeAlice: UserScope = spyk<UserScope>()
-
-    private val scopeId: Long = 0
 
     @BeforeEach
     fun commonHappyStubs() {
-        every { dummyUserBob.username } returns "bob-the-tester"
-        every { dummyUserAlice.username } returns "alice-the-tester"
+        organization = DomainObjectBuilder.organization()
+        thread = DomainObjectBuilder.thread(organization)
+        deadline = DomainObjectBuilder.deadline(organization, thread)
+        every { threadsRepository.findById(thread.id) } returns Optional.of(thread)
+        every { deadlineRepository.findById(deadline.id) } returns Optional.of(deadline)
+
+        dummyUserBob = DomainObjectBuilder.userBob()
+        dummyUserAlice = DomainObjectBuilder.userAlice()
 
         every { dummyUserScopeAlice.role } returns ScopeRole.ORG_MEMBER
-
-        listOf(
-            dummyUserBob to dummyUserScopeBob,
-            dummyUserAlice to dummyUserScopeAlice
-        ).forEach {
-            every {
-                permissionLookupService.getHighestRoleUserScope(it.first, scopeId, any())
-            } returns Optional.of(it.second)
-        }
         every {
-            userScopeRepository.findByUsernameAndScopeIdIgnoreCase("alice-the-tester", scopeId)
+            userScopeRepository.findByScopeTypeAndScopeIdAndUsernameIgnoreCase(
+                dummyUserAlice.username, any(), organization.id
+            )
         } returns Optional.of(dummyUserScopeAlice)
     }
 
@@ -86,21 +95,27 @@ class RolesServiceTest {
         fun `filterRolesByPrefix with prefix=ORG returns Organization roles`() =
             assertEquals(
                 orgRoles,
-                ReflectionTestUtils.invokeMethod(rolesService, "filterRolesByPrefix", "ORG")
+                ReflectionTestUtils.invokeMethod(
+                    rolesService, "filterRolesByPrefix", ScopeType.ORGANIZATION.code
+                )
             )
 
         @Test
         fun `filterRolesByPrefix with prefix=THREAD returns Thread roles`() =
             assertEquals(
                 threadRoles,
-                ReflectionTestUtils.invokeMethod(rolesService, "filterRolesByPrefix", "THR")
+                ReflectionTestUtils.invokeMethod(
+                    rolesService, "filterRolesByPrefix", ScopeType.THREAD.code
+                )
             )
 
         @Test
         fun `filterRolesByPrefix with prefix=DEADLINE returns Deadline roles`() =
             assertEquals(
                 deadlineRoles,
-                ReflectionTestUtils.invokeMethod(rolesService, "filterRolesByPrefix", "DDL")
+                ReflectionTestUtils.invokeMethod(
+                    rolesService, "filterRolesByPrefix", ScopeType.DEADLINE.code
+                )
             )
     }
 
@@ -108,25 +123,18 @@ class RolesServiceTest {
     @TestInstance(TestInstance.Lifecycle.PER_CLASS)
     inner class ChangeRole {
         private val savedUserScopeSlot: CapturingSlot<UserScope> = slot()
-        private val canManageChecks = listOf(
-            permissionService::canManageOrganizationMembers,
-            permissionService::canManageThreadAssignees,
-            permissionService::canManageDeadlineAssignees
-        )
 
         fun scopeRoleScopeTypePairs(): List<Arguments> = listOf(
-            Arguments.of(ScopeRole.ORG_OWNER, ScopeType.ORGANIZATION),
-            Arguments.of(ScopeRole.THR_ASSIGNEE, ScopeType.THREAD),
-            Arguments.of(ScopeRole.DDL_ASSIGNEE, ScopeType.DEADLINE),
+            Arguments.of(ScopeRole.ORG_OWNER, organization.id, ScopeType.ORGANIZATION),
+            Arguments.of(ScopeRole.THR_ASSIGNEE, thread.id, ScopeType.THREAD),
+            Arguments.of(ScopeRole.DDL_ASSIGNEE, deadline.id, ScopeType.DEADLINE),
         )
 
         @BeforeEach
         fun commonHappyStubs() {
             every { userScopeRepository.save(capture(savedUserScopeSlot)) } returnsArgument 0
 
-            canManageChecks.forEach { fn ->
-                every { fn(any(), any()) } returns true
-            }
+            every { permissionService.canChangeRole(any(), any(), any()) } returns true
             every {
                 permissionService.canChangeRole(
                     dummyUserBob,
@@ -140,7 +148,7 @@ class RolesServiceTest {
         fun `changing issuer's role throws StatusCodeException 400`() {
             val res = assertThrows<StatusCodeException> {
                 rolesService.changeRole(
-                    dummyUserBob, scopeId, dummyUserBob.username,
+                    dummyUserBob, organization.id, dummyUserBob.username,
                     ScopeRole.ORG_ADMIN, ScopeType.ORGANIZATION
                 )
             }
@@ -154,7 +162,7 @@ class RolesServiceTest {
         fun `role not in returned by filterRolesByPrefix throws StatusCodeException 400`() {
             val res = assertThrows<StatusCodeException> {
                 rolesService.changeRole(
-                    dummyUserBob, scopeId, dummyUserAlice.username,
+                    dummyUserBob, organization.id, dummyUserAlice.username,
                     ScopeRole.DDL_ASSIGNEE, ScopeType.ORGANIZATION
                 )
             }
@@ -166,11 +174,15 @@ class RolesServiceTest {
 
         @Test
         fun `attempting to promote to a higher role than issuer's throws StatusCodeException 403`() {
-            every { permissionService.canChangeRole(dummyUserBob, ScopeRole.ORG_OWNER, any()) } returns false
+            every {
+                permissionService.canChangeRole(
+                    dummyUserBob, any(), ScopeRole.ORG_OWNER
+                )
+            } returns false
 
             val res = assertThrows<StatusCodeException> {
                 rolesService.changeRole(
-                    dummyUserBob, scopeId, dummyUserAlice.username,
+                    dummyUserBob, organization.id, dummyUserAlice.username,
                     ScopeRole.ORG_OWNER, ScopeType.ORGANIZATION
                 )
             }
@@ -183,11 +195,9 @@ class RolesServiceTest {
         @ParameterizedTest
         @MethodSource("scopeRoleScopeTypePairs")
         fun `not enough permissions to manage roles throws StatusCodeException 403`(
-            newRole: ScopeRole, scopeType: ScopeType
+            newRole: ScopeRole, scopeId: Long, scopeType: ScopeType
         ) {
-            canManageChecks.forEach { fn ->
-                every { fn(any(), any()) } returns false
-            }
+            every { permissionService.canChangeRole(any(), any(), newRole) } returns false
 
             val res = assertThrows<StatusCodeException> {
                 rolesService.changeRole(
@@ -203,11 +213,15 @@ class RolesServiceTest {
 
         @Test
         fun `subject UserScope not found throws StatusCodeException 400`() {
-            every { userScopeRepository.findByUsernameAndScopeIdIgnoreCase(any(), any()) } returns Optional.empty()
+            every {
+                userScopeRepository.findByScopeTypeAndScopeIdAndUsernameIgnoreCase(
+                    any(), any(), any()
+                )
+            } returns Optional.empty()
 
             val res = assertThrows<StatusCodeException> {
                 rolesService.changeRole(
-                    dummyUserBob, scopeId, dummyUserAlice.username,
+                    dummyUserBob, organization.id, dummyUserAlice.username,
                     ScopeRole.ORG_OWNER, ScopeType.ORGANIZATION
                 )
             }
@@ -220,7 +234,7 @@ class RolesServiceTest {
         @Test
         fun `happy path if new role equals to the old one no db request happens`() {
             rolesService.changeRole(
-                dummyUserBob, scopeId, dummyUserAlice.username,
+                dummyUserBob, organization.id, dummyUserAlice.username,
                 ScopeRole.ORG_MEMBER, ScopeType.ORGANIZATION
             )
             assertFalse(savedUserScopeSlot.isCaptured)
@@ -229,7 +243,7 @@ class RolesServiceTest {
         @Test
         fun `happy path commits updated role to db`() {
             rolesService.changeRole(
-                dummyUserBob, scopeId, dummyUserAlice.username,
+                dummyUserBob, organization.id, dummyUserAlice.username,
                 ScopeRole.ORG_ADMIN, ScopeType.ORGANIZATION
             )
             assertTrue(savedUserScopeSlot.isCaptured)

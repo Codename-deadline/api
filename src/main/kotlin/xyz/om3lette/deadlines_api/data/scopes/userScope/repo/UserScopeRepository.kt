@@ -7,7 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
-import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeRole
+import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType
 import xyz.om3lette.deadlines_api.data.scopes.userScope.model.UserScope
 import xyz.om3lette.deadlines_api.data.user.model.User
 import java.util.Optional
@@ -26,9 +26,11 @@ interface UserScopeRepository : JpaRepository<UserScope, Long> {
 
     @Query("""
         SELECT us FROM UserScope us
-        WHERE us.scopeId = :scopeId AND LOWER(us.user._username) = :username
+        WHERE us.scopeId = :scopeId
+            AND :scopeType = us.scopeType
+            AND LOWER(us.user._username) = :username
     """)
-    fun findByUsernameAndScopeIdIgnoreCase(username: String, scopeId: Long): Optional<UserScope>
+    fun findByScopeTypeAndScopeIdAndUsernameIgnoreCase(username: String, scopeType: ScopeType, scopeId: Long): Optional<UserScope>
 
     @Query("""
         SELECT us FROM UserScope us
@@ -57,9 +59,23 @@ interface UserScopeRepository : JpaRepository<UserScope, Long> {
 
     @Modifying
     @Transactional
+    @Query(
+        """
+            DELETE FROM user_scopes us
+            WHERE us.user_id = :userId
+                AND (
+                    (us.scope_type = 'ORG' AND us.scope_id = :orgId)
+                    OR (us.scope_type = 'THR' AND us.scope_id = :thrId)
+                    OR (us.scope_type = 'DDL' AND us.scope_id = :ddlId)
+                )
+        """,
+        nativeQuery = true
+    )
     fun deleteByUserAndScopeId(
         user: User,
-        scopeId: Long
+        orgId: Long?,
+        thrId: Long?,
+        ddlId: Long?,
     ): Int
 
     @Modifying

@@ -9,6 +9,8 @@ import xyz.om3lette.deadlines_api.data.notifications.enums.NotificationStatus
 import xyz.om3lette.deadlines_api.data.notifications.enums.TimeRemaining
 import xyz.om3lette.deadlines_api.data.notifications.model.DeadlineNotification
 import xyz.om3lette.deadlines_api.data.notifications.repo.DeadlineNotificationRepository
+import xyz.om3lette.deadlines_api.data.permissions.dto.DeadlineScope
+import xyz.om3lette.deadlines_api.data.permissions.dto.ThreadScope
 import xyz.om3lette.deadlines_api.data.scopes.deadline.model.Deadline
 import xyz.om3lette.deadlines_api.data.scopes.deadline.repo.DeadlineRepository
 import xyz.om3lette.deadlines_api.data.scopes.deadline.response.DeadlineCreatedResponse
@@ -24,7 +26,6 @@ import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.data.user.repo.UserRepository
 import xyz.om3lette.deadlines_api.exceptions.enums.ErrorCode
 import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
-import xyz.om3lette.deadlines_api.services.permission.PermissionLookupService
 import xyz.om3lette.deadlines_api.services.permission.PermissionService
 import xyz.om3lette.deadlines_api.util.jpaRepository.findByIdOr404
 import xyz.om3lette.deadlines_api.util.page.toPaginationResponse
@@ -34,7 +35,6 @@ import xyz.om3lette.deadlines_api.util.userRepository.findByUsernameIgnoreCaseOr
 import java.time.Duration
 import java.time.Instant
 import java.time.temporal.ChronoUnit
-import java.util.*
 
 @Service
 class DeadlineService(
@@ -44,8 +44,7 @@ class DeadlineService(
     private val threadRepository: ThreadRepository,
     private val deadlineRepository: DeadlineRepository,
     private val deadlineNotificationRepository: DeadlineNotificationRepository,
-    private val permissionService: PermissionService,
-    private val permissionLookupService: PermissionLookupService,
+    private val permissionService: PermissionService
 ) {
 
     @Transactional
@@ -75,14 +74,7 @@ class DeadlineService(
         val thread = threadRepository.findByIdOr404(threadId, ErrorCode.THR_NOT_FOUND)
 
         requirePermission(
-            permissionService.canCreateOrDeleteDeadline(issuer) {
-                Optional.of(
-                    userScopeRepository.findByUserAndScopeIdIn(
-                        issuer,
-                        listOf(threadId, thread.organization.id)
-                    ).maxBy { it.role }
-                )
-            }
+            permissionService.canCreateDeadline(issuer, thread)
         )
 
         val deadline = deadlineRepository.save(
@@ -146,10 +138,10 @@ class DeadlineService(
     }
 
     fun deleteDeadline(issuer: User, deadlineId: Long) {
-        val (deadline, issuerScope) = permissionLookupService.getDeadlineAndHighestRoleUserScopeOr404(issuer, deadlineId)
+        val deadline = deadlineRepository.findByIdOr404(deadlineId, ErrorCode.DDL_NOT_FOUND)
 
         requirePermission(
-            permissionService.canCreateOrDeleteDeadline(issuer, issuerScope)
+            permissionService.canDelete(issuer, DeadlineScope(deadline))
         )
 
         deadlineRepository.delete(deadline)
@@ -160,21 +152,22 @@ class DeadlineService(
         if (assigneeUsername.equals(issuer.username, ignoreCase = true)) {
             throw StatusCodeException(400, ErrorCode.ACTION_SELF_REMOVAL)
         }
-        val (_, issuerScope) = permissionLookupService.getDeadlineAndHighestRoleUserScopeOr404(issuer, deadlineId)
 
         requirePermission(
-            permissionService.canManageDeadlineAssignees(issuer, issuerScope)
+            permissionService.canManageAssignees(issuer, DeadlineScope(
+                deadlineRepository.findByIdOr404(deadlineId, ErrorCode.DDL_NOT_FOUND)
+            ))
         )
 
         val userToRemove = userRepository.findByUsernameIgnoreCaseOr404(assigneeUsername)
-        userScopeRepository.deleteByUserAndScopeId(userToRemove, deadlineId)
+        userScopeRepository.deleteByUserAndScopeId(userToRemove, null, null, deadlineId)
     }
 
     fun getDeadlineMetaData(issuer: User, deadlineId: Long): DeadlineResponse {
-        val (deadline, issuerScope) = permissionLookupService.getDeadlineAndHighestRoleUserScopeOr404(issuer, deadlineId)
+        val deadline = deadlineRepository.findByIdOr404(deadlineId, ErrorCode.DDL_NOT_FOUND)
 
         requirePermission(
-            permissionService.hasDeadlineAccess(issuer, issuerScope, deadline.organization)
+            permissionService.hasAccess(issuer, DeadlineScope(deadline))
         )
 
         return deadline.toResponse()
@@ -186,10 +179,10 @@ class DeadlineService(
         pageNumber: Int,
         pageSize: Int
     ): PaginationResponse<DeadlineResponse> {
-        val (thread, issuerScope) = permissionLookupService.getThreadAndHighestRoleUserScopeOr404(issuer, threadId)
+        val thread = threadRepository.findByIdOr404(threadId, ErrorCode.THR_NOT_FOUND)
 
         requirePermission(
-            permissionService.hasThreadAccess(issuer, issuerScope, thread.organization)
+            permissionService.hasAccess(issuer, ThreadScope(thread))
         )
 
         return deadlineRepository.findAllByThread(
@@ -214,9 +207,9 @@ class DeadlineService(
             return
         }
 
-        val (deadline, issuerScope) = permissionLookupService.getDeadlineAndHighestRoleUserScopeOr404(issuer, deadlineId)
+        val deadline = deadlineRepository.findByIdOr404(deadlineId, ErrorCode.DDL_NOT_FOUND)
         requirePermission(
-            permissionService.canUpdateDeadline(issuer, issuerScope)
+            permissionService.canUpdate(issuer, DeadlineScope(deadline))
         )
 
         if (due != null) {
@@ -245,10 +238,10 @@ class DeadlineService(
         pageNumber: Int,
         pageSize: Int
     ): PaginationResponse<UserScopeResponse> {
-        val (deadline, issuerScope) = permissionLookupService.getDeadlineAndHighestRoleUserScopeOr404(issuer, deadlineId)
+        val deadline = deadlineRepository.findByIdOr404(deadlineId, ErrorCode.DDL_NOT_FOUND)
 
         requirePermission(
-            permissionService.hasDeadlineAccess(issuer, issuerScope, deadline.organization)
+            permissionService.hasAccess(issuer, DeadlineScope(deadline))
         )
 
         val pageRequest = PageRequest.of(pageNumber, pageSize, Sort.by("role").descending())

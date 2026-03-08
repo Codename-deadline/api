@@ -47,9 +47,7 @@ class OrganizationInvitationService(
         }
 
         requirePermission(
-            permissionService.canSendOrganizationInvitation(issuer) {
-                userScopeRepository.findByUserAndScopeId(issuer, organizationId)
-            }
+            permissionService.canSendOrganizationInvitation(issuer, organizationId)
         )
 
         val invitation = organizationInvitationRepository.save(createInvitation(issuer, userToInvite, organization, role))

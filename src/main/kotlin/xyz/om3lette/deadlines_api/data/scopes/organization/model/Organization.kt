@@ -39,7 +39,7 @@ data class Organization(
     var description: String?,
 
     @Enumerated(value = EnumType.STRING)
-    val type: OrganizationType,
+    var type: OrganizationType,
 
     @Column(columnDefinition = "TIMESTAMP WITH TIME ZONE")
     val createdAt: Instant,

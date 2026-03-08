@@ -5,6 +5,8 @@ import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import org.springframework.stereotype.Service
 import xyz.om3lette.deadlines_api.data.common.response.PaginationResponse
+import xyz.om3lette.deadlines_api.data.permissions.dto.OrganizationScope
+import xyz.om3lette.deadlines_api.data.permissions.dto.ThreadScope
 import xyz.om3lette.deadlines_api.data.scopes.organization.repo.OrganizationRepository
 import xyz.om3lette.deadlines_api.data.scopes.thread.model.Thread
 import xyz.om3lette.deadlines_api.data.scopes.thread.repo.ThreadRepository
@@ -15,12 +17,10 @@ import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType
 import xyz.om3lette.deadlines_api.data.scopes.userScope.model.UserScope
 import xyz.om3lette.deadlines_api.data.scopes.userScope.repo.UserScopeRepository
 import xyz.om3lette.deadlines_api.data.scopes.userScope.response.UserScopeResponse
-import xyz.om3lette.deadlines_api.util.user.isAdminOr
 import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.data.user.repo.UserRepository
 import xyz.om3lette.deadlines_api.exceptions.enums.ErrorCode
 import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
-import xyz.om3lette.deadlines_api.services.permission.PermissionLookupService
 import xyz.om3lette.deadlines_api.services.permission.PermissionService
 import xyz.om3lette.deadlines_api.util.jpaRepository.findByIdOr404
 import xyz.om3lette.deadlines_api.util.page.toPaginationResponse
@@ -34,8 +34,7 @@ class ThreadService(
     private val userScopeRepository: UserScopeRepository,
     private val threadRepository: ThreadRepository,
     private val organizationRepository: OrganizationRepository,
-    private val permissionService: PermissionService,
-    private val permissionLookupService: PermissionLookupService
+    private val permissionService: PermissionService
 ) {
 
     fun createThread(
@@ -46,9 +45,7 @@ class ThreadService(
         assigneesUsernames: List<String>
     ): ThreadCreatedResponse {
         requirePermission(
-            permissionService.canCreateOrDeleteThread(issuer) {
-                userScopeRepository.findByUserAndScopeId(issuer, organizationId)
-            }
+            permissionService.canCreateThread(issuer, organizationId)
         )
 
         val organization = organizationRepository.findByIdOr404(organizationId, ErrorCode.ORG_NOT_FOUND)
@@ -64,14 +61,6 @@ class ThreadService(
             organization.id,
             assigneesUsernames.map { it.lowercase() }
         ).forEach { userScope ->
-//          RETHINK
-//          If a user is an admin he has the access anyway => don't add another entry
-            if (
-                userScope.user.isAdminOr {
-                    userScope.role.isEqualOrHigherThan(ScopeRole.ORG_ADMIN)
-                }
-            ) return@forEach
-
             threadAssigneeScopes.add(
                 UserScope(
                     0,
@@ -88,9 +77,9 @@ class ThreadService(
     }
 
     fun deleteThread(issuer: User, threadId: Long) {
-        val (thread, issuerScope) = permissionLookupService.getThreadAndHighestRoleUserScopeOr404(issuer, threadId)
+        val thread = threadRepository.findByIdOr404(threadId, ErrorCode.THR_NOT_FOUND)
         requirePermission(
-            permissionService.canCreateOrDeleteThread(issuer, issuerScope)
+            permissionService.canDelete(issuer, ThreadScope(thread))
         )
 
         threadRepository.delete(thread)
@@ -101,26 +90,25 @@ class ThreadService(
         if (assigneeUsername.equals(issuer.username, ignoreCase = true)) {
             throw StatusCodeException(400, ErrorCode.ACTION_SELF_REMOVAL)
         }
-        val (_, issuerScope) = permissionLookupService.getThreadAndHighestRoleUserScopeOr404(issuer, threadId)
 
         requirePermission(
-            permissionService.canManageThreadAssignees(issuer, issuerScope)
+            permissionService.canManageAssignees(issuer, ThreadScope(
+                threadRepository.findByIdOr404(threadId, ErrorCode.THR_NOT_FOUND)
+            ))
         )
 
-        // RETHINK
+        // FIXME: RETHINK
         // Deadline scopes for the user do not exist as he was a THREAD_ASSIGNEE which already grants access
         // to all deadlines of the given thread
         val userToRemove = userRepository.findByUsernameIgnoreCaseOr404(assigneeUsername)
-        userScopeRepository.deleteByUserAndScopeId(userToRemove, threadId)
+        userScopeRepository.deleteByUserAndScopeId(userToRemove, null, threadId, null)
     }
 
     fun getThreadMetaData(issuer: User, threadId: Long): ThreadResponse {
-        val (thread, issuerScope) = permissionLookupService.getThreadAndHighestRoleUserScopeOr404(issuer, threadId)
+        val thread: Thread = threadRepository.findByIdOr404(threadId, ErrorCode.THR_NOT_FOUND)
 
         requirePermission(
-            permissionService.hasThreadAccess(
-                issuer, issuerScope, thread.organization
-            )
+            permissionService.hasAccess(issuer, ThreadScope(thread))
         )
 
         return thread.toResponse()
@@ -135,9 +123,9 @@ class ThreadService(
         val organization = organizationRepository.findByIdOr404(organizationId, ErrorCode.ORG_NOT_FOUND)
 
         requirePermission(
-            permissionService.hasOrganizationAccess(issuer, organization) {
-                userScopeRepository.findByUserAndScopeId(issuer, organization.id)
-            }
+            permissionService.hasAccess(issuer, OrganizationScope(
+                organizationId, organization
+            ))
         )
 
         val pageRequest = PageRequest.of(pageNumber, pageSize)
@@ -151,10 +139,9 @@ class ThreadService(
             return
         }
 
-        val (thread, issuerScope) = permissionLookupService.getThreadAndHighestRoleUserScopeOr404(issuer, threadId)
-
+        val thread: Thread = threadRepository.findByIdOr404(threadId, ErrorCode.THR_NOT_FOUND)
         requirePermission(
-            permissionService.canUpdateThread(issuer, issuerScope)
+            permissionService.canUpdate(issuer, ThreadScope(thread))
         )
 
         if (title != null) thread.title = title
@@ -169,10 +156,10 @@ class ThreadService(
         pageNumber: Int,
         pageSize: Int
     ): PaginationResponse<UserScopeResponse> {
-        val (thread, issuerScope) = permissionLookupService.getThreadAndHighestRoleUserScopeOr404(issuer, threadId)
+        val thread: Thread = threadRepository.findByIdOr404(threadId, ErrorCode.THR_NOT_FOUND)
 
         requirePermission(
-            permissionService.hasThreadAccess(issuer, issuerScope, thread.organization)
+            permissionService.hasAccess(issuer, ThreadScope(thread))
         )
 
         val pageRequest = PageRequest.of(pageNumber, pageSize, Sort.by("role").descending())

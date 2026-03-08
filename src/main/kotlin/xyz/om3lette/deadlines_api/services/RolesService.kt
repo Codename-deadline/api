@@ -1,20 +1,26 @@
 package xyz.om3lette.deadlines_api.services
 
 import org.springframework.stereotype.Service
+import xyz.om3lette.deadlines_api.data.permissions.dto.DeadlineScope
+import xyz.om3lette.deadlines_api.data.permissions.dto.OrganizationScope
+import xyz.om3lette.deadlines_api.data.permissions.dto.ThreadScope
+import xyz.om3lette.deadlines_api.data.scopes.deadline.repo.DeadlineRepository
+import xyz.om3lette.deadlines_api.data.scopes.thread.repo.ThreadRepository
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeRole
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType
 import xyz.om3lette.deadlines_api.data.scopes.userScope.repo.UserScopeRepository
 import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.exceptions.enums.ErrorCode
 import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
-import xyz.om3lette.deadlines_api.services.permission.PermissionLookupService
 import xyz.om3lette.deadlines_api.services.permission.PermissionService
+import xyz.om3lette.deadlines_api.util.jpaRepository.findByIdOr404
 import xyz.om3lette.deadlines_api.util.requirePermission
 
 @Service
 class RolesService(
     private val userScopeRepository: UserScopeRepository,
-    private val permissionLookupService: PermissionLookupService,
+    private val threadRepository: ThreadRepository,
+    private val deadlineRepository: DeadlineRepository,
     private val permissionService: PermissionService
 ) {
     private fun filterRolesByPrefix(scopeRolePrefix: String): List<ScopeRole> =
@@ -34,18 +40,18 @@ class RolesService(
             throw StatusCodeException(400, ErrorCode.ROLE_CHANGE_INVALID_SCOPE_ROLE)
         }
 
-        val issuerScope = permissionLookupService.getHighestRoleUserScope(issuer, scopeId, scopeType)
-        val permissionCheck = when (scopeType) {
-            ScopeType.ORGANIZATION -> permissionService::canManageOrganizationMembers
-            ScopeType.THREAD -> permissionService::canManageThreadAssignees
-            ScopeType.DEADLINE -> permissionService::canManageDeadlineAssignees
+        val permissionScope = when (scopeType) {
+            ScopeType.ORGANIZATION -> OrganizationScope(scopeId)
+            ScopeType.THREAD -> ThreadScope(threadRepository.findByIdOr404(scopeId, ErrorCode.THR_NOT_FOUND))
+            ScopeType.DEADLINE -> DeadlineScope(deadlineRepository.findByIdOr404(scopeId, ErrorCode.DDL_NOT_FOUND))
         }
         requirePermission(
-            permissionCheck(issuer) { issuerScope }
-            && permissionService.canChangeRole(issuer, newRole) { issuerScope }
+            permissionService.canChangeRole(issuer, permissionScope, newRole)
         )
 
-        val currentSubjectScope = userScopeRepository.findByUsernameAndScopeIdIgnoreCase(subjectUsername, scopeId).orElseThrow {
+        val currentSubjectScope = userScopeRepository.findByScopeTypeAndScopeIdAndUsernameIgnoreCase(
+            subjectUsername, scopeType, scopeId
+        ).orElseThrow {
             StatusCodeException(
                 statusCode = 400,
                 code = ErrorCode.ROLE_CHANGE_NO_ROLE,

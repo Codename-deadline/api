@@ -16,6 +16,9 @@ import org.junit.jupiter.api.assertAll
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.data.domain.PageImpl
+import xyz.om3lette.deadlines_api.DomainObjectBuilder
+import xyz.om3lette.deadlines_api.data.permissions.dto.OrganizationScope
+import xyz.om3lette.deadlines_api.data.permissions.dto.ThreadScope
 import xyz.om3lette.deadlines_api.data.scopes.organization.model.Organization
 import xyz.om3lette.deadlines_api.data.scopes.organization.repo.OrganizationRepository
 import xyz.om3lette.deadlines_api.data.scopes.thread.model.Thread
@@ -28,7 +31,6 @@ import xyz.om3lette.deadlines_api.data.user.enums.UserRole
 import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.data.user.repo.UserRepository
 import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
-import xyz.om3lette.deadlines_api.services.permission.PermissionLookupService
 import xyz.om3lette.deadlines_api.services.permission.PermissionService
 import java.util.Optional
 import kotlin.test.assertEquals
@@ -52,45 +54,38 @@ class ThreadServiceTest {
     @MockK
     lateinit var permissionService: PermissionService
 
-    @MockK
-    lateinit var permissionLookupService: PermissionLookupService
-
     @InjectMockKs
     lateinit var threadService: ThreadService
 
-    private val dummyUserBob: User = mockk()
-    private val dummyUserScopeBob: UserScope = mockk()
+    private lateinit var dummyUserBob: User
 
-    private val dummyUserAlice: User = mockk()
+    private lateinit var dummyUserAlice: User
     private val dummyUserScopeAlice: UserScope = spyk()
 
-    private val organization: Organization = mockk()
-    private val thread: Thread = spyk()
+    private lateinit var organization: Organization
+    private lateinit var thread: Thread
+
+    fun orgScope() = OrganizationScope(organization.id, organization)
+    fun thrScope() = ThreadScope(thread)
 
     private val savedThreadSlot: CapturingSlot<Thread> = slot()
 
     @BeforeEach
     fun commonHappyStubs() {
-        every { dummyUserBob.username } returns "bob-the-tester"
-        every { dummyUserAlice.username } returns "alice-the-tester"
+        dummyUserAlice = DomainObjectBuilder.userAlice()
+        dummyUserBob = DomainObjectBuilder.userBob()
 
-        every { dummyUserAlice.role } returns UserRole.USER
+        organization = DomainObjectBuilder.organization()
+        thread = DomainObjectBuilder.thread(organization)
+
+        every { organizationRepository.findById(organization.id) } returns Optional.of(organization)
+        every { threadRepository.findById(thread.id) } returns Optional.of(thread)
+
         every { dummyUserScopeAlice.user } returns dummyUserAlice
         every { dummyUserScopeAlice.role } returns ScopeRole.ORG_MEMBER
 
-        every { organization.id } returns 0
-
-        every { thread.id } returns 1
-        every { thread.organization } returns organization
-
-        every { permissionService.hasThreadAccess(dummyUserBob, any(), organization) } returns true
-
-        val organizationId = organization.id
-        every { organizationRepository.findById(organizationId) } returns Optional.of(organization)
-
-        every {
-            permissionLookupService.getThreadAndHighestRoleUserScopeOr404(dummyUserBob, any())
-        } returns Pair(thread) { Optional.of(dummyUserScopeBob) }
+        every { permissionService.hasAccess(dummyUserBob, orgScope()) } returns true
+        every { permissionService.hasAccess(dummyUserBob, thrScope()) } returns true
     }
 
     @Nested
@@ -101,21 +96,24 @@ class ThreadServiceTest {
         fun commonHappyStubs() {
             every { threadRepository.save(capture(savedThreadSlot)) } returnsArgument 0
 
-            val aliceUsername = dummyUserAlice.username
             every { userScopeRepository.saveAll(capture(savedUserScopesSlot)) } returns listOf()
             every {
-                userScopeRepository.findByScopeIdAndUsernameInIgnoreCase(organization.id, emptyList())
+                userScopeRepository.findByScopeIdAndUsernameInIgnoreCase(
+                    organization.id, emptyList()
+                )
             } returns emptyList()
             every {
-                userScopeRepository.findByScopeIdAndUsernameInIgnoreCase(organization.id, listOf(aliceUsername))
+                userScopeRepository.findByScopeIdAndUsernameInIgnoreCase(
+                    organization.id, listOf(dummyUserAlice.username)
+                )
             } returns listOf(dummyUserScopeAlice)
 
-            every { permissionService.canCreateOrDeleteThread(any(), any()) } returns true
+            every { permissionService.canCreateThread(any(), organization.id) } returns true
         }
 
         @Test
         fun `permissions not satisfied throws StatusCodeException 403`() {
-            every { permissionService.canCreateOrDeleteThread(any(), any()) } returns false
+            every { permissionService.canCreateThread(any(), organization.id) } returns false
 
             val res = assertThrows<StatusCodeException> {
                 threadService.createThread(
@@ -162,24 +160,24 @@ class ThreadServiceTest {
             assertTrue(savedUserScopesSlot.isCaptured)
             assertEquals(savedThreadSlot.captured.id, res.threadId)
             assertAll(
-                { savedUserScopesSlot.captured.size == 1 },
-                { savedUserScopesSlot.captured.first().user.username == dummyUserAlice.username },
-                { savedUserScopesSlot.captured.first().role == ScopeRole.THR_ASSIGNEE }
+                { assertEquals(1, savedUserScopesSlot.captured.size) },
+                { assertEquals(dummyUserAlice.username, savedUserScopesSlot.captured.first().user.username) },
+                { assertEquals(ScopeRole.THR_ASSIGNEE, savedUserScopesSlot.captured.first().role) }
             )
         }
     }
 
     @Nested
-    inner class DeleteThread() {
+    inner class DeleteThread {
         @BeforeEach
         fun commonHappyStubs() {
             every { threadRepository.delete(capture(savedThreadSlot)) } returnsArgument 0
-            every { permissionService.canCreateOrDeleteThread(any(), any()) } returns true
+            every { permissionService.canDelete(any(), any()) } returns true
         }
 
         @Test
         fun `permissions not satisfied throws StatusCodeException 403`() {
-            every { permissionService.canCreateOrDeleteThread(any(), any()) } returns false
+            every { permissionService.canDelete(dummyUserBob, any()) } returns false
 
             val res = assertThrows<StatusCodeException> {
                 threadService.deleteThread(dummyUserBob,thread.id)
@@ -204,9 +202,11 @@ class ThreadServiceTest {
         fun commonHappyStubs() {
             val aliceUsername = dummyUserAlice.username
             every { userRepository.findByUsernameIgnoreCase(aliceUsername) } returns Optional.of(dummyUserAlice)
-            every { permissionService.canManageThreadAssignees(any(), any()) } returns true
+            every { permissionService.canManageAssignees(any(), thrScope()) } returns true
 
-            every { userScopeRepository.deleteByUserAndScopeId(capture(deletedUserSlot), any()) } returns 0
+            every { userScopeRepository.deleteByUserAndScopeId(
+                capture(deletedUserSlot), any(), thread.id, any()
+            ) } returns 0
         }
 
         @Test
@@ -220,7 +220,7 @@ class ThreadServiceTest {
 
         @Test
         fun `permissions not satisfied throws StatusCodeException 403`() {
-            every { permissionService.canManageThreadAssignees(any(), any()) } returns false
+            every { permissionService.canManageAssignees(any(), thrScope()) } returns false
 
             val res = assertThrows<StatusCodeException> {
                 threadService.removeAssignee(dummyUserBob,thread.id, dummyUserAlice.username)
@@ -251,16 +251,9 @@ class ThreadServiceTest {
 
     @Nested
     inner class GetThreadMetaData {
-        @BeforeEach
-        fun commonHappyStubs() {
-            every { thread.toResponse() } returns ThreadResponse(
-                thread.id, "mock", "mock", thread.organization.id
-            )
-        }
-
         @Test
         fun `permissions not satisfied throws StatusCodeException 403`() {
-            every { permissionService.hasThreadAccess(dummyUserBob, any(), organization) } returns false
+            every { permissionService.hasAccess(dummyUserBob, any()) } returns false
 
             val res = assertThrows<StatusCodeException> {
                 threadService.getThreadMetaData(dummyUserBob,thread.id)
@@ -270,11 +263,15 @@ class ThreadServiceTest {
 
         @Test
         fun `happy path returns thread map`() {
-            every { permissionService.canManageThreadAssignees(any(), any()) } returns false
+            every { permissionService.canManageAssignees(dummyUserBob, any()) } returns false
 
-            val res = threadService.getThreadMetaData(dummyUserBob,thread.id)
-            verify(exactly = 1) { thread.toResponse() }
-            assertEquals(thread.id, res.id)
+            val res: ThreadResponse = threadService.getThreadMetaData(dummyUserBob,thread.id)
+            assertAll(
+                { assertEquals(thread.id, res.id) },
+                { assertEquals(thread.organization.id, res.organizationId) },
+                { assertEquals(thread.title, res.title) },
+                { assertEquals(thread.description, res.description) }
+            )
         }
     }
 
@@ -282,13 +279,13 @@ class ThreadServiceTest {
     inner class GetThreadsByOrganization {
         @BeforeEach
         fun commonHappyStubs() {
-            every { permissionService.hasOrganizationAccess(dummyUserBob, organization, any())} returns true
+            every { permissionService.hasAccess(dummyUserBob, orgScope())} returns true
             every { threadRepository.findAllByOrganization(organization, any()) } returns PageImpl(emptyList())
         }
 
         @Test
         fun `permissions not satisfied throws StatusCodeException 403`() {
-            every { permissionService.hasOrganizationAccess(dummyUserBob, organization, any())} returns false
+            every { permissionService.hasAccess(dummyUserBob, orgScope())} returns false
 
             val res = assertThrows<StatusCodeException> {
                 threadService.getThreadsByOrganization(
@@ -320,13 +317,13 @@ class ThreadServiceTest {
 
         @BeforeEach
         fun commonHappyStubs() {
-            every { permissionService.canUpdateThread(dummyUserBob, any())} returns true
+            every { permissionService.canUpdate(dummyUserBob, thrScope())} returns true
             every { threadRepository.save(capture(savedThreadSlot)) } returnsArgument 0
         }
 
         @Test
         fun `permissions not satisfied throws StatusCodeException 403`() {
-            every { permissionService.canUpdateThread(dummyUserBob, any())} returns false
+            every { permissionService.canUpdate(dummyUserBob, thrScope())} returns false
 
             val res = assertThrows<StatusCodeException> {
                 threadService.patchThread(dummyUserBob, thread.id, "new-t", "new-d")
@@ -337,12 +334,15 @@ class ThreadServiceTest {
 
         @Test
         fun `happy path commits thread`() {
-            threadService.patchThread(dummyUserBob, thread.id, "new-t", "new-d")
+            val newTitle = "new-title"
+            val newDescription = "new-description"
+
+            threadService.patchThread(dummyUserBob, thread.id, newTitle, newDescription)
 
             assertTrue(savedThreadSlot.isCaptured)
             assertAll(
-                { savedThreadSlot.captured.title == "new-t" },
-                { savedThreadSlot.captured.description == "new-d" }
+                { assertEquals(newTitle, savedThreadSlot.captured.title) },
+                { assertEquals(newDescription, savedThreadSlot.captured.description) }
             )
         }
     }
@@ -357,7 +357,7 @@ class ThreadServiceTest {
 
         @Test
         fun `permissions not satisfied throws StatusCodeException 403`() {
-            every { permissionService.hasThreadAccess(dummyUserBob, any(), thread.organization)} returns false
+            every { permissionService.hasAccess(dummyUserBob, thrScope())} returns false
 
             val res = assertThrows<StatusCodeException> {
                 threadService.getThreadAssignees(dummyUserBob, thread.id, 0, 5)
