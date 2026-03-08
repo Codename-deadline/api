@@ -57,16 +57,18 @@ class RolesServiceTest {
 
         every { dummyUserScopeAlice.role } returns ScopeRole.ORG_MEMBER
 
-        listOf(
-            dummyUserBob to dummyUserScopeBob,
-            dummyUserAlice to dummyUserScopeAlice
-        ).forEach {
-            every {
-                permissionLookupService.getHighestRoleUserScope(it.first, scopeId, any())
-            } returns Optional.of(it.second)
-        }
+        // listOf(
+        //     dummyUserBob to dummyUserScopeBob,
+        //     dummyUserAlice to dummyUserScopeAlice
+        // ).forEach {
+        //     every {
+        //         permissionLookupService.getHighestRoleUserScope(it.first, scopeId, any())
+        //     } returns Optional.of(it.second)
+        // }
         every {
-            userScopeRepository.findByScopeTypeAndScopeIdAndUsernameIgnoreCase("alice-the-tester", scopeId)
+            userScopeRepository.findByScopeTypeAndScopeIdAndUsernameIgnoreCase(
+                "alice-the-tester", ScopeType.THREAD, scopeId
+            )
         } returns Optional.of(dummyUserScopeAlice)
     }
 
@@ -104,11 +106,6 @@ class RolesServiceTest {
     @TestInstance(TestInstance.Lifecycle.PER_CLASS)
     inner class ChangeRole {
         private val savedUserScopeSlot: CapturingSlot<UserScope> = slot()
-        private val canManageChecks = listOf(
-            permissionService::canManageOrganizationMembers,
-            permissionService::canManageThreadAssignees,
-            permissionService::canManageDeadlineAssignees
-        )
 
         fun scopeRoleScopeTypePairs(): List<Arguments> = listOf(
             Arguments.of(ScopeRole.ORG_OWNER, ScopeType.ORGANIZATION),
@@ -120,9 +117,10 @@ class RolesServiceTest {
         fun commonHappyStubs() {
             every { userScopeRepository.save(capture(savedUserScopeSlot)) } returnsArgument 0
 
-            canManageChecks.forEach { fn ->
-                every { fn(any(), any()) } returns true
-            }
+            every { permissionService.canManageAssignees(any(), any()) } returns true
+            // canManageChecks.forEach { fn ->
+            //     every { fn(any(), any()) } returns true
+            // }
             every {
                 permissionService.canChangeRole(
                     dummyUserBob,
@@ -162,7 +160,11 @@ class RolesServiceTest {
 
         @Test
         fun `attempting to promote to a higher role than issuer's throws StatusCodeException 403`() {
-            every { permissionService.canChangeRole(dummyUserBob, ScopeRole.ORG_OWNER, any()) } returns false
+            every {
+                permissionService.canChangeRole(
+                    dummyUserBob, any(), ScopeRole.ORG_OWNER
+                )
+            } returns false
 
             val res = assertThrows<StatusCodeException> {
                 rolesService.changeRole(
@@ -181,9 +183,7 @@ class RolesServiceTest {
         fun `not enough permissions to manage roles throws StatusCodeException 403`(
             newRole: ScopeRole, scopeType: ScopeType
         ) {
-            canManageChecks.forEach { fn ->
-                every { fn(any(), any()) } returns false
-            }
+            every { permissionService.canManageAssignees(any(), any()) } returns false
 
             val res = assertThrows<StatusCodeException> {
                 rolesService.changeRole(
@@ -199,7 +199,11 @@ class RolesServiceTest {
 
         @Test
         fun `subject UserScope not found throws StatusCodeException 400`() {
-            every { userScopeRepository.findByScopeTypeAndScopeIdAndUsernameIgnoreCase(any(), any()) } returns Optional.empty()
+            every {
+                userScopeRepository.findByScopeTypeAndScopeIdAndUsernameIgnoreCase(
+                    any(), any(), any()
+                )
+            } returns Optional.empty()
 
             val res = assertThrows<StatusCodeException> {
                 rolesService.changeRole(

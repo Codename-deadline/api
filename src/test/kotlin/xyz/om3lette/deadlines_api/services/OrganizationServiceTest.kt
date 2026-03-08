@@ -125,7 +125,7 @@ class OrganizationServiceTest {
 
         every { organizationRepository.findById(dummyOrganization.id) } returns Optional.of(dummyOrganization)
 
-        every { userScopeRepository.deleteByUserAndScopeId(dummyUserAlice, dummyOrganization.id) } returns 1
+        every { userScopeRepository.deleteByUserAndScopeId(dummyUserAlice, dummyOrganization.id, null, null) } returns 1
         every { userScopeRepository.deleteByUserAndScopeIdIn(dummyUserAlice, any()) } returns 1
         every { threadRepository.findAllIdsByOrganizationId(any()) } returns listOf()
         every { deadlineRepository.findAllIdsByOrganizationId(any()) } returns listOf()
@@ -229,7 +229,7 @@ class OrganizationServiceTest {
             deletedOrganizationSlot.clear()
 
             every { organizationRepository.delete(capture(deletedOrganizationSlot)) } returnsArgument 0
-            every { permissionService.canDeleteOrganization(any(), any()) } returns true
+            every { permissionService.canDelete(any(), any()) } returns true
         }
 
         @Test
@@ -248,7 +248,7 @@ class OrganizationServiceTest {
 
         @Test
         fun `not enough permissions throws StatusCodeException 403`() {
-            every { permissionService.canDeleteOrganization(any(), any()) } returns false
+            every { permissionService.canDelete(any(), any()) } returns false
 
             val res = assertThrows<StatusCodeException> {
                 organizationService.deleteOrganization(dummyUserBob, dummyOrganization.id)
@@ -280,7 +280,7 @@ class OrganizationServiceTest {
 
         @BeforeEach
         fun commonHappyStubs() {
-            every { permissionService.canManageOrganizationMembers(any(), any()) } returns true
+            every { permissionService.canManageAssignees(any(), any()) } returns true
         }
 
         @Test
@@ -299,7 +299,7 @@ class OrganizationServiceTest {
 
         @Test
         fun `not enough permissions throws StatusCodeException 403`() {
-            every { permissionService.canManageOrganizationMembers(any(), any()) } returns false
+            every { permissionService.canManageAssignees(any(), any()) } returns false
 
             val res = assertThrows<StatusCodeException>{
                 organizationService.removeMember(dummyUserBob, dummyOrganization.id, "Alice")
@@ -328,7 +328,7 @@ class OrganizationServiceTest {
             dummyOrganization.members.add(dummyUserScopeAlice)
             organizationService.removeMember(dummyUserBob, dummyOrganization.id, "Alice")
 
-            verify(exactly = 1) { userScopeRepository.deleteByUserAndScopeId(dummyUserAlice, dummyOrganization.id) }
+            verify(exactly = 1) { userScopeRepository.deleteByUserAndScopeId(dummyUserAlice, dummyOrganization.id, null, null) }
         }
     }
 }

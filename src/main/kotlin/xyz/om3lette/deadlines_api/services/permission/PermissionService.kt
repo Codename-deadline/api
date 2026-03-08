@@ -12,6 +12,7 @@ import xyz.om3lette.deadlines_api.data.scopes.organization.enums.OrganizationTyp
 import xyz.om3lette.deadlines_api.data.scopes.organization.model.Organization
 import xyz.om3lette.deadlines_api.data.scopes.thread.model.Thread
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeRole
+import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType
 import xyz.om3lette.deadlines_api.data.scopes.userScope.repo.PermissionsRepository
 import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.util.user.isAdminOr
@@ -27,9 +28,12 @@ class PermissionService(
 
     private val logger = LoggerFactory.getLogger(PermissionService::class.java)
 
+    private fun buildPermissionKey(scopeType: ScopeType, userId: Long, scopeId: Long) =
+        "${scopeType}:${userId}@${scopeId}"
+
     private fun roleForOrganizationLazy(user: User, organizationId: Long): () -> ScopeRole? =
         {
-            val key = "ORG:${user.id}@$organizationId"
+            val key = buildPermissionKey(ScopeType.ORGANIZATION, user.id, organizationId)
             permissionContext.getOrLoad(key) {
                 permissionsRepository.findHighestRoleByUser(
                     userId = user.id,
@@ -42,7 +46,7 @@ class PermissionService(
 
         private fun roleForThreadLazy(user: User, thread: Thread): () -> ScopeRole? =
         {
-            val key = "THR:${user.id}@$thread.id"
+            val key = buildPermissionKey(ScopeType.THREAD, user.id, thread.id)
             permissionContext.getOrLoad(key) {
                 permissionsRepository.findHighestRoleByUser(
                     userId = user.id,
@@ -55,7 +59,7 @@ class PermissionService(
 
     private fun roleForDeadlineLazy(user: User, deadline: Deadline): () -> ScopeRole? =
         {
-            val key = "DDL:${user.id}@$deadline.id"
+            val key = buildPermissionKey(ScopeType.DEADLINE, user.id, deadline.id)
             permissionContext.getOrLoad(key) {
                 permissionsRepository.findHighestRoleByUser(
                     userId = user.id,
@@ -228,8 +232,8 @@ class PermissionService(
     fun canChangeRole(issuer: User, permissionScope: PermissionScope, newRole: ScopeRole): Boolean {
             if (!canManageAssignees(issuer, permissionScope)) return false
             return issuer.isAdminOrHasRoleAnd(findRoleByPermissionScopeLazy(issuer, permissionScope)) { role ->
-                // For now forbid changing org's owner
-                (newRole >= role) && newRole != ScopeRole.ORG_OWNER
+                // '<'  Implicitly forbids multiple organization owners
+                newRole < role
             }
         }
 }
