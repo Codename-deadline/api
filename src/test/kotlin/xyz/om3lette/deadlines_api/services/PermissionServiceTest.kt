@@ -49,7 +49,7 @@ class PermissionServiceTest {
     lateinit var permissionService: PermissionService
 
     private val admin = DomainObjectBuilder.admin()
-    private val nonAdmin = DomainObjectBuilder.user()
+    private val nonAdmin = DomainObjectBuilder.userBob()
     private val userScope = spyk<UserScope>()
 
     private lateinit var organization: Organization

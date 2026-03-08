@@ -51,12 +51,21 @@ object DomainObjectBuilder {
             role = UserRole.ADMIN
         )
 
-    fun user(): User =
+    fun userBob(): User =
         User(
             id = 1,
-            _username = "User",
+            _username = "bob-the-tester",
             joinedAt = Instant.now(),
-            fullName = "OneAndOnlyUser",
+            fullName = "alice-the-tester",
+            role = UserRole.USER
+        )
+
+    fun userAlice(): User =
+        User(
+            id = 2,
+            _username = "alice-the-tester",
+            joinedAt = Instant.now(),
+            fullName = "bob-the-tester",
             role = UserRole.USER
         )
 }
