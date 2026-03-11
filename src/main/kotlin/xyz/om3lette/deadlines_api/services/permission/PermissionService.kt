@@ -8,6 +8,7 @@ import xyz.om3lette.deadlines_api.data.permissions.dto.OrganizationScope
 import xyz.om3lette.deadlines_api.data.permissions.dto.PermissionScope
 import xyz.om3lette.deadlines_api.data.permissions.dto.ThreadScope
 import xyz.om3lette.deadlines_api.data.scopes.deadline.model.Deadline
+import xyz.om3lette.deadlines_api.data.scopes.organization.dto.OrganizationPermissions
 import xyz.om3lette.deadlines_api.data.scopes.organization.enums.OrganizationType
 import xyz.om3lette.deadlines_api.data.scopes.organization.model.Organization
 import xyz.om3lette.deadlines_api.data.scopes.thread.model.Thread
@@ -28,13 +29,9 @@ class PermissionService(
 
     private val logger = LoggerFactory.getLogger(PermissionService::class.java)
 
-    private fun buildPermissionKey(scopeType: ScopeType, userId: Long, scopeId: Long) =
-        "${scopeType}:${userId}@${scopeId}"
-
     private fun roleForOrganizationLazy(user: User, organizationId: Long): () -> ScopeRole? =
         {
-            val key = buildPermissionKey(ScopeType.ORGANIZATION, user.id, organizationId)
-            permissionContext.getOrLoad(key) {
+            permissionContext.getOrLoad(user.id, ScopeType.ORGANIZATION, organizationId) {
                 permissionsRepository.findHighestRoleByUser(
                     userId = user.id,
                     orgId = organizationId,
@@ -46,8 +43,7 @@ class PermissionService(
 
         private fun roleForThreadLazy(user: User, thread: Thread): () -> ScopeRole? =
         {
-            val key = buildPermissionKey(ScopeType.THREAD, user.id, thread.id)
-            permissionContext.getOrLoad(key) {
+            permissionContext.getOrLoad(user.id, ScopeType.THREAD, thread.id) {
                 permissionsRepository.findHighestRoleByUser(
                     userId = user.id,
                     orgId = thread.organization.id,
@@ -59,8 +55,7 @@ class PermissionService(
 
     private fun roleForDeadlineLazy(user: User, deadline: Deadline): () -> ScopeRole? =
         {
-            val key = buildPermissionKey(ScopeType.DEADLINE, user.id, deadline.id)
-            permissionContext.getOrLoad(key) {
+            permissionContext.getOrLoad(user.id, ScopeType.DEADLINE, deadline.id) {
                 permissionsRepository.findHighestRoleByUser(
                     userId = user.id,
                     orgId = deadline.thread.organization.id,
@@ -100,6 +95,13 @@ class PermissionService(
         issuer.isAdminOrHasRoleAnd(roleForOrganizationLazy(issuer, organizationId)) { role ->
             role >= ScopeRole.ORG_ADMIN
         }
+
+    fun buildOrganizationPermissions(issuer: User, organizationId: Long) = OrganizationPermissions(
+        update = canUpdateOrganization(issuer, organizationId),
+        delete = canDeleteOrganization(issuer, organizationId),
+        manageRoles = canManageOrganizationMembers(issuer, organizationId),
+        invite = canSendOrganizationInvitation(issuer, organizationId),
+    )
 
     /*
         Thread permissions:
