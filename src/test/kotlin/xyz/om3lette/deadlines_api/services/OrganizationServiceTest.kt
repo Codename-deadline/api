@@ -127,7 +127,7 @@ class OrganizationServiceTest {
         every { organizationRepository.findById(dummyOrganization.id) } returns Optional.of(dummyOrganization)
 
         every { userScopeRepository.deleteByUserAndScopeId(dummyUserAlice, dummyOrganization.id, null, null) } returns 1
-        every { userScopeRepository.deleteByUserAndScopeIdIn(dummyUserAlice, any()) } returns 1
+        every { userScopeRepository.deleteByUserAndScopeTypeAndScopeIdIn(dummyUserAlice, any(), any()) } returns 1
         every { threadRepository.findAllIdsByOrganizationId(any()) } returns listOf()
         every { deadlineRepository.findAllIdsByOrganizationId(any()) } returns listOf()
 
@@ -293,7 +293,7 @@ class OrganizationServiceTest {
             }
 
             assertAll(
-                { verify(exactly = 0) {userScopeRepository.deleteByUserAndScopeIdIn(any(), any()) } },
+                { verify(exactly = 0) {userScopeRepository.deleteByUserAndScopeTypeAndScopeIdIn(any(), any(), any()) } },
                 { assertEquals(404, res.statusCode) }
             )
         }
@@ -307,7 +307,7 @@ class OrganizationServiceTest {
             }
 
             assertAll(
-                { verify(exactly = 0) {userScopeRepository.deleteByUserAndScopeIdIn(any(), any()) } },
+                { verify(exactly = 0) {userScopeRepository.deleteByUserAndScopeTypeAndScopeIdIn(any(), any(), any()) } },
                 { assertEquals(403, res.statusCode) }
             )
         }
@@ -319,7 +319,7 @@ class OrganizationServiceTest {
             }
 
             assertAll(
-                { verify(exactly = 0) { userScopeRepository.deleteByUserAndScopeIdIn(any(), any()) } },
+                { verify(exactly = 0) { userScopeRepository.deleteByUserAndScopeTypeAndScopeIdIn(any(), any(), any()) } },
                 { assertEquals(400, res.statusCode) }
             )
         }

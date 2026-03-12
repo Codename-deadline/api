@@ -115,12 +115,16 @@ class OrganizationService(
 
         val threadIds = threadRepository.findAllIdsByOrganizationId(orgId)
         if (threadIds.isNotEmpty()) {
-            userScopeRepository.deleteByUserAndScopeIdIn(userToRemove, threadIds)
+            userScopeRepository.deleteByUserAndScopeTypeAndScopeIdIn(
+                userToRemove, ScopeType.THREAD, threadIds
+            )
         }
 
         val deadlinesIds = deadlineRepository.findAllIdsByOrganizationId(orgId)
         if (deadlinesIds.isNotEmpty()) {
-            userScopeRepository.deleteByUserAndScopeIdIn(userToRemove, deadlinesIds)
+            userScopeRepository.deleteByUserAndScopeTypeAndScopeIdIn(
+                userToRemove, ScopeType.DEADLINE,deadlinesIds
+            )
         }
     }
 

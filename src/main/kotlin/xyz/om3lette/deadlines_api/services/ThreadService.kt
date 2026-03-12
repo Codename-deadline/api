@@ -57,7 +57,7 @@ class ThreadService(
 
         val threadAssigneeScopes: MutableList<UserScope> = mutableListOf()
 
-        userScopeRepository.findByScopeIdAndScopeTypeUsernameInIgnoreCase(
+        userScopeRepository.findByScopeIdAndScopeTypeAndUsernameInIgnoreCase(
             organization.id, ScopeType.ORGANIZATION,
             assigneesUsernames.map { it.lowercase() }
         ).forEach { userScope ->

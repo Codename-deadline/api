@@ -86,8 +86,9 @@ class DeadlineService(
             )
         )
         val deadlineAssigneeScopes: MutableList<UserScope> = mutableListOf()
-        userScopeRepository.findByScopeIdInAndUsernameInIgnoreCase(
+        userScopeRepository.findByScopeTypeScopeIdInAndUsernameInIgnoreCase(
             thread.organization.id,
+            ScopeType.ORGANIZATION,
             assigneesUsernames.map { it.lowercase() }
         )
             .groupBy { it.user.id }.values

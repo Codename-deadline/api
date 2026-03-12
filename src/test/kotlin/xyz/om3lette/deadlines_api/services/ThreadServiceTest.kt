@@ -97,12 +97,12 @@ class ThreadServiceTest {
 
             every { userScopeRepository.saveAll(capture(savedUserScopesSlot)) } returns listOf()
             every {
-                userScopeRepository.findByScopeIdAndScopeTypeUsernameInIgnoreCase(
+                userScopeRepository.findByScopeIdAndScopeTypeAndUsernameInIgnoreCase(
                     organization.id, ScopeType.ORGANIZATION, emptyList()
                 )
             } returns emptyList()
             every {
-                userScopeRepository.findByScopeIdAndScopeTypeUsernameInIgnoreCase(
+                userScopeRepository.findByScopeIdAndScopeTypeAndUsernameInIgnoreCase(
                     organization.id, ScopeType.ORGANIZATION, listOf(dummyUserAlice.username)
                 )
             } returns listOf(dummyUserScopeAlice)

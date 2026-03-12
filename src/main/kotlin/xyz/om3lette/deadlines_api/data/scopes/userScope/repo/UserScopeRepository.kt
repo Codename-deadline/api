@@ -8,13 +8,11 @@ import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
 import xyz.om3lette.deadlines_api.data.scopes.userScope.dto.ScopeRoleDTO
-import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeRole
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType
 import xyz.om3lette.deadlines_api.data.scopes.userScope.model.UserScope
 import xyz.om3lette.deadlines_api.data.user.model.User
 import java.util.Optional
 
-// TODO: Verify that every operation uses (scopeId, scopeType) when querying info for a user
 interface UserScopeRepository : JpaRepository<UserScope, Long> {
     fun findByUserAndScopeIdAndScopeType(
         user: User,
@@ -32,10 +30,13 @@ interface UserScopeRepository : JpaRepository<UserScope, Long> {
 
     @Query("""
         SELECT us FROM UserScope us
-        WHERE us.scopeId in :scopeIds AND LOWER(us.user._username) in :usernames
+        WHERE us.scopeType = :scopeType
+            AND us.scopeId IN :scopeIds
+            AND LOWER(us.user._username) IN :usernames
     """)
-    fun findByScopeIdInAndUsernameInIgnoreCase(
+    fun findByScopeTypeScopeIdInAndUsernameInIgnoreCase(
         scopeIds: Long,
+        scopeType: ScopeType,
         @Param("usernames") usernamesLower: List<String>
     ): List<UserScope>
 
@@ -43,9 +44,9 @@ interface UserScopeRepository : JpaRepository<UserScope, Long> {
         SELECT us FROM UserScope us
         WHERE us.scopeId = :scopeId
             AND us.scopeType = :scopeType
-            AND LOWER(us.user._username) in :usernames
+            AND LOWER(us.user._username) IN :usernames
     """)
-    fun findByScopeIdAndScopeTypeUsernameInIgnoreCase(
+    fun findByScopeIdAndScopeTypeAndUsernameInIgnoreCase(
         scopeId: Long,
         scopeType: ScopeType,
         @Param("usernames") usernamesLower: List<String>
@@ -62,15 +63,14 @@ interface UserScopeRepository : JpaRepository<UserScope, Long> {
     @Transactional
     @Query(
         """
-            DELETE FROM user_scopes us
-            WHERE us.user_id = :userId
+            DELETE FROM UserScope us
+            WHERE us.user.id = :userId
                 AND (
-                    (us.scope_type = 'ORG' AND us.scope_id = :orgId)
-                    OR (us.scope_type = 'THR' AND us.scope_id = :thrId)
-                    OR (us.scope_type = 'DDL' AND us.scope_id = :ddlId)
+                    (us.scopeType = 'ORG' AND us.scopeId = :orgId)
+                    OR (us.scopeType = 'THR' AND us.scopeId = :thrId)
+                    OR (us.scopeType = 'DDL' AND us.scopeId = :ddlId)
                 )
-        """,
-        nativeQuery = true
+        """
     )
     fun deleteByUserAndScopeId(
         user: User,
@@ -81,8 +81,9 @@ interface UserScopeRepository : JpaRepository<UserScope, Long> {
 
     @Modifying
     @Transactional
-    fun deleteByUserAndScopeIdIn(
+    fun deleteByUserAndScopeTypeAndScopeIdIn(
         user: User,
+        scopeType: ScopeType,
         scopeId: Collection<Long>
     ): Int
 
