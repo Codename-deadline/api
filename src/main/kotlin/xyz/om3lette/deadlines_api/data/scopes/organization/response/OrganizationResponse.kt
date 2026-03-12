@@ -1,16 +1,18 @@
 package xyz.om3lette.deadlines_api.data.scopes.organization.response
 
-import xyz.om3lette.deadlines_api.data.scopes.organization.enums.OrganizationType
-import java.time.Instant
+import com.fasterxml.jackson.annotation.JsonUnwrapped
+import xyz.om3lette.deadlines_api.data.scopes.organization.dto.OrganizationDTO
+import xyz.om3lette.deadlines_api.data.scopes.organization.dto.OrganizationPermissions
+import xyz.om3lette.deadlines_api.data.scopes.organization.response.OrganizationStats
+import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeRole
 
 data class OrganizationResponse(
-    val id: Long,
-
-    val title: String,
-
-    val description: String?,
-
-    val type: OrganizationType,
-
-    val createdAt: Instant
-)
+    @get:JsonUnwrapped
+    val organization: OrganizationDTO,
+    val stats: OrganizationStats,
+    val permissions: OrganizationPermissions
+) {
+    fun withRole(scopeRole: ScopeRole): OrganizationResponseWithRole = OrganizationResponseWithRole(
+        this, scopeRole
+    )
+}

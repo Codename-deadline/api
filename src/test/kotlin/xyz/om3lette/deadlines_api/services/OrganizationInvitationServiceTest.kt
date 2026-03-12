@@ -24,6 +24,7 @@ import xyz.om3lette.deadlines_api.data.scopes.organization.model.OrganizationInv
 import xyz.om3lette.deadlines_api.data.scopes.organization.repo.OrganizationInvitationRepository
 import xyz.om3lette.deadlines_api.data.scopes.organization.repo.OrganizationRepository
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeRole
+import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType
 import xyz.om3lette.deadlines_api.data.scopes.userScope.model.UserScope
 import xyz.om3lette.deadlines_api.data.scopes.userScope.repo.UserScopeRepository
 import xyz.om3lette.deadlines_api.data.scopes.userScope.roleIsEqualOrHigherThan
@@ -92,8 +93,12 @@ class OrganizationInvitationServiceTest {
         every { dummyUserScopeBob.role } returns ScopeRole.ORG_OWNER
 
         every { organizationInvitationRepository.findById(0) } returns Optional.of(dummyInvitation)
-        every { userScopeRepository.findByUserAndScopeId(dummyUserBob, dummyOrganization.id) } returns Optional.of(dummyUserScopeBob)
-        every { userScopeRepository.findByUserAndScopeId(dummyUserAlice, dummyOrganization.id) } returns Optional.empty()
+        every { userScopeRepository.findByUserAndScopeIdAndScopeType(
+            dummyUserBob, dummyOrganization.id, ScopeType.ORGANIZATION)
+        } returns Optional.of(dummyUserScopeBob)
+        every { userScopeRepository.findByUserAndScopeIdAndScopeType(
+            dummyUserAlice, dummyOrganization.id, ScopeType.ORGANIZATION)
+        } returns Optional.empty()
 
 
         every { permissionService.canSendOrganizationInvitation(any(), any()) } returns true

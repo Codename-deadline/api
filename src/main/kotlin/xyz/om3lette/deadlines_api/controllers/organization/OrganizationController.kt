@@ -25,12 +25,19 @@ import xyz.om3lette.deadlines_api.services.OrganizationService
 class OrganizationController(
     private val organizationService: OrganizationService
 ) {
+    @GetMapping
+    @Operation(summary = "Get organizations where user is a member")
+    fun getOrganizationsByUser(
+        @AuthenticationPrincipal user: User,
+        @RequestParam("page") pageNumber: Int
+    ) = organizationService.getOrganizationsByUser(user, pageNumber, 10)
+
     @GetMapping("/{organizationId}")
     @Operation(summary = "Get organization metadata")
     fun getOrganizationMetadata(
         @AuthenticationPrincipal user: User,
         @PathVariable organizationId: Long
-    ) = organizationService.getOrganizationMetaData(user, organizationId)
+    ) = organizationService.getOrganization(user, organizationId)
 
     @PostMapping
     @Operation(summary = "Create a new organization")

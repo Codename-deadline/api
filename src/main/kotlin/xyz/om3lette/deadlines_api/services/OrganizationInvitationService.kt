@@ -42,14 +42,14 @@ class OrganizationInvitationService(
         }
 
         val userToInvite = userRepository.findByUsernameIgnoreCaseOr404(usernameToInvite)
-        userScopeRepository.findByUserAndScopeId(userToInvite, organizationId).ifPresent {
+        userScopeRepository.findByUserAndScopeIdAndScopeType(
+            userToInvite, organizationId, ScopeType.ORGANIZATION
+        ).ifPresent {
             throw StatusCodeException(400, ErrorCode.INVITATION_ALREADY_ORG_MEMBER)
         }
 
         requirePermission(
-            permissionService.canSendOrganizationInvitation(issuer) {
-                userScopeRepository.findByUserAndScopeId(issuer, organizationId)
-            }
+            permissionService.canSendOrganizationInvitation(issuer, organizationId)
         )
 
         val invitation = organizationInvitationRepository.save(createInvitation(issuer, userToInvite, organization, role))

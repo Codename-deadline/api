@@ -40,7 +40,7 @@ data class Thread(
         insertable = false, updatable = false,
         foreignKey = ForeignKey(ConstraintMode.NO_CONSTRAINT)
     )
-    @SQLRestriction("scope_type = 'T'")
+    @SQLRestriction("scope_type = 'THR'")
     val assignees: MutableList<UserScope> = mutableListOf()
 ) {
     fun toMap() = mapOf(

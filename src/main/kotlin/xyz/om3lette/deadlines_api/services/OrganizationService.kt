@@ -1,35 +1,38 @@
 package xyz.om3lette.deadlines_api.services
 
+import jakarta.transaction.Transactional
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Sort
 import org.springframework.stereotype.Service
+import xyz.om3lette.deadlines_api.data.common.response.PaginationResponse
+import xyz.om3lette.deadlines_api.data.permissions.dto.OrganizationScope
+import xyz.om3lette.deadlines_api.data.scopes.deadline.repo.DeadlineRepository
+import xyz.om3lette.deadlines_api.data.scopes.organization.dto.InvitationDTO
 import xyz.om3lette.deadlines_api.data.scopes.organization.enums.OrganizationType
 import xyz.om3lette.deadlines_api.data.scopes.organization.model.Organization
 import xyz.om3lette.deadlines_api.data.scopes.organization.model.OrganizationInvitation
 import xyz.om3lette.deadlines_api.data.scopes.organization.repo.OrganizationInvitationRepository
 import xyz.om3lette.deadlines_api.data.scopes.organization.repo.OrganizationRepository
-import xyz.om3lette.deadlines_api.data.user.model.User
-import xyz.om3lette.deadlines_api.data.user.repo.UserRepository
+import xyz.om3lette.deadlines_api.data.scopes.organization.response.OrganizationCreatedResponse
+import xyz.om3lette.deadlines_api.data.scopes.organization.response.OrganizationResponse
+import xyz.om3lette.deadlines_api.data.scopes.organization.response.OrganizationResponseWithRole
+import xyz.om3lette.deadlines_api.data.scopes.thread.repo.ThreadRepository
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeRole
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType
 import xyz.om3lette.deadlines_api.data.scopes.userScope.model.UserScope
 import xyz.om3lette.deadlines_api.data.scopes.userScope.repo.UserScopeRepository
-import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
-import xyz.om3lette.deadlines_api.util.jpaRepository.findByIdOr404
-import xyz.om3lette.deadlines_api.util.userRepository.findByUsernameIgnoreCaseOr404
-import java.time.Instant
-import jakarta.transaction.Transactional
-import org.springframework.data.domain.PageRequest
-import org.springframework.data.domain.Sort
-import xyz.om3lette.deadlines_api.data.common.response.PaginationResponse
-import xyz.om3lette.deadlines_api.data.scopes.deadline.repo.DeadlineRepository
-import xyz.om3lette.deadlines_api.data.scopes.organization.model.InvitationDTO
-import xyz.om3lette.deadlines_api.data.scopes.organization.response.OrganizationCreatedResponse
-import xyz.om3lette.deadlines_api.data.scopes.organization.response.OrganizationResponse
-import xyz.om3lette.deadlines_api.data.scopes.thread.repo.ThreadRepository
 import xyz.om3lette.deadlines_api.data.scopes.userScope.response.UserScopeResponse
+import xyz.om3lette.deadlines_api.data.user.model.User
+import xyz.om3lette.deadlines_api.data.user.repo.UserRepository
 import xyz.om3lette.deadlines_api.exceptions.enums.ErrorCode
+import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
 import xyz.om3lette.deadlines_api.services.permission.PermissionService
+import xyz.om3lette.deadlines_api.util.jpaRepository.findByIdOr404
 import xyz.om3lette.deadlines_api.util.page.toPaginationResponse
 import xyz.om3lette.deadlines_api.util.requirePermission
+import xyz.om3lette.deadlines_api.util.userRepository.findByUsernameIgnoreCaseOr404
+import java.time.Instant
 
 @Service
 class OrganizationService(
@@ -91,49 +94,73 @@ class OrganizationService(
     fun deleteOrganization(issuer: User, organizationId: Long) {
         val organization: Organization = organizationRepository.findByIdOr404(organizationId, ErrorCode.ORG_NOT_FOUND)
         requirePermission(
-            permissionService.canDeleteOrganization(issuer) {
-                userScopeRepository.findByUserAndScopeId(issuer, organizationId)
-            }
+            permissionService.canDelete(issuer, OrganizationScope(organizationId))
         )
 
         organizationRepository.delete(organization)
     }
 
     @Transactional
-    fun removeMember(issuer: User, organizationId: Long, memberUsernameToRemove: String) {
+    fun removeMember(issuer: User, orgId: Long, memberUsernameToRemove: String) {
         if (memberUsernameToRemove.equals(issuer._username, ignoreCase = true)) {
             throw StatusCodeException(400, ErrorCode.ACTION_SELF_REMOVAL)
         }
 
         requirePermission(
-            permissionService.canManageOrganizationMembers(issuer) {
-                userScopeRepository.findByUserAndScopeId(issuer, organizationId)
-            }
+            permissionService.canManageAssignees(issuer, OrganizationScope(orgId))
         )
 
         val userToRemove = userRepository.findByUsernameIgnoreCaseOr404(memberUsernameToRemove)
-        userScopeRepository.deleteByUserAndScopeId(userToRemove, organizationId)
+        userScopeRepository.deleteByUserAndScopeId(userToRemove, orgId, null, null)
 
-        val threadIds = threadRepository.findAllIdsByOrganizationId(organizationId)
+        val threadIds = threadRepository.findAllIdsByOrganizationId(orgId)
         if (threadIds.isNotEmpty()) {
-            userScopeRepository.deleteByUserAndScopeIdIn(userToRemove, threadIds)
+            userScopeRepository.deleteByUserAndScopeTypeAndScopeIdIn(
+                userToRemove, ScopeType.THREAD, threadIds
+            )
         }
 
-        val deadlinesIds = deadlineRepository.findAllIdsByOrganizationId(organizationId)
+        val deadlinesIds = deadlineRepository.findAllIdsByOrganizationId(orgId)
         if (deadlinesIds.isNotEmpty()) {
-            userScopeRepository.deleteByUserAndScopeIdIn(userToRemove, deadlinesIds)
+            userScopeRepository.deleteByUserAndScopeTypeAndScopeIdIn(
+                userToRemove, ScopeType.DEADLINE,deadlinesIds
+            )
         }
     }
 
-    fun getOrganizationMetaData(issuer: User, organizationId: Long): OrganizationResponse {
+    fun getOrganizationsByUser(user: User, pageNumber: Int, pageSize: Int): PaginationResponse<OrganizationResponseWithRole> {
+        val organizations: Page<Organization> = organizationRepository.findAllOrganizationsForUser(
+            user, PageRequest.of(pageNumber, pageSize)
+        )
+        val organizationIds = organizations.content.map { it.id }
+        val stats = organizationRepository.getOrganizationsStats(organizationIds)
+            .associateBy { it.organizationId }
+
+        permissionService.prefetchUserRoles(user, orgIds = organizationIds)
+        return organizations.toPaginationResponse {
+            it.toResponse(
+                stats[it.id]!!,
+                permissionService.buildOrganizationPermissions(user, it.id)
+            ).withRole(
+                permissionService.getRole(it.id, ScopeType.ORGANIZATION)
+                    ?: throw StatusCodeException(400, ErrorCode.AUTH_INSUFFICIENT_PERMISSIONS)
+            )
+        }
+    }
+
+    fun getOrganization(issuer: User, organizationId: Long): OrganizationResponse {
         val organization = organizationRepository.findByIdOr404(organizationId, ErrorCode.ORG_NOT_FOUND)
         requirePermission(
-            permissionService.hasOrganizationAccess(issuer, organization) {
-                userScopeRepository.findByUserAndScopeId(issuer, organization.id)
-            }
+            permissionService.hasAccess(issuer, OrganizationScope(
+                organizationId, organization
+            ))
         )
 
-        return organization.toResponse()
+        val stats = organizationRepository.getOrganizationsStats(listOf(organizationId))[0]
+        return organization.toResponse(
+            stats,
+            permissionService.buildOrganizationPermissions(issuer, organizationId)
+        )
     }
 
     fun patchOrganization(issuer: User, organizationId: Long, title: String?, description: String?) {
@@ -144,9 +171,7 @@ class OrganizationService(
         val organization: Organization = organizationRepository.findByIdOr404(organizationId, ErrorCode.ORG_NOT_FOUND)
 
         requirePermission(
-            permissionService.canUpdateOrganization(issuer) {
-                userScopeRepository.findByUserAndScopeId(issuer, organizationId)
-            }
+            permissionService.canUpdate(issuer, OrganizationScope(organizationId))
         )
 
         if (title != null) organization.title = title
@@ -163,14 +188,14 @@ class OrganizationService(
     ): PaginationResponse<UserScopeResponse> {
         val organization = organizationRepository.findByIdOr404(organizationId, ErrorCode.ORG_NOT_FOUND)
         requirePermission(
-            permissionService.hasOrganizationAccess(issuer, organization) {
-                userScopeRepository.findByUserAndScopeId(issuer, organization.id)
-            }
+            permissionService.hasAccess(issuer, OrganizationScope(
+                organizationId, organization
+            ))
         )
 
         val pageRequest = PageRequest.of(pageNumber, pageSize, Sort.by("role").descending())
-        return userScopeRepository.findAllByScopeId(
-            organizationId, pageRequest
+        return userScopeRepository.findAllByScopeIdAndScopeType(
+            organizationId, ScopeType.ORGANIZATION, pageRequest
         ).toPaginationResponse { it.toResponse() }
     }
 }

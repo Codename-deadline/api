@@ -1,4 +1,4 @@
-package xyz.om3lette.deadlines_api.data.scopes.organization.model
+package xyz.om3lette.deadlines_api.data.scopes.organization.dto
 
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.NotNull
