@@ -1,36 +1,38 @@
 package xyz.om3lette.deadlines_api.services
 
+import jakarta.transaction.Transactional
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Sort
 import org.springframework.stereotype.Service
+import xyz.om3lette.deadlines_api.data.common.response.PaginationResponse
+import xyz.om3lette.deadlines_api.data.permissions.dto.OrganizationScope
+import xyz.om3lette.deadlines_api.data.scopes.deadline.repo.DeadlineRepository
+import xyz.om3lette.deadlines_api.data.scopes.organization.dto.InvitationDTO
 import xyz.om3lette.deadlines_api.data.scopes.organization.enums.OrganizationType
 import xyz.om3lette.deadlines_api.data.scopes.organization.model.Organization
 import xyz.om3lette.deadlines_api.data.scopes.organization.model.OrganizationInvitation
 import xyz.om3lette.deadlines_api.data.scopes.organization.repo.OrganizationInvitationRepository
 import xyz.om3lette.deadlines_api.data.scopes.organization.repo.OrganizationRepository
-import xyz.om3lette.deadlines_api.data.user.model.User
-import xyz.om3lette.deadlines_api.data.user.repo.UserRepository
+import xyz.om3lette.deadlines_api.data.scopes.organization.response.OrganizationCreatedResponse
+import xyz.om3lette.deadlines_api.data.scopes.organization.response.OrganizationResponse
+import xyz.om3lette.deadlines_api.data.scopes.organization.response.OrganizationResponseWithRole
+import xyz.om3lette.deadlines_api.data.scopes.thread.repo.ThreadRepository
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeRole
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType
 import xyz.om3lette.deadlines_api.data.scopes.userScope.model.UserScope
 import xyz.om3lette.deadlines_api.data.scopes.userScope.repo.UserScopeRepository
-import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
-import xyz.om3lette.deadlines_api.util.jpaRepository.findByIdOr404
-import xyz.om3lette.deadlines_api.util.userRepository.findByUsernameIgnoreCaseOr404
-import java.time.Instant
-import jakarta.transaction.Transactional
-import org.springframework.data.domain.PageRequest
-import org.springframework.data.domain.Sort
-import xyz.om3lette.deadlines_api.data.common.response.PaginationResponse
-import xyz.om3lette.deadlines_api.data.permissions.dto.OrganizationScope
-import xyz.om3lette.deadlines_api.data.scopes.deadline.repo.DeadlineRepository
-import xyz.om3lette.deadlines_api.data.scopes.organization.dto.InvitationDTO
-import xyz.om3lette.deadlines_api.data.scopes.organization.response.OrganizationCreatedResponse
-import xyz.om3lette.deadlines_api.data.scopes.organization.response.OrganizationResponse
-import xyz.om3lette.deadlines_api.data.scopes.thread.repo.ThreadRepository
 import xyz.om3lette.deadlines_api.data.scopes.userScope.response.UserScopeResponse
+import xyz.om3lette.deadlines_api.data.user.model.User
+import xyz.om3lette.deadlines_api.data.user.repo.UserRepository
 import xyz.om3lette.deadlines_api.exceptions.enums.ErrorCode
+import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
 import xyz.om3lette.deadlines_api.services.permission.PermissionService
+import xyz.om3lette.deadlines_api.util.jpaRepository.findByIdOr404
 import xyz.om3lette.deadlines_api.util.page.toPaginationResponse
 import xyz.om3lette.deadlines_api.util.requirePermission
+import xyz.om3lette.deadlines_api.util.userRepository.findByUsernameIgnoreCaseOr404
+import java.time.Instant
 
 @Service
 class OrganizationService(
@@ -122,7 +124,28 @@ class OrganizationService(
         }
     }
 
-    fun getOrganizationMetaData(issuer: User, organizationId: Long): OrganizationResponse {
+    // TODO: Separate personal org from the rest
+    fun getOrganizationsByUser(user: User, pageNumber: Int, pageSize: Int): PaginationResponse<OrganizationResponseWithRole> {
+        val organizations: Page<Organization> = organizationRepository.findAllOrganizationsForUser(
+            user, PageRequest.of(pageNumber, pageSize)
+        )
+        val organizationIds = organizations.content.map { it.id }
+        val stats = organizationRepository.getOrganizationsStats(organizationIds)
+            .associateBy { it.organizationId }
+
+        permissionService.prefetchUserRoles(user, orgIds = organizationIds)
+        return organizations.toPaginationResponse {
+            it.toResponse(
+                stats[it.id]!!,
+                permissionService.buildOrganizationPermissions(user, it.id)
+            ).withRole(
+                permissionService.getRole(it.id, ScopeType.ORGANIZATION)
+                    ?: throw StatusCodeException(400, ErrorCode.AUTH_INSUFFICIENT_PERMISSIONS)
+            )
+        }
+    }
+
+    fun getOrganization(issuer: User, organizationId: Long): OrganizationResponse {
         val organization = organizationRepository.findByIdOr404(organizationId, ErrorCode.ORG_NOT_FOUND)
         requirePermission(
             permissionService.hasAccess(issuer, OrganizationScope(
@@ -131,7 +154,10 @@ class OrganizationService(
         )
 
         val stats = organizationRepository.getOrganizationsStats(listOf(organizationId))[0]
-        return organization.toStatsResponse(stats)
+        return organization.toResponse(
+            stats,
+            permissionService.buildOrganizationPermissions(issuer, organizationId)
+        )
     }
 
     fun patchOrganization(issuer: User, organizationId: Long, title: String?, description: String?) {
@@ -165,8 +191,8 @@ class OrganizationService(
         )
 
         val pageRequest = PageRequest.of(pageNumber, pageSize, Sort.by("role").descending())
-        return userScopeRepository.findAllByScopeId(
-            organizationId, pageRequest
+        return userScopeRepository.findAllByScopeIdAndScopeType(
+            organizationId, ScopeType.ORGANIZATION, pageRequest
         ).toPaginationResponse { it.toResponse() }
     }
 }

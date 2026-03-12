@@ -5,7 +5,6 @@ import io.mockk.every
 import io.mockk.impl.annotations.InjectMockKs
 import io.mockk.impl.annotations.MockK
 import io.mockk.junit5.MockKExtension
-import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.spyk
 import io.mockk.verify
@@ -25,9 +24,9 @@ import xyz.om3lette.deadlines_api.data.scopes.thread.model.Thread
 import xyz.om3lette.deadlines_api.data.scopes.thread.repo.ThreadRepository
 import xyz.om3lette.deadlines_api.data.scopes.thread.response.ThreadResponse
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeRole
+import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType
 import xyz.om3lette.deadlines_api.data.scopes.userScope.model.UserScope
 import xyz.om3lette.deadlines_api.data.scopes.userScope.repo.UserScopeRepository
-import xyz.om3lette.deadlines_api.data.user.enums.UserRole
 import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.data.user.repo.UserRepository
 import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
@@ -98,13 +97,13 @@ class ThreadServiceTest {
 
             every { userScopeRepository.saveAll(capture(savedUserScopesSlot)) } returns listOf()
             every {
-                userScopeRepository.findByScopeIdAndUsernameInIgnoreCase(
-                    organization.id, emptyList()
+                userScopeRepository.findByScopeIdAndScopeTypeUsernameInIgnoreCase(
+                    organization.id, ScopeType.ORGANIZATION, emptyList()
                 )
             } returns emptyList()
             every {
-                userScopeRepository.findByScopeIdAndUsernameInIgnoreCase(
-                    organization.id, listOf(dummyUserAlice.username)
+                userScopeRepository.findByScopeIdAndScopeTypeUsernameInIgnoreCase(
+                    organization.id, ScopeType.ORGANIZATION, listOf(dummyUserAlice.username)
                 )
             } returns listOf(dummyUserScopeAlice)
 
@@ -352,7 +351,9 @@ class ThreadServiceTest {
         @BeforeEach
         fun commonHappyStubs() {
             val threadId = thread.id
-            every { userScopeRepository.findAllByScopeId(threadId, any()) } returns PageImpl(emptyList())
+            every { userScopeRepository.findAllByScopeIdAndScopeType(
+                threadId, ScopeType.THREAD, any()
+            ) } returns PageImpl(emptyList())
         }
 
         @Test
@@ -363,7 +364,9 @@ class ThreadServiceTest {
                 threadService.getThreadAssignees(dummyUserBob, thread.id, 0, 5)
             }
 
-            verify(exactly = 0) { userScopeRepository.findAllByScopeId(any(), any()) }
+            verify(exactly = 0) { userScopeRepository.findAllByScopeIdAndScopeType(
+                any(), any(), any()
+            ) }
             assertEquals(403, res.statusCode)
         }
 
@@ -371,7 +374,9 @@ class ThreadServiceTest {
         fun `happy path returns thread assignees`() {
             threadService.getThreadAssignees(dummyUserBob, thread.id, 0, 5)
 
-            verify(exactly = 1) { userScopeRepository.findAllByScopeId(any(), any()) }
+            verify(exactly = 1) { userScopeRepository.findAllByScopeIdAndScopeType(
+                any(), any(), any()
+            ) }
         }
     }
 }

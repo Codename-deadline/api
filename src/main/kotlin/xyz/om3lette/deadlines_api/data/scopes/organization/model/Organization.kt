@@ -17,6 +17,7 @@ import jakarta.persistence.Table
 import jakarta.validation.constraints.Size
 import org.hibernate.annotations.SQLRestriction
 import xyz.om3lette.deadlines_api.data.scopes.organization.dto.OrganizationDTO
+import xyz.om3lette.deadlines_api.data.scopes.organization.dto.OrganizationPermissions
 import xyz.om3lette.deadlines_api.data.scopes.organization.dto.OrganizationStatsDTO
 import xyz.om3lette.deadlines_api.data.scopes.organization.enums.OrganizationType
 import xyz.om3lette.deadlines_api.data.scopes.organization.response.OrganizationResponse
@@ -68,12 +69,13 @@ data class Organization(
         "createdAt" to createdAt
     )
 
-    fun toResponse() = OrganizationDTO(
+    fun toDTO() = OrganizationDTO(
         id, title, description, type, createdAt
     )
 
-    fun toStatsResponse(stats: OrganizationStatsDTO) = OrganizationResponse(
-        organization = toResponse(),
-        stats = stats.toResponse()
+    fun toResponse(stats: OrganizationStatsDTO, permissions: OrganizationPermissions) = OrganizationResponse(
+        organization = toDTO(),
+        stats = stats.toResponse(),
+        permissions = permissions
     )
 }

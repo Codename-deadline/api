@@ -23,9 +23,11 @@ import xyz.om3lette.deadlines_api.data.scopes.deadline.model.Deadline
 import xyz.om3lette.deadlines_api.data.scopes.organization.enums.OrganizationType
 import xyz.om3lette.deadlines_api.data.scopes.organization.model.Organization
 import xyz.om3lette.deadlines_api.data.scopes.thread.model.Thread
+import xyz.om3lette.deadlines_api.data.scopes.userScope.dto.ScopeRoleDTO
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeRole
+import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType
 import xyz.om3lette.deadlines_api.data.scopes.userScope.model.UserScope
-import xyz.om3lette.deadlines_api.data.scopes.userScope.repo.PermissionsRepository
+import xyz.om3lette.deadlines_api.data.scopes.userScope.repo.UserScopeRepository
 import xyz.om3lette.deadlines_api.data.scopes.userScope.roleIsEqualOrHigherThan
 import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.services.permission.PermissionContext
@@ -40,7 +42,7 @@ import kotlin.test.assertTrue
 @ExtendWith(MockKExtension::class)
 class PermissionServiceTest {
     @MockK
-    lateinit var permissionsRepository: PermissionsRepository
+    lateinit var userScopeRepository: UserScopeRepository
 
     @MockK
     lateinit var permissionContext: PermissionContext
@@ -71,9 +73,10 @@ class PermissionServiceTest {
 
         // Cache passthrough
         every {
-            permissionContext.getOrLoad(any(), any())
+            permissionContext.getOrLoadBatch(any(), any())
         } answers {
-            secondArg<() -> ScopeRole?>()()
+            val res = lastArg<() -> List<ScopeRoleDTO>>()()
+            if (res.isEmpty()) null else res[0].role
         }
     }
 
@@ -111,13 +114,14 @@ class PermissionServiceTest {
             ddlId = deadline.id
         }
         every {
-            permissionsRepository.findHighestRoleByUser(
+            userScopeRepository.findUserRolesInScope(
                 user.id,
                 if (useAny && curOrgId == null) any() else curOrgId,
                 if (useAny && thrId == null) any() else thrId,
                 if (useAny && ddlId == null) any() else ddlId
             )
-        } returns role
+        } returns if (role == null) emptyList()
+                  else listOf(ScopeRoleDTO(role, organization.id, ScopeType.ORGANIZATION)) // TODO: Meaningful scope id and scope type can be returned
     }
 
     private fun testForMinAcceptableRole(
@@ -370,22 +374,14 @@ class PermissionServiceTest {
     inner class Roles {
         @Test
         fun canChangeRole() {
-            every {
-                permissionsRepository.findHighestRoleByUser(
-                    nonAdmin.id, any(), any(), any()
-                )
-            } returns ScopeRole.ORG_OWNER
+            withRoleScope(nonAdmin, orgScope(), ScopeRole.ORG_OWNER)
             assertTrue(
                 permissionService.canChangeRole(
                     nonAdmin, orgScope(), ScopeRole.ORG_ADMIN
                 )
             )
 
-            every {
-                permissionsRepository.findHighestRoleByUser(
-                    nonAdmin.id, any(), any(), any()
-                )
-            } returns ScopeRole.ORG_MEMBER
+            withRoleScope(nonAdmin, orgScope(), ScopeRole.ORG_MEMBER)
             assertFalse(
                 permissionService.canChangeRole(
                     nonAdmin, orgScope(), ScopeRole.THR_ASSIGNEE

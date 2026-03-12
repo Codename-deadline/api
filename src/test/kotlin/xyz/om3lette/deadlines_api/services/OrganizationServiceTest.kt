@@ -25,7 +25,6 @@ import xyz.om3lette.deadlines_api.data.scopes.organization.model.OrganizationInv
 import xyz.om3lette.deadlines_api.data.scopes.organization.repo.OrganizationInvitationRepository
 import xyz.om3lette.deadlines_api.data.scopes.organization.repo.OrganizationRepository
 import xyz.om3lette.deadlines_api.data.scopes.thread.repo.ThreadRepository
-import xyz.om3lette.deadlines_api.data.user.enums.UserRole
 import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.data.user.repo.UserRepository
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeRole
@@ -118,7 +117,9 @@ class OrganizationServiceTest {
     fun commonHappyStubs() {
         clearMocks(userScopeRepository, recordedCalls = true)
 
-        every { userScopeRepository.findByUserAndScopeId(dummyUserBob, dummyOrganization.id) } returns Optional.of(dummyUserScopeBob)
+        every { userScopeRepository.findByUserAndScopeIdAndScopeType(
+            dummyUserBob, dummyOrganization.id, ScopeType.ORGANIZATION
+        ) } returns Optional.of(dummyUserScopeBob)
         every { userRepository.findByUsernameInIgnoreCase(emptyList()) } returns emptyList()
         every { userRepository.findByUsernameInIgnoreCase(listOf("alice")) } returns listOf(dummyUserAlice)
         every { userRepository.findByUsernameIgnoreCase("Alice") } returns Optional.of(dummyUserAlice)

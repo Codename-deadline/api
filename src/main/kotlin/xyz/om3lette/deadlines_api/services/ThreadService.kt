@@ -57,8 +57,8 @@ class ThreadService(
 
         val threadAssigneeScopes: MutableList<UserScope> = mutableListOf()
 
-        userScopeRepository.findByScopeIdAndUsernameInIgnoreCase(
-            organization.id,
+        userScopeRepository.findByScopeIdAndScopeTypeUsernameInIgnoreCase(
+            organization.id, ScopeType.ORGANIZATION,
             assigneesUsernames.map { it.lowercase() }
         ).forEach { userScope ->
             threadAssigneeScopes.add(
@@ -163,8 +163,8 @@ class ThreadService(
         )
 
         val pageRequest = PageRequest.of(pageNumber, pageSize, Sort.by("role").descending())
-        return userScopeRepository.findAllByScopeId(
-            threadId, pageRequest
+        return userScopeRepository.findAllByScopeIdAndScopeType(
+            threadId, ScopeType.THREAD, pageRequest
         ).toPaginationResponse { it.toResponse() }
     }
 }

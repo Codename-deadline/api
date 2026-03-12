@@ -12,16 +12,17 @@ import xyz.om3lette.deadlines_api.data.scopes.organization.dto.OrganizationPermi
 import xyz.om3lette.deadlines_api.data.scopes.organization.enums.OrganizationType
 import xyz.om3lette.deadlines_api.data.scopes.organization.model.Organization
 import xyz.om3lette.deadlines_api.data.scopes.thread.model.Thread
+import xyz.om3lette.deadlines_api.data.scopes.userScope.dto.ScopeRoleDTO
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeRole
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType
-import xyz.om3lette.deadlines_api.data.scopes.userScope.repo.PermissionsRepository
+import xyz.om3lette.deadlines_api.data.scopes.userScope.repo.UserScopeRepository
 import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.util.user.isAdminOr
 import xyz.om3lette.deadlines_api.util.user.isAdminOrHasRoleAnd
 
 @Service
 class PermissionService(
-    private val permissionsRepository: PermissionsRepository,
+    private val userScopeRepository: UserScopeRepository,
     private val permissionContext: PermissionContext
 ) {
     @Value("\${users.max-linked-accounts-per-messenger}")
@@ -31,36 +32,27 @@ class PermissionService(
 
     private fun roleForOrganizationLazy(user: User, organizationId: Long): () -> ScopeRole? =
         {
-            permissionContext.getOrLoad(user.id, ScopeType.ORGANIZATION, organizationId) {
-                permissionsRepository.findHighestRoleByUser(
-                    userId = user.id,
-                    orgId = organizationId,
-                    thrId = null,
-                    ddlId = null
+            permissionContext.getOrLoadBatch(OrganizationScope(organizationId)) {
+                userScopeRepository.findUserRolesInScope(
+                    userId = user.id, orgId = organizationId, null, null
                 )
             }
         }
 
         private fun roleForThreadLazy(user: User, thread: Thread): () -> ScopeRole? =
         {
-            permissionContext.getOrLoad(user.id, ScopeType.THREAD, thread.id) {
-                permissionsRepository.findHighestRoleByUser(
-                    userId = user.id,
-                    orgId = thread.organization.id,
-                    thrId = thread.id,
-                    ddlId = null
+            permissionContext.getOrLoadBatch(ThreadScope(thread)) {
+                userScopeRepository.findUserRolesInScope(
+                    userId = user.id, orgId = thread.organization.id, thread.id, null
                 )
             }
         }
 
     private fun roleForDeadlineLazy(user: User, deadline: Deadline): () -> ScopeRole? =
         {
-            permissionContext.getOrLoad(user.id, ScopeType.DEADLINE, deadline.id) {
-                permissionsRepository.findHighestRoleByUser(
-                    userId = user.id,
-                    orgId = deadline.thread.organization.id,
-                    thrId = deadline.thread.id,
-                    ddlId = deadline.id
+            permissionContext.getOrLoadBatch(DeadlineScope(deadline)) {
+                userScopeRepository.findUserRolesInScope(
+                    userId = user.id, orgId = deadline.organization.id, deadline.thread.id, deadline.id
                 )
             }
         }
@@ -78,7 +70,7 @@ class PermissionService(
     private fun hasOrganizationAccess(issuer: User, organization: Organization): Boolean =
         issuer.isAdminOr {
             if (organization.type == OrganizationType.PUBLIC) return true
-            return permissionsRepository.findHighestRoleByUser(issuer.id, organization.id, null, null) != null
+            return roleForOrganizationLazy(issuer, organization.id)() != null
         }
 
     private fun canDeleteOrganization(issuer: User, organizationId: Long): Boolean =
@@ -96,6 +88,26 @@ class PermissionService(
             role >= ScopeRole.ORG_ADMIN
         }
 
+    fun prefetchUserRoles(
+        user: User,
+        orgIds: List<Long> = emptyList(),
+        thrIds: List<Long> = emptyList(),
+        ddlIds: List<Long> = emptyList()
+    ) {
+        if (orgIds.isEmpty() && thrIds.isEmpty() && ddlIds.isNotEmpty()) return
+        permissionContext.putAll(
+            userScopeRepository.findUserRolesInScopes(
+                user.id, orgIds, thrIds, ddlIds
+            )
+        )
+    }
+
+
+    /**
+     * Computes all relevant organization permissions/
+     *
+     * IMPORTANT: if calling for a list of unique organization it is advices to call `prefetchUserRoles` first
+     */
     fun buildOrganizationPermissions(issuer: User, organizationId: Long) = OrganizationPermissions(
         update = canUpdateOrganization(issuer, organizationId),
         delete = canDeleteOrganization(issuer, organizationId),
@@ -238,4 +250,6 @@ class PermissionService(
                 newRole < role
             }
         }
+
+    fun getRole(scopeId: Long, scopeType: ScopeType) = permissionContext.get(scopeId, scopeType)
 }

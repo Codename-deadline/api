@@ -245,8 +245,8 @@ class DeadlineService(
         )
 
         val pageRequest = PageRequest.of(pageNumber, pageSize, Sort.by("role").descending())
-        return userScopeRepository.findAllByScopeId(
-            deadlineId, pageRequest
+        return userScopeRepository.findAllByScopeIdAndScopeType(
+            deadlineId, ScopeType.DEADLINE, pageRequest
         ).toPaginationResponse { it.toResponse() }
     }
 }

@@ -4,6 +4,7 @@ import jakarta.persistence.*
 
 import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.data.scopes.userScope.converters.ScopeTypeConverter
+import xyz.om3lette.deadlines_api.data.scopes.userScope.dto.ScopeRoleDTO
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeRole
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType
 import xyz.om3lette.deadlines_api.data.scopes.userScope.response.UserScopeResponse
@@ -41,6 +42,10 @@ data class UserScope(
         "user" to user.toMap(),
         "role" to role,
         "assignedAt" to assignedAt
+    )
+
+    fun toDTO() = ScopeRoleDTO(
+        role, scopeId, scopeType
     )
 
     fun toResponse() = UserScopeResponse(

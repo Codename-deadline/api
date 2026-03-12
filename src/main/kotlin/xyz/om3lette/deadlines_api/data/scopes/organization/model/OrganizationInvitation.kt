@@ -53,7 +53,7 @@ data class OrganizationInvitation(
         id,
         invitedBy.toResponse(),
         invitedUser.toResponse(),
-        organization.toResponse(),
+        organization.toDTO(),
         status.name,
         role.name,
         createdAt,
