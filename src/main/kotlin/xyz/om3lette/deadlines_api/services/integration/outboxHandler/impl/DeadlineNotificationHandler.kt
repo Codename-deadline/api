@@ -1,16 +1,15 @@
 package xyz.om3lette.deadlines_api.services.integration.outboxHandler.impl
 
-import com.fasterxml.jackson.databind.DeserializationFeature
-import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
+import tools.jackson.databind.DeserializationFeature
+import tools.jackson.databind.JsonNode
+import tools.jackson.databind.json.JsonMapper
 import xyz.om3lette.deadlines_api.data.integration.bot.enums.Messenger
 import xyz.om3lette.deadlines_api.data.notifications.event.DeadlineNotificationEvent
+import xyz.om3lette.deadlines_api.data.outbox.enums.ProcessResult
 import xyz.om3lette.deadlines_api.services.integration.kafka.NotificationProducer
 import xyz.om3lette.deadlines_api.services.integration.outboxHandler.OutboxHandler
-import xyz.om3lette.deadlines_api.data.outbox.enums.ProcessResult
 
 
 @Component
@@ -21,10 +20,9 @@ class DeadlineNotificationHandler(
 
     private val logger = LoggerFactory.getLogger(DeadlineNotificationHandler::class.java)
 
-    private val mapper = jacksonObjectMapper()
-        .registerModule(JavaTimeModule())
-        .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
-
+    private val mapper = JsonMapper.builder()
+        .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+        .build()
 
     override fun handle(messenger: Messenger, payload: JsonNode): ProcessResult {
         return try {

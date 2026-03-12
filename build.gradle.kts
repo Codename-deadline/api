@@ -37,13 +37,13 @@ dependencies {
         exclude(module = "lz4-java")
     }
     // Original package is archived. Community maintained fork.
-    implementation("at.yawk.lz4:lz4-java:1.10.2")
+    implementation("at.yawk.lz4:lz4-java:1.10.4")
 
     implementation("org.springframework.grpc:spring-grpc-spring-boot-starter")
     implementation("io.github.sanvew:telegram-init-data:1.0.0")
 
-    implementation("io.hypersistence:hypersistence-utils-hibernate-71:3.14.1")
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
+    implementation("io.hypersistence:hypersistence-utils-hibernate-71:3.15.2")
+    implementation("tools.jackson.module:jackson-module-kotlin:3.1.0")
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("redis.clients:jedis")
 	implementation("io.minio:minio:8.6.0")
@@ -58,7 +58,7 @@ dependencies {
 		exclude(module = "mockito-core")
 	}
     testImplementation("com.h2database:h2:2.4.240")
-	testImplementation("io.mockk:mockk:1.14.7")
+	testImplementation("io.mockk:mockk:1.14.9")
 	testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
     testImplementation("org.springframework.grpc:spring-grpc-test")
 	testImplementation("org.springframework.security:spring-security-test")
@@ -81,11 +81,11 @@ kotlin {
 
 protobuf {
     protoc {
-        artifact = "com.google.protobuf:protoc:4.33.1"
+        artifact = "com.google.protobuf:protoc:4.33.4"
     }
     plugins {
         id("grpc") {
-            artifact = "io.grpc:protoc-gen-grpc-java:1.78.0"
+            artifact = "io.grpc:protoc-gen-grpc-java:1.79.0"
         }
     }
     generateProtoTasks {

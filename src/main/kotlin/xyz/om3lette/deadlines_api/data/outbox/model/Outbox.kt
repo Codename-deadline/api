@@ -1,6 +1,5 @@
 package xyz.om3lette.deadlines_api.data.outbox.model
 
-import com.fasterxml.jackson.databind.JsonNode
 import io.hypersistence.utils.hibernate.type.json.JsonType
 import jakarta.persistence.Column
 import jakarta.persistence.Convert
@@ -11,6 +10,7 @@ import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
 import jakarta.persistence.Table
 import org.hibernate.annotations.Type
+import tools.jackson.databind.JsonNode
 import xyz.om3lette.deadlines_api.data.integration.bot.enums.Messenger
 import xyz.om3lette.deadlines_api.data.notifications.converters.NotificationStatusConverter
 import xyz.om3lette.deadlines_api.data.notifications.enums.NotificationStatus
