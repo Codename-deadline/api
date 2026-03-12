@@ -128,7 +128,6 @@ class OrganizationService(
         }
     }
 
-    // TODO: Separate personal org from the rest
     fun getOrganizationsByUser(user: User, pageNumber: Int, pageSize: Int): PaginationResponse<OrganizationResponseWithRole> {
         val organizations: Page<Organization> = organizationRepository.findAllOrganizationsForUser(
             user, PageRequest.of(pageNumber, pageSize)

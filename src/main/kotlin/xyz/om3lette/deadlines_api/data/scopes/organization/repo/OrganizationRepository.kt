@@ -14,6 +14,7 @@ interface OrganizationRepository : JpaRepository<Organization, Long> {
         SELECT o FROM Organization o
         JOIN UserScope us ON us.scopeId = o.id AND us.scopeType = 'ORG'
         WHERE us.user = :user
+        ORDER BY CASE WHEN o.type = 'PERSONAL' THEN 0 ELSE 1 END
     """)
     fun findAllOrganizationsForUser(@Param("user") user: User, pageable: Pageable): Page<Organization>
 
