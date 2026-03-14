@@ -4,6 +4,7 @@ import org.springframework.stereotype.Service
 import xyz.om3lette.deadlines_api.data.permissions.dto.DeadlineScope
 import xyz.om3lette.deadlines_api.data.permissions.dto.OrganizationScope
 import xyz.om3lette.deadlines_api.data.permissions.dto.ThreadScope
+import xyz.om3lette.deadlines_api.data.roles.response.RolesMetadataResponse
 import xyz.om3lette.deadlines_api.data.scopes.deadline.repo.DeadlineRepository
 import xyz.om3lette.deadlines_api.data.scopes.thread.repo.ThreadRepository
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeRole
@@ -23,6 +24,15 @@ class RolesService(
     private val deadlineRepository: DeadlineRepository,
     private val permissionService: PermissionService
 ) {
+    val metadata: RolesMetadataResponse by lazy {
+        val roles: List<String> = ScopeRole.entries.map { it.name }
+        val matrix: List<List<Boolean>> = ScopeRole.entries.map {
+            permissionService.canReassignWithTheGivenRole(it, ScopeRole.entries)
+        }
+
+        RolesMetadataResponse(roles, matrix)
+    }
+
     private fun filterRolesByPrefix(scopeRolePrefix: String): List<ScopeRole> =
         ScopeRole.entries.filter { role -> role.name.startsWith(scopeRolePrefix) }
 

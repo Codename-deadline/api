@@ -12,7 +12,6 @@ import xyz.om3lette.deadlines_api.data.scopes.organization.dto.OrganizationPermi
 import xyz.om3lette.deadlines_api.data.scopes.organization.enums.OrganizationType
 import xyz.om3lette.deadlines_api.data.scopes.organization.model.Organization
 import xyz.om3lette.deadlines_api.data.scopes.thread.model.Thread
-import xyz.om3lette.deadlines_api.data.scopes.userScope.dto.ScopeRoleDTO
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeRole
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType
 import xyz.om3lette.deadlines_api.data.scopes.userScope.repo.UserScopeRepository
@@ -243,13 +242,33 @@ class PermissionService(
     /*
         Roles permissions
      */
+
+    /**
+     * Checks if issuer's role `issuerCurrentRole` is high enough to assign `roleToAssign`.
+     */
+    private fun canAssignWithCurrentRole(issuerCurrentRole: ScopeRole, roleToAssign: ScopeRole): Boolean {
+        return roleToAssign < issuerCurrentRole
+    }
+
     fun canChangeRole(issuer: User, permissionScope: PermissionScope, newRole: ScopeRole): Boolean {
             if (!canManageAssignees(issuer, permissionScope)) return false
             return issuer.isAdminOrHasRoleAnd(findRoleByPermissionScopeLazy(issuer, permissionScope)) { role ->
                 // '<'  Implicitly forbids multiple organization owners
-                newRole < role
+                canAssignWithCurrentRole(role, newRole)
             }
         }
+
+    /**
+     * Calculates whether a user with role `role` can assign each role in `scopeRoles` presuming that he
+     * has canManage permission for the scope
+     */
+    fun canReassignWithTheGivenRole(role: ScopeRole, scopeRoles: List<ScopeRole>): List<Boolean> {
+        val canAssign: MutableList<Boolean> = mutableListOf()
+        for (attemptedRole in scopeRoles) {
+            canAssign.add(canAssignWithCurrentRole(role, attemptedRole))
+        }
+        return canAssign.toList()
+    }
 
     fun getRole(scopeId: Long, scopeType: ScopeType) = permissionContext.get(scopeId, scopeType)
 }
