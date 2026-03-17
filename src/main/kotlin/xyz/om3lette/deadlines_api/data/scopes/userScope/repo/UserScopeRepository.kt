@@ -64,7 +64,7 @@ interface UserScopeRepository : JpaRepository<UserScope, Long> {
     @Query(
         """
             DELETE FROM UserScope us
-            WHERE us.user.id = :userId
+            WHERE us.user = :user
                 AND (
                     (us.scopeType = 'ORG' AND us.scopeId = :orgId)
                     OR (us.scopeType = 'THR' AND us.scopeId = :thrId)
