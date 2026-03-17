@@ -37,7 +37,7 @@ class SecurityConfig(
             "/v3/api-docs/**",
             "/swagger-ui/**",
             "/api/metadata",
-            "/api/role"
+            "/api/roles/metadata"
         )
     }
 

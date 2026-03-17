@@ -18,7 +18,7 @@ import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.services.RolesService
 
 @RestController
-@RequestMapping("/api/role")
+@RequestMapping("/api/roles")
 @Tag(name = "Roles", description = "Role management in organization / thread / deadline")
 class RolesController(
     private val rolesService: RolesService
@@ -56,7 +56,7 @@ class RolesController(
         issuer, deadlineId, request.subjectUsername, request.newRole, ScopeType.DEADLINE
     )
 
-    @GetMapping
+    @GetMapping("/metadata")
     @Operation(summary = "Get all roles and assignment permissions")
     fun getMetadata(): RolesMetadataResponse = rolesService.metadata
 }
