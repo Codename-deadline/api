@@ -1,5 +1,6 @@
 package xyz.om3lette.deadlines_api.services
 
+import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.stereotype.Service
 import xyz.om3lette.deadlines_api.data.scopes.organization.enums.InvitationStatus
 import xyz.om3lette.deadlines_api.data.scopes.organization.enums.OrganizationType
@@ -9,12 +10,12 @@ import xyz.om3lette.deadlines_api.data.scopes.organization.repo.OrganizationInvi
 import xyz.om3lette.deadlines_api.data.scopes.organization.repo.OrganizationRepository
 import xyz.om3lette.deadlines_api.data.scopes.organization.response.OrganizationInvitationResponse
 import xyz.om3lette.deadlines_api.data.scopes.organization.response.member.InvitationCreatedResponse
-import xyz.om3lette.deadlines_api.data.user.model.User
-import xyz.om3lette.deadlines_api.data.user.repo.UserRepository
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeRole
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType
 import xyz.om3lette.deadlines_api.data.scopes.userScope.model.UserScope
 import xyz.om3lette.deadlines_api.data.scopes.userScope.repo.UserScopeRepository
+import xyz.om3lette.deadlines_api.data.user.model.User
+import xyz.om3lette.deadlines_api.data.user.repo.UserRepository
 import xyz.om3lette.deadlines_api.exceptions.enums.ErrorCode
 import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
 import xyz.om3lette.deadlines_api.services.permission.PermissionService
@@ -32,7 +33,8 @@ class OrganizationInvitationService(
     private val permissionService: PermissionService
 ) {
     fun createInvitation(issuer: User, organizationId: Long, usernameToInvite: String, role: ScopeRole): InvitationCreatedResponse {
-        if (role == ScopeRole.ORG_OWNER) {
+        // TODO: Introduce a narrow organization role type or move to payload validation
+        if (role == ScopeRole.ORG_OWNER || !role.name.startsWith("ORG")) {
             throw StatusCodeException(400, ErrorCode.INVITATION_INVALID_ROLE)
         }
 
@@ -42,6 +44,7 @@ class OrganizationInvitationService(
         }
 
         val userToInvite = userRepository.findByUsernameIgnoreCaseOr404(usernameToInvite)
+        // FIXME: Replace by exists
         userScopeRepository.findByUserAndScopeIdAndScopeType(
             userToInvite, organizationId, ScopeType.ORGANIZATION
         ).ifPresent {
@@ -52,7 +55,13 @@ class OrganizationInvitationService(
             permissionService.canSendOrganizationInvitation(issuer, organizationId)
         )
 
-        val invitation = organizationInvitationRepository.save(createInvitation(issuer, userToInvite, organization, role))
+        // FIXME: Add a db partial index to disallow multiple pending invitations of the same user at the same time
+        val invitation = try {
+            organizationInvitationRepository.save(createInvitation(issuer, userToInvite, organization, role))
+        } catch (_: DataIntegrityViolationException) {
+            throw StatusCodeException(400, ErrorCode.INVITATION_ALREADY_INVITED)
+        }
+
         // PROPOSAL: Notify of invitation?
         return InvitationCreatedResponse(invitation.id)
     }

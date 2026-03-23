@@ -17,6 +17,7 @@ import xyz.om3lette.deadlines_api.data.scopes.organization.request.CreateOrganiz
 import xyz.om3lette.deadlines_api.data.scopes.organization.request.PatchOrganizationRequest
 import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.services.OrganizationService
+import kotlin.math.min
 
 @SecurityRequirement(name = "bearerAuth")
 @RestController
@@ -83,7 +84,8 @@ class OrganizationController(
     fun getMembers(
         @AuthenticationPrincipal user: User,
         @PathVariable organizationId: Long,
-        @RequestParam("page") pageNumber: Int
-    ) = organizationService.getOrganizationMembers(user, organizationId, pageNumber, 10)
+        @RequestParam("page") pageNumber: Int,
+        @RequestParam("size") pageSize: Int
+    ) = organizationService.getOrganizationMembers(user, organizationId, pageNumber, min(pageSize, 10))
 
 }

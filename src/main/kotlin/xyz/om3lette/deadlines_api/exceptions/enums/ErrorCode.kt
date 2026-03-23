@@ -28,6 +28,7 @@ enum class ErrorCode(val code: String) {
     INVITATION_NOT_FOUND("invitation.not-found"),
     INVITATION_INVALID_ROLE("invitation.invalid-role"),
     INVITATION_PERSONAL_ORG("invitation.personal-org"),
+    INVITATION_ALREADY_INVITED("invitation.already-invited"),
     INVITATION_ALREADY_ORG_MEMBER("invitation.already-org-member"),
     INVITATION_ALREADY_ANSWERED("invitation.already-answered"),
 
