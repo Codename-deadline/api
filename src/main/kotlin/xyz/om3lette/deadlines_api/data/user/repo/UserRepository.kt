@@ -1,5 +1,6 @@
 package xyz.om3lette.deadlines_api.data.user.repo
 
+import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
@@ -15,4 +16,11 @@ interface UserRepository : JpaRepository<User, Long> {
 
     @Query("SELECT COUNT(u) > 0 FROM User u WHERE LOWER(u._username) = LOWER(:username)")
     fun existsByUsernameIgnoreCase(username: String): Boolean
+
+    @Query("""
+        SELECT u._username
+        FROM User u
+        WHERE LOWER(u._username) LIKE LOWER(:username) || '%'
+    """)
+    fun findUsernamesStartingWithIgnoreCase(username: String, pageable: Pageable): List<String>
 }
