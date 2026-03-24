@@ -11,5 +11,5 @@ data class CreateOrganizationRequest(
 
     val type: OrganizationType,
 
-    val usernamesToInvite: List<@Valid InvitationDTO>
+    val invitations: List<@Valid InvitationDTO>
 )

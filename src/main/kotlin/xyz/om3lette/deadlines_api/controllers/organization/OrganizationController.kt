@@ -50,7 +50,7 @@ class OrganizationController(
         request.title,
         request.description,
         request.type,
-        request.usernamesToInvite
+        request.invitations
     )
 
     @DeleteMapping("/{organizationId}")
