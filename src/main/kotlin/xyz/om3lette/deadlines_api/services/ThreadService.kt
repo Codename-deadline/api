@@ -22,6 +22,7 @@ import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.data.user.repo.UserRepository
 import xyz.om3lette.deadlines_api.exceptions.enums.ErrorCode
 import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
+import xyz.om3lette.deadlines_api.services.permission.PermissionContext
 import xyz.om3lette.deadlines_api.services.permission.PermissionService
 import xyz.om3lette.deadlines_api.util.jpaRepository.findByIdOr404
 import xyz.om3lette.deadlines_api.util.page.toPaginationResponse
@@ -118,8 +119,8 @@ class ThreadService(
             UserScope(
                 0,
                 newAssignee.user,
-                ScopeType.ORGANIZATION,
-                thread.organization.id,
+                ScopeType.THREAD,
+                thread.id,
                 role,
                 Instant.now()
             )
@@ -186,7 +187,17 @@ class ThreadService(
                 stats[it.id]!!,
                 permissionService.buildThreadPermissions(issuer, it)
             ).withRole(
-                permissionService.getRole(it.id, ScopeType.THREAD)
+                permissionService.getRole(it.id, ScopeType.THREAD),
+                permissionService.getMaxRole(
+                    listOf(
+                        PermissionContext.PermissionKey(ScopeType.THREAD, it.id),
+                        PermissionContext.PermissionKey(ScopeType.ORGANIZATION, it.organization.id)
+                    )
+                ).takeIf {
+                    // TODO: PermissionService might be useful
+                    // The goal is to not return a "read only" role
+                    maxRole -> maxRole > ScopeRole.THR_ASSIGNEE
+                }
             )
         }
     }

@@ -280,4 +280,8 @@ class PermissionService(
     }
 
     fun getRole(scopeId: Long, scopeType: ScopeType) = permissionContext.get(scopeId, scopeType)
+
+    fun getMaxRole(keys: List<PermissionContext.PermissionKey>) = keys.mapNotNull {
+        permissionContext.get(it.scopeId, it.scopeType)
+    }.max()
 }

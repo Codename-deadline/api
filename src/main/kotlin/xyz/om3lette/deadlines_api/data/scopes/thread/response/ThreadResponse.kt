@@ -11,7 +11,7 @@ data class ThreadResponse(
     val stats: ThreadStats,
     val permissions: ThreadPermissions
 ) {
-    fun withRole(scopeRole: ScopeRole?): ThreadResponseWithRole = ThreadResponseWithRole(
-        this, scopeRole
+    fun withRole(scopeRole: ScopeRole?, globalRole: ScopeRole?): ThreadResponseWithRole = ThreadResponseWithRole(
+        this, role = scopeRole, globalRole = globalRole
     )
 }
