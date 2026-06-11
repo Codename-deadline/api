@@ -20,6 +20,8 @@ import xyz.om3lette.deadlines_api.data.permissions.dto.OrganizationScope
 import xyz.om3lette.deadlines_api.data.permissions.dto.ThreadScope
 import xyz.om3lette.deadlines_api.data.scopes.organization.model.Organization
 import xyz.om3lette.deadlines_api.data.scopes.organization.repo.OrganizationRepository
+import xyz.om3lette.deadlines_api.data.scopes.thread.dto.ThreadPermissions
+import xyz.om3lette.deadlines_api.data.scopes.thread.dto.ThreadStatsDTO
 import xyz.om3lette.deadlines_api.data.scopes.thread.model.Thread
 import xyz.om3lette.deadlines_api.data.scopes.thread.repo.ThreadRepository
 import xyz.om3lette.deadlines_api.data.scopes.thread.response.ThreadResponse
@@ -85,6 +87,15 @@ class ThreadServiceTest {
 
         every { permissionService.hasAccess(dummyUserBob, orgScope()) } returns true
         every { permissionService.hasAccess(dummyUserBob, thrScope()) } returns true
+        every { permissionService.buildThreadPermissions(dummyUserBob, thread) } returns ThreadPermissions(
+            true, delete = true, manageAssignees = true, createDeadlines = true
+        )
+        every { permissionService.prefetchUserRoles(any(), any(), any(), any()) } returns Unit
+
+        every { threadRepository.getThreadStats(emptyList()) } returns emptyList()
+        every {
+            threadRepository.getThreadStats(listOf(thread.id))
+        } returns listOf(ThreadStatsDTO(thread.id, 0, 0, 0))
     }
 
     @Nested
@@ -255,7 +266,7 @@ class ThreadServiceTest {
             every { permissionService.hasAccess(dummyUserBob, any()) } returns false
 
             val res = assertThrows<StatusCodeException> {
-                threadService.getThreadMetaData(dummyUserBob,thread.id)
+                threadService.getThread(dummyUserBob,thread.id)
             }
             assertEquals(403, res.statusCode)
         }
@@ -264,12 +275,12 @@ class ThreadServiceTest {
         fun `happy path returns thread map`() {
             every { permissionService.canManageAssignees(dummyUserBob, any()) } returns false
 
-            val res: ThreadResponse = threadService.getThreadMetaData(dummyUserBob,thread.id)
+            val res: ThreadResponse = threadService.getThread(dummyUserBob,thread.id)
             assertAll(
-                { assertEquals(thread.id, res.id) },
-                { assertEquals(thread.organization.id, res.organizationId) },
-                { assertEquals(thread.title, res.title) },
-                { assertEquals(thread.description, res.description) }
+                { assertEquals(thread.id, res.thread.id) },
+                { assertEquals(thread.organization.id, res.thread.organizationId) },
+                { assertEquals(thread.title, res.thread.title) },
+                { assertEquals(thread.description, res.thread.description) }
             )
         }
     }

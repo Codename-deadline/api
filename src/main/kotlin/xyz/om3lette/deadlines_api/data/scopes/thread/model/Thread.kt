@@ -1,10 +1,26 @@
 package xyz.om3lette.deadlines_api.data.scopes.thread.model
 
-import jakarta.persistence.*
+import jakarta.persistence.CascadeType
+import jakarta.persistence.Column
+import jakarta.persistence.ConstraintMode
+import jakarta.persistence.Entity
+import jakarta.persistence.FetchType
+import jakarta.persistence.ForeignKey
+import jakarta.persistence.GeneratedValue
+import jakarta.persistence.GenerationType
+import jakarta.persistence.Id
+import jakarta.persistence.JoinColumn
+import jakarta.persistence.ManyToOne
+import jakarta.persistence.OneToMany
+import jakarta.persistence.SequenceGenerator
+import jakarta.persistence.Table
 import jakarta.validation.constraints.Size
 import org.hibernate.annotations.SQLRestriction
 import xyz.om3lette.deadlines_api.data.scopes.deadline.model.Deadline
 import xyz.om3lette.deadlines_api.data.scopes.organization.model.Organization
+import xyz.om3lette.deadlines_api.data.scopes.thread.dto.ThreadDTO
+import xyz.om3lette.deadlines_api.data.scopes.thread.dto.ThreadPermissions
+import xyz.om3lette.deadlines_api.data.scopes.thread.dto.ThreadStatsDTO
 import xyz.om3lette.deadlines_api.data.scopes.thread.response.ThreadResponse
 import xyz.om3lette.deadlines_api.data.scopes.userScope.model.UserScope
 import java.time.Instant
@@ -50,7 +66,13 @@ data class Thread(
         "organizationId" to organization.id
     )
 
-    fun toResponse() = ThreadResponse(
-        id, title, description, organization.id
+    fun toDTO() = ThreadDTO(
+        id, title, description, organization.id, createdAt
+    )
+
+    fun toResponse(stats: ThreadStatsDTO, permissions: ThreadPermissions) = ThreadResponse(
+        thread = toDTO(),
+        stats = stats.toResponse(),
+        permissions = permissions
     )
 }

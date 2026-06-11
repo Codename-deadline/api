@@ -39,6 +39,7 @@ data class Deadline(
     @field:Max(value = 100, "Deadline progress cannot exceed 100%")
     var progress: Short,
 
+    @Enumerated(value = EnumType.STRING)
     var status: ProgressionStatus,
 
     @Column(columnDefinition = "TIMESTAMP WITH TIME ZONE")

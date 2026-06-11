@@ -12,6 +12,7 @@ import xyz.om3lette.deadlines_api.data.scopes.thread.model.Thread
 import xyz.om3lette.deadlines_api.data.scopes.thread.repo.ThreadRepository
 import xyz.om3lette.deadlines_api.data.scopes.thread.response.ThreadCreatedResponse
 import xyz.om3lette.deadlines_api.data.scopes.thread.response.ThreadResponse
+import xyz.om3lette.deadlines_api.data.scopes.thread.response.ThreadResponseWithRole
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeRole
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType
 import xyz.om3lette.deadlines_api.data.scopes.userScope.model.UserScope
@@ -104,14 +105,18 @@ class ThreadService(
         userScopeRepository.deleteByUserAndScopeId(userToRemove, null, threadId, null)
     }
 
-    fun getThreadMetaData(issuer: User, threadId: Long): ThreadResponse {
+    fun getThread(issuer: User, threadId: Long): ThreadResponse {
         val thread: Thread = threadRepository.findByIdOr404(threadId, ErrorCode.THR_NOT_FOUND)
 
         requirePermission(
             permissionService.hasAccess(issuer, ThreadScope(thread))
         )
 
-        return thread.toResponse()
+        val stats = threadRepository.getThreadStats(listOf(thread.id))[0]
+        return thread.toResponse(
+            stats,
+            permissionService.buildThreadPermissions(issuer, thread)
+        )
     }
 
     fun getThreadsByOrganization(
@@ -119,7 +124,7 @@ class ThreadService(
         organizationId: Long,
         pageNumber: Int,
         pageSize: Int
-    ): PaginationResponse<ThreadResponse> {
+    ): PaginationResponse<ThreadResponseWithRole> {
         val organization = organizationRepository.findByIdOr404(organizationId, ErrorCode.ORG_NOT_FOUND)
 
         requirePermission(
@@ -128,10 +133,22 @@ class ThreadService(
             ))
         )
 
-        val pageRequest = PageRequest.of(pageNumber, pageSize)
-        return threadRepository.findAllByOrganization(
-            organization, pageRequest
-        ).toPaginationResponse { it.toResponse() }
+        val threads = threadRepository.findAllByOrganization(
+            organization, PageRequest.of(pageNumber, pageSize)
+        )
+        val threadIds: List<Long> = threads.map { it.id }.toList()
+        val stats = threadRepository.getThreadStats(threadIds)
+            .associateBy { it.threadId }
+
+        permissionService.prefetchUserRoles(issuer, thrIds = threadIds)
+        return threads.toPaginationResponse {
+            it.toResponse(
+                stats[it.id]!!,
+                permissionService.buildThreadPermissions(issuer, it)
+            ).withRole(
+                permissionService.getRole(it.id, ScopeType.THREAD)
+            )
+        }
     }
 
     fun patchThread(issuer: User, threadId: Long, title: String?, description: String?) {

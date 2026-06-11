@@ -35,7 +35,7 @@ class ThreadController(
     fun getThread(
         @AuthenticationPrincipal user: User,
         @PathVariable threadId: Long
-    ) = threadService.getThreadMetaData(user, threadId)
+    ) = threadService.getThread(user, threadId)
 
     @PatchMapping
     @Operation(summary = "Update thread")

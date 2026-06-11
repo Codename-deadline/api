@@ -11,6 +11,7 @@ import xyz.om3lette.deadlines_api.data.scopes.deadline.model.Deadline
 import xyz.om3lette.deadlines_api.data.scopes.organization.dto.OrganizationPermissions
 import xyz.om3lette.deadlines_api.data.scopes.organization.enums.OrganizationType
 import xyz.om3lette.deadlines_api.data.scopes.organization.model.Organization
+import xyz.om3lette.deadlines_api.data.scopes.thread.dto.ThreadPermissions
 import xyz.om3lette.deadlines_api.data.scopes.thread.model.Thread
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeRole
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType
@@ -112,6 +113,14 @@ class PermissionService(
         delete = canDeleteOrganization(issuer, organizationId),
         manageRoles = canManageOrganizationMembers(issuer, organizationId),
         invite = canSendOrganizationInvitation(issuer, organizationId),
+        createThreads = canCreateThread(issuer, organizationId)
+    )
+
+    fun buildThreadPermissions(issuer: User, thread: Thread) = ThreadPermissions(
+        update = canUpdateThread(issuer, thread),
+        delete = canDeleteThread(issuer, thread),
+        manageAssignees = canManageThreadAssignees(issuer, thread),
+        createDeadlines = canCreateDeadline(issuer, thread)
     )
 
     /*
