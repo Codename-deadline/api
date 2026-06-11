@@ -147,14 +147,21 @@ class ThreadServiceTest {
             assertFalse(savedThreadSlot.isCaptured)
         }
 
+        fun countThreadCreatorRoles(assignees: List<UserScope>) =
+            assignees.filter { it.role == ScopeRole.THR_OWNER }.size
+
         @Test
         fun `happy path (no assignees) commits thread and returns threadId`() {
             val res =
                 threadService.createThread(
                     dummyUserBob,organization.id, "t", null, listOf()
                 )
-            assertTrue(savedThreadSlot.isCaptured)
-            assertEquals(0, savedUserScopesSlot.captured.size)
+            assertAll(
+                { assertTrue(savedThreadSlot.isCaptured) },
+                { assertEquals(1, savedUserScopesSlot.captured.size) },
+                { assertEquals(1, countThreadCreatorRoles(savedUserScopesSlot.captured)) }
+            )
+
             assertEquals(savedThreadSlot.captured.id, res.threadId)
         }
 
@@ -170,9 +177,10 @@ class ThreadServiceTest {
             assertTrue(savedUserScopesSlot.isCaptured)
             assertEquals(savedThreadSlot.captured.id, res.threadId)
             assertAll(
-                { assertEquals(1, savedUserScopesSlot.captured.size) },
-                { assertEquals(dummyUserAlice.username, savedUserScopesSlot.captured.first().user.username) },
-                { assertEquals(ScopeRole.THR_ASSIGNEE, savedUserScopesSlot.captured.first().role) }
+                { assertEquals(2, savedUserScopesSlot.captured.size) },
+                { countThreadCreatorRoles(savedUserScopesSlot.captured) },
+                { assertEquals(dummyUserAlice.username, savedUserScopesSlot.captured[1].user.username) },
+                { assertEquals(ScopeRole.THR_ASSIGNEE, savedUserScopesSlot.captured[1].role) }
             )
         }
     }

@@ -3,6 +3,8 @@ package xyz.om3lette.deadlines_api.data.scopes.userScope.enums
 enum class ScopeRole {
     ORG_MEMBER,
     DDL_ASSIGNEE,
+    THR_OWNER,
+    THR_ADMIN,
     THR_ASSIGNEE,
     ORG_ADMIN,
     ORG_OWNER,

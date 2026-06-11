@@ -140,17 +140,17 @@ class PermissionService(
 
     private fun canDeleteThread(issuer: User, thread: Thread): Boolean =
         issuer.isAdminOrHasRoleAnd(roleForThreadLazy(issuer, thread)) { role ->
-            role >= ScopeRole.ORG_ADMIN
+            role >= ScopeRole.THR_OWNER
         }
 
     private fun canUpdateThread(issuer: User, thread: Thread): Boolean =
         issuer.isAdminOrHasRoleAnd(roleForThreadLazy(issuer, thread)) { role ->
-            role >= ScopeRole.ORG_ADMIN
+            role >= ScopeRole.THR_ADMIN
         }
 
     private fun canManageThreadAssignees(issuer: User, thread: Thread): Boolean =
         issuer.isAdminOrHasRoleAnd(roleForThreadLazy(issuer, thread)) { role ->
-            role >= ScopeRole.ORG_ADMIN
+            role >= ScopeRole.THR_ADMIN
         }
 
     /*
@@ -165,22 +165,22 @@ class PermissionService(
 
     fun canCreateDeadline(issuer: User, thread: Thread): Boolean =
         issuer.isAdminOrHasRoleAnd(roleForThreadLazy(issuer, thread)) { role ->
-            role >= ScopeRole.THR_ASSIGNEE
+            role >= ScopeRole.THR_ADMIN
         }
 
     private fun canDeleteDeadline(issuer: User, deadline: Deadline): Boolean =
         issuer.isAdminOrHasRoleAnd(roleForDeadlineLazy(issuer, deadline)) { role ->
-            role >= ScopeRole.THR_ASSIGNEE
+            role >= ScopeRole.THR_ADMIN
         }
 
     private fun canUpdateDeadline(issuer: User, deadline: Deadline): Boolean =
         issuer.isAdminOrHasRoleAnd(roleForDeadlineLazy(issuer, deadline)) { role ->
-            role >= ScopeRole.THR_ASSIGNEE
+            role >= ScopeRole.THR_ADMIN
         }
 
     private fun canManageDeadlineAssignees(issuer: User, deadline: Deadline): Boolean =
         issuer.isAdminOrHasRoleAnd(roleForDeadlineLazy(issuer, deadline)) { role ->
-            role >= ScopeRole.THR_ASSIGNEE
+            role >= ScopeRole.THR_ADMIN
         }
 
     fun canManageDeadlineAttachments(issuer: User, deadline: Deadline): Boolean =

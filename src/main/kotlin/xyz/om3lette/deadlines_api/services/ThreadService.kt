@@ -50,14 +50,25 @@ class ThreadService(
         )
 
         val organization = organizationRepository.findByIdOr404(organizationId, ErrorCode.ORG_NOT_FOUND)
+
+        val creationTime = Instant.now()
         val thread = threadRepository.save(
             Thread(
-                0, title, description, organization, Instant.now()
+                0, title, description, organization, creationTime
             )
         )
 
-        val threadAssigneeScopes: MutableList<UserScope> = mutableListOf()
-
+        // Start with a thread creator and then add all the assignees
+        val threadAssigneeScopes: MutableList<UserScope> = mutableListOf(
+            UserScope(
+                0,
+                issuer,
+                ScopeType.THREAD,
+                thread.id,
+                ScopeRole.THR_OWNER,
+                creationTime
+            )
+        )
         userScopeRepository.findByScopeIdAndScopeTypeAndUsernameInIgnoreCase(
             organization.id, ScopeType.ORGANIZATION,
             assigneesUsernames.map { it.lowercase() }
@@ -69,10 +80,11 @@ class ThreadService(
                     ScopeType.THREAD,
                     thread.id,
                     ScopeRole.THR_ASSIGNEE,
-                    Instant.now()
+                    creationTime
                 )
             )
         }
+
         userScopeRepository.saveAll(threadAssigneeScopes)
         return ThreadCreatedResponse(thread.id)
     }

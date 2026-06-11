@@ -9,6 +9,6 @@ data class ThreadStatsDTO(
     val completedDeadlines: Long
 ) {
     fun toResponse(): ThreadStats = ThreadStats(
-        assignees, deadlines
+        assignees, deadlines, completedDeadlines
     )
 }

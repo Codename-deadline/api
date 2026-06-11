@@ -85,11 +85,11 @@ class RolesServiceTest {
 
     @Nested
     inner class UtilMethods {
-        private val orgRoles = listOf(ScopeRole.ORG_MEMBER, ScopeRole.ORG_ADMIN, ScopeRole.ORG_OWNER)
+        private val orgRoles = listOf(ScopeRole.ORG_MEMBER, ScopeRole.ORG_ADMIN, ScopeRole.ORG_OWNER).sorted()
 
-        private val threadRoles = listOf(ScopeRole.THR_ASSIGNEE)
+        private val threadRoles = listOf(ScopeRole.THR_ASSIGNEE, ScopeRole.THR_ADMIN, ScopeRole.THR_OWNER).sorted()
 
-        private val deadlineRoles = listOf(ScopeRole.DDL_ASSIGNEE)
+        private val deadlineRoles = listOf(ScopeRole.DDL_ASSIGNEE).sorted()
 
         @Test
         fun `filterRolesByPrefix with prefix=ORG returns Organization roles`() =
