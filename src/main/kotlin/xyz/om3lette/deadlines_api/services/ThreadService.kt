@@ -98,6 +98,34 @@ class ThreadService(
         threadRepository.delete(thread)
     }
 
+    fun addAssignee(issuer: User, threadId: Long, username: String, role: ScopeRole) {
+        if (!role.name.startsWith("THR")) {
+            throw StatusCodeException(400, ErrorCode.INVITATION_INVALID_ROLE)
+        }
+        if (username.equals(issuer.username, ignoreCase = true)) {
+            throw StatusCodeException(400, ErrorCode.INVITATION_SELF_INVITE)
+        }
+
+        val thread = threadRepository.findByIdOr404(threadId, ErrorCode.THR_NOT_FOUND)
+        val newAssignee = userScopeRepository.findByScopeTypeAndScopeIdAndUsernameIgnoreCase(
+            username, ScopeType.ORGANIZATION, thread.organization.id
+        ).orElseThrow{ StatusCodeException(400, ErrorCode.INVITATION_NOT_ORG_MEMBER) }
+        requirePermission(
+            permissionService.canManageAssignees(issuer, ThreadScope(thread))
+        )
+
+        userScopeRepository.save(
+            UserScope(
+                0,
+                newAssignee.user,
+                ScopeType.ORGANIZATION,
+                thread.organization.id,
+                role,
+                Instant.now()
+            )
+        )
+    }
+
     @Transactional
     fun removeAssignee(issuer: User, threadId: Long, assigneeUsername: String) {
         if (assigneeUsername.equals(issuer.username, ignoreCase = true)) {
