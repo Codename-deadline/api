@@ -4,5 +4,6 @@ data class OrganizationPermissions(
     val update: Boolean,
     val delete: Boolean,
     val manageRoles: Boolean,
-    val invite: Boolean
+    val invite: Boolean,
+    val createThreads: Boolean
 )

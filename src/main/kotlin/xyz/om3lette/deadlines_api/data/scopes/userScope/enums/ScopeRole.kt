@@ -4,6 +4,8 @@ enum class ScopeRole {
     ORG_MEMBER,
     DDL_ASSIGNEE,
     THR_ASSIGNEE,
+    THR_ADMIN,
+    THR_OWNER,
     ORG_ADMIN,
     ORG_OWNER,
     ;

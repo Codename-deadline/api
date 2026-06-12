@@ -31,6 +31,8 @@ enum class ErrorCode(val code: String) {
     INVITATION_ALREADY_INVITED("invitation.already-invited"),
     INVITATION_ALREADY_ORG_MEMBER("invitation.already-org-member"),
     INVITATION_ALREADY_ANSWERED("invitation.already-answered"),
+    INVITATION_NOT_ORG_MEMBER("invitation.not-org-member"),
+    INVITATION_SELF_INVITE("invitation.self-invite"),
 
     ORG_NOT_FOUND("organization.not-found"),
 

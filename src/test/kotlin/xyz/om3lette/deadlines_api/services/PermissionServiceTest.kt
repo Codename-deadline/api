@@ -286,17 +286,17 @@ class PermissionServiceTest {
 
         @Test
         fun canCreateOrDeleteThread() =
-            testForMinAcceptableRole(ScopeRole.ORG_ADMIN, thrScope(), permissionService::canDelete)
+            testForMinAcceptableRole(ScopeRole.THR_OWNER, thrScope(), permissionService::canDelete)
 
         @Test
         fun canUpdateThread() =
             testForMinAcceptableRole(
-                ScopeRole.ORG_ADMIN, thrScope(),permissionService::canUpdate
+                ScopeRole.THR_ADMIN, thrScope(),permissionService::canUpdate
             )
 
         @Test
         fun canManageThreadAssignees() = testForMinAcceptableRole(
-            ScopeRole.ORG_ADMIN, thrScope(),permissionService::canManageAssignees
+            ScopeRole.THR_ADMIN, thrScope(),permissionService::canManageAssignees
         )
     }
 
@@ -324,17 +324,17 @@ class PermissionServiceTest {
 
         @Test
         fun canCreateOrDeleteDeadline() = testForMinAcceptableRoleRaw(
-            ScopeRole.THR_ASSIGNEE, thread, permissionService::canCreateDeadline
+            ScopeRole.THR_ADMIN, thread, permissionService::canCreateDeadline
         )
 
         @Test
         fun canUpdateDeadline() = testForMinAcceptableRole(
-            ScopeRole.THR_ASSIGNEE, ddlScope(), permissionService::canUpdate
+            ScopeRole.THR_ADMIN, ddlScope(), permissionService::canUpdate
         )
 
         @Test
         fun canManageDeadlineAssignees() = testForMinAcceptableRole(
-            ScopeRole.THR_ASSIGNEE, ddlScope(), permissionService::canManageAssignees
+            ScopeRole.THR_ADMIN, ddlScope(), permissionService::canManageAssignees
         )
 
         @Test

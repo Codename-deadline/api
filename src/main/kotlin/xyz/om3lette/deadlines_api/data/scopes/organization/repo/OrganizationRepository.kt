@@ -21,7 +21,7 @@ interface OrganizationRepository : JpaRepository<Organization, Long> {
     @Query("""
         SELECT
             o.id as organizationId,
-            (SELECT COUNT(us) FROM UserScope us WHERE us.scopeId = o.id) as members,
+            (SELECT COUNT(us) FROM UserScope us WHERE us.scopeId = o.id AND us.scopeType = 'ORG') as members,
             (SELECT COUNT(t) FROM Thread t WHERE t.organization = o) as threads
         FROM Organization o
         WHERE o.id IN :ids

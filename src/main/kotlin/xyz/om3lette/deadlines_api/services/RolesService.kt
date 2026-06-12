@@ -43,6 +43,7 @@ class RolesService(
         newRole: ScopeRole,
         scopeType: ScopeType
     ) {
+        // FIXME: Forbid ownership change (make it explicit)
         if (issuer.username.equals(subjectUsername, ignoreCase = true)) {
             throw StatusCodeException(400, ErrorCode.ROLE_CHANGE_SELF)
         }

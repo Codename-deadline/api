@@ -14,6 +14,13 @@ import xyz.om3lette.deadlines_api.data.user.model.User
 import java.util.Optional
 
 interface UserScopeRepository : JpaRepository<UserScope, Long> {
+    @Query("""
+        SELECT us.scopeId FROM UserScope us
+        WHERE us.scopeType = :scopeType
+            AND us.user.id = :userId
+    """)
+    fun findAllScopeIdsByUserAndScopeType(userId: Long, scopeType: ScopeType, pageable: Pageable): Page<Long>
+
     fun findByUserAndScopeIdAndScopeType(
         user: User,
         scopeId: Long,
