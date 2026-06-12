@@ -8,6 +8,7 @@ import xyz.om3lette.deadlines_api.data.common.response.PaginationResponse
 import xyz.om3lette.deadlines_api.data.permissions.dto.OrganizationScope
 import xyz.om3lette.deadlines_api.data.permissions.dto.ThreadScope
 import xyz.om3lette.deadlines_api.data.scopes.organization.repo.OrganizationRepository
+import xyz.om3lette.deadlines_api.data.scopes.thread.dto.ThreadStatsDTO
 import xyz.om3lette.deadlines_api.data.scopes.thread.model.Thread
 import xyz.om3lette.deadlines_api.data.scopes.thread.repo.ThreadRepository
 import xyz.om3lette.deadlines_api.data.scopes.thread.response.ThreadCreatedResponse
@@ -160,6 +161,48 @@ class ThreadService(
         )
     }
 
+    private fun prepareThreadResponseData(user: User, threadIds: List<Long>, prefetchRoles: Boolean = true): Map<Long, ThreadStatsDTO> {
+        if (prefetchRoles) {
+            permissionService.prefetchUserRoles(user, thrIds = threadIds)
+        }
+
+        return threadRepository.getThreadStats(threadIds)
+            .associateBy { it.threadId }
+    }
+
+    private fun mapThreadToFullResponse(user: User, thread: Thread, stats: Map<Long, ThreadStatsDTO>) =
+        thread.toResponse(stats[thread.id]!!, permissionService.buildThreadPermissions(user, thread)).withRole(
+            permissionService.getRole(thread.id, ScopeType.THREAD),
+            permissionService.getMaxRole(
+                listOf(
+                    PermissionContext.PermissionKey(ScopeType.THREAD, thread.id),
+                    PermissionContext.PermissionKey(ScopeType.ORGANIZATION, thread.organization.id)
+                )
+            ).takeIf {
+                // TODO: PermissionService might be useful
+                // The goal is to not return a "read only" role
+                    maxRole -> maxRole > ScopeRole.THR_ASSIGNEE
+            }
+        )
+
+    fun getThreadsByUser(
+        issuer: User,
+        pageNumber: Int,
+        pageSize: Int
+    ): PaginationResponse<ThreadResponseWithRole> {
+        val threadIds = userScopeRepository.findAllScopeIdsByUserAndScopeType(
+            issuer.id, ScopeType.THREAD, PageRequest.of(pageNumber, pageSize)
+        )
+
+        val stats = prepareThreadResponseData(issuer, threadIds.toList())
+        return PaginationResponse(
+            threadRepository.findAllById(threadIds).map {
+                mapThreadToFullResponse(issuer, it, stats)
+            },
+            totalPages = threadIds.totalPages
+        )
+    }
+
     fun getThreadsByOrganization(
         issuer: User,
         organizationId: Long,
@@ -167,7 +210,6 @@ class ThreadService(
         pageSize: Int
     ): PaginationResponse<ThreadResponseWithRole> {
         val organization = organizationRepository.findByIdOr404(organizationId, ErrorCode.ORG_NOT_FOUND)
-
         requirePermission(
             permissionService.hasAccess(issuer, OrganizationScope(
                 organizationId, organization
@@ -177,28 +219,10 @@ class ThreadService(
         val threads = threadRepository.findAllByOrganization(
             organization, PageRequest.of(pageNumber, pageSize)
         )
-        val threadIds: List<Long> = threads.map { it.id }.toList()
-        val stats = threadRepository.getThreadStats(threadIds)
-            .associateBy { it.threadId }
+        val stats = prepareThreadResponseData(issuer, threads.map { it.id }.toList())
 
-        permissionService.prefetchUserRoles(issuer, thrIds = threadIds)
         return threads.toPaginationResponse {
-            it.toResponse(
-                stats[it.id]!!,
-                permissionService.buildThreadPermissions(issuer, it)
-            ).withRole(
-                permissionService.getRole(it.id, ScopeType.THREAD),
-                permissionService.getMaxRole(
-                    listOf(
-                        PermissionContext.PermissionKey(ScopeType.THREAD, it.id),
-                        PermissionContext.PermissionKey(ScopeType.ORGANIZATION, it.organization.id)
-                    )
-                ).takeIf {
-                    // TODO: PermissionService might be useful
-                    // The goal is to not return a "read only" role
-                    maxRole -> maxRole > ScopeRole.THR_ASSIGNEE
-                }
-            )
+            mapThreadToFullResponse(issuer, it, stats)
         }
     }
 
