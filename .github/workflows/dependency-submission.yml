@@ -2,7 +2,7 @@ name: Dependency Submission
 
 on:
   push:
-    branches: ['main', 'dependency-triage']
+    branches: ['main']
 
 permissions:
   contents: write
@@ -19,4 +19,4 @@ jobs:
           distribution: 'temurin'
 
       - name: Generate and submit dependency graph
-        uses: gradle/actions/dependency-submission@v5
+        uses: gradle/actions/dependency-submission@v6
