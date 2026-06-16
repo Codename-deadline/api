@@ -100,7 +100,7 @@ class DeadlineService(
                         userScope.role.isEqualOrHigherThan(ScopeRole.THR_ASSIGNEE)
                     }
                 ) return@forEach
-    
+
                 deadlineAssigneeScopes.add(
                     UserScope(
                         0,
@@ -135,7 +135,8 @@ class DeadlineService(
             createNotification(1, ChronoUnit.MONTHS, TimeRemaining.ONE_MONTH),
         ).filterNotNull()
         deadlineNotificationRepository.saveAll(notifications)
-        return DeadlineCreatedResponse(deadline.id)
+
+        return DeadlineCreatedResponse(deadline.id, deadlineAssigneeScopes.size)
     }
 
     fun deleteDeadline(issuer: User, deadlineId: Long) {

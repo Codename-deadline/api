@@ -88,7 +88,7 @@ class ThreadService(
         }
 
         userScopeRepository.saveAll(threadAssigneeScopes)
-        return ThreadCreatedResponse(thread.id)
+        return ThreadCreatedResponse(thread.id, threadAssigneeScopes.size)
     }
 
     fun deleteThread(issuer: User, threadId: Long) {
