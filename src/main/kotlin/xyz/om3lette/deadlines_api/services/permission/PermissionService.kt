@@ -7,6 +7,7 @@ import xyz.om3lette.deadlines_api.data.permissions.dto.DeadlineScope
 import xyz.om3lette.deadlines_api.data.permissions.dto.OrganizationScope
 import xyz.om3lette.deadlines_api.data.permissions.dto.PermissionScope
 import xyz.om3lette.deadlines_api.data.permissions.dto.ThreadScope
+import xyz.om3lette.deadlines_api.data.scopes.deadline.dto.DeadlinePermissions
 import xyz.om3lette.deadlines_api.data.scopes.deadline.model.Deadline
 import xyz.om3lette.deadlines_api.data.scopes.organization.dto.OrganizationPermissions
 import xyz.om3lette.deadlines_api.data.scopes.organization.enums.OrganizationType
@@ -121,6 +122,13 @@ class PermissionService(
         delete = canDeleteThread(issuer, thread),
         manageAssignees = canManageThreadAssignees(issuer, thread),
         createDeadlines = canCreateDeadline(issuer, thread)
+    )
+
+    fun buildDeadlinePermissions(issuer: User, deadline: Deadline) = DeadlinePermissions(
+        update = canUpdateDeadline(issuer, deadline),
+        delete = canDeleteDeadline(issuer, deadline),
+        manageAssignees = canManageDeadlineAssignees(issuer, deadline),
+        manageAttachments = canManageDeadlineAttachments(issuer, deadline)
     )
 
     /*

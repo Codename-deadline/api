@@ -34,7 +34,6 @@ object DomainObjectBuilder {
             id = 52,
             organization = org,
             thread = thread,
-            progress = 50,
             status = ProgressionStatus.IN_PROGRESS,
             title = "test-deadline",
             description = "test-deadline-desc",

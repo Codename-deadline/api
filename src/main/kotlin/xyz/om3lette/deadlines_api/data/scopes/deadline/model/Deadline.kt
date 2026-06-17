@@ -1,11 +1,27 @@
 package xyz.om3lette.deadlines_api.data.scopes.deadline.model
 
-import jakarta.persistence.*
-import jakarta.validation.constraints.Max
-import jakarta.validation.constraints.Min
+import jakarta.persistence.CascadeType
+import jakarta.persistence.Column
+import jakarta.persistence.ConstraintMode
+import jakarta.persistence.Entity
+import jakarta.persistence.EnumType
+import jakarta.persistence.Enumerated
+import jakarta.persistence.FetchType
+import jakarta.persistence.ForeignKey
+import jakarta.persistence.GeneratedValue
+import jakarta.persistence.GenerationType
+import jakarta.persistence.Id
+import jakarta.persistence.JoinColumn
+import jakarta.persistence.ManyToOne
+import jakarta.persistence.OneToMany
+import jakarta.persistence.SequenceGenerator
+import jakarta.persistence.Table
 import jakarta.validation.constraints.Size
 import org.hibernate.annotations.SQLRestriction
 import xyz.om3lette.deadlines_api.data.notifications.model.DeadlineNotification
+import xyz.om3lette.deadlines_api.data.scopes.deadline.dto.DeadlineDTO
+import xyz.om3lette.deadlines_api.data.scopes.deadline.dto.DeadlinePermissions
+import xyz.om3lette.deadlines_api.data.scopes.deadline.dto.DeadlineStatsDTO
 import xyz.om3lette.deadlines_api.data.scopes.deadline.response.DeadlineResponse
 import xyz.om3lette.deadlines_api.data.scopes.enums.ProgressionStatus
 import xyz.om3lette.deadlines_api.data.scopes.organization.model.Organization
@@ -25,7 +41,8 @@ data class Deadline(
     @JoinColumn(name = "organization_id")
     val organization: Organization,
 
-    @ManyToOne
+    // TODO: This likely fetches the organization in a chain. Verify that and remove organization from deadline if true
+    @ManyToOne(fetch = FetchType.EAGER) // Thread id is needed for global role lookup
     @JoinColumn(name = "thread_id")
     val thread: Thread,
 
@@ -34,10 +51,6 @@ data class Deadline(
 
     @field:Size(max = 2048)
     var description: String?,
-
-    @field:Min(value = 0, "Deadline progress cannot be lower than 0%")
-    @field:Max(value = 100, "Deadline progress cannot exceed 100%")
-    var progress: Short,
 
     @Enumerated(value = EnumType.STRING)
     var status: ProgressionStatus,
@@ -67,11 +80,16 @@ data class Deadline(
         "description" to description,
         "createdAt" to createdAt,
         "due" to due,
-        "progress" to progress,
         "status" to status
     )
 
-    fun toResponse() = DeadlineResponse(
-        id, title, description, createdAt, due, progress, status
+    fun toDTO() = DeadlineDTO(
+        id, title, description, createdAt, due, status, organization.id
+    )
+
+    fun toResponse(stats: DeadlineStatsDTO, permissions: DeadlinePermissions) = DeadlineResponse(
+        deadline = toDTO(),
+        stats = stats.toResponse(),
+        permissions = permissions
     )
 }

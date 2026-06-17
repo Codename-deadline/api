@@ -7,6 +7,5 @@ data class PatchDeadlineRequest(
     val title: String?,
     val description: String?,
     val status: ProgressionStatus?,
-    val progress: Short?,
     val due: Instant?,
 )

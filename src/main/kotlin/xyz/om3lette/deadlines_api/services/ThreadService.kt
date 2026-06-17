@@ -101,7 +101,7 @@ class ThreadService(
     }
 
     fun addAssignee(issuer: User, threadId: Long, username: String, role: ScopeRole) {
-        if (!role.name.startsWith("THR")) {
+        if (!role.canBeAssignedInScope(ScopeType.THREAD)) {
             throw StatusCodeException(400, ErrorCode.INVITATION_INVALID_ROLE)
         }
         if (username.equals(issuer.username, ignoreCase = true)) {
@@ -190,6 +190,7 @@ class ThreadService(
         pageNumber: Int,
         pageSize: Int
     ): PaginationResponse<ThreadResponseWithRole> {
+        // TODO: Replace with a single db query using exists. See deadlines impl
         val threadIds = userScopeRepository.findAllScopeIdsByUserAndScopeType(
             issuer.id, ScopeType.THREAD, PageRequest.of(pageNumber, pageSize)
         )
