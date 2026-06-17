@@ -12,6 +12,7 @@ import xyz.om3lette.deadlines_api.data.scopes.deadline.model.Deadline
 import xyz.om3lette.deadlines_api.data.scopes.organization.dto.OrganizationPermissions
 import xyz.om3lette.deadlines_api.data.scopes.organization.enums.OrganizationType
 import xyz.om3lette.deadlines_api.data.scopes.organization.model.Organization
+import xyz.om3lette.deadlines_api.data.scopes.organization.model.OrganizationInvitation
 import xyz.om3lette.deadlines_api.data.scopes.thread.dto.ThreadPermissions
 import xyz.om3lette.deadlines_api.data.scopes.thread.model.Thread
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeRole
@@ -244,6 +245,11 @@ class PermissionService(
     fun canSendOrganizationInvitation(issuer: User, organizationId: Long): Boolean =
         issuer.isAdminOrHasRoleAnd(roleForOrganizationLazy(issuer, organizationId)) { role ->
             role >= ScopeRole.ORG_ADMIN
+        }
+
+    fun canAccessOrganizationInvitation(issuer: User, invitation: OrganizationInvitation): Boolean =
+        issuer.isAdminOr {
+            invitation.invitedBy.id == issuer.id || invitation.invitedUser.id == issuer.id
         }
 
     /*

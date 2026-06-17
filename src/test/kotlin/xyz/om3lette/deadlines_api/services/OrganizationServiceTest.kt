@@ -153,7 +153,7 @@ class OrganizationServiceTest {
             every { organizationRepository.save(capture(savedOrganizationSlot)) } returnsArgument 0
 
             every { organizationInvitationRepository.saveAll(capture(savedInvitationsSlot)) } returnsArgument 0
-            every { organizationInvitationService.createInvitation(dummyUserBob, dummyUserAlice, any(), any()) } returns dummyInvitation
+            every { organizationInvitationService.newPendingInvitation(dummyUserBob, dummyUserAlice, any(), any()) } returns dummyInvitation
         }
 
         @Test

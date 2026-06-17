@@ -79,7 +79,7 @@ class OrganizationService(
             if (usernameRolePair.toScopeRole() == ScopeRole.ORG_OWNER) return@forEach
 
             invitations.add(
-                organizationInvitationService.createInvitation(
+                organizationInvitationService.newPendingInvitation(
                     issuer,
                     user,
                     organization,
