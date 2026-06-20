@@ -52,7 +52,7 @@ class DeadlineController(
         deadlineId,
         request.title,
         request.description,
-        request.status,
+        request.isCompleted,
         request.due
     )
 

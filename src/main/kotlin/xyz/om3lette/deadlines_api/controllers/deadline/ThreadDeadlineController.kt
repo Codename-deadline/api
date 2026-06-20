@@ -42,7 +42,6 @@ class ThreadDeadlineController(
         request.title,
         request.description,
         request.due,
-        request.status,
         request.usernamesToAssign
     )
 }

@@ -1,6 +1,5 @@
 package xyz.om3lette.deadlines_api.data.scopes.deadline.dto
 
-import xyz.om3lette.deadlines_api.data.scopes.enums.ProgressionStatus
 import java.time.Instant
 
 data class DeadlineDTO(
@@ -14,7 +13,7 @@ data class DeadlineDTO(
 
     val due: Instant,
 
-    val status: ProgressionStatus,
+    val isCompleted: Boolean,
 
-    val organizationId: Long
+    val threadId: Long
 )

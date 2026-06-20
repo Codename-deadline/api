@@ -23,7 +23,6 @@ import xyz.om3lette.deadlines_api.data.scopes.deadline.dto.DeadlineDTO
 import xyz.om3lette.deadlines_api.data.scopes.deadline.dto.DeadlinePermissions
 import xyz.om3lette.deadlines_api.data.scopes.deadline.dto.DeadlineStatsDTO
 import xyz.om3lette.deadlines_api.data.scopes.deadline.response.DeadlineResponse
-import xyz.om3lette.deadlines_api.data.scopes.enums.ProgressionStatus
 import xyz.om3lette.deadlines_api.data.scopes.organization.model.Organization
 import xyz.om3lette.deadlines_api.data.scopes.thread.model.Thread
 import xyz.om3lette.deadlines_api.data.scopes.userScope.model.UserScope
@@ -52,14 +51,13 @@ data class Deadline(
     @field:Size(max = 2048)
     var description: String?,
 
-    @Enumerated(value = EnumType.STRING)
-    var status: ProgressionStatus,
-
     @Column(columnDefinition = "TIMESTAMP WITH TIME ZONE")
     val createdAt: Instant,
 
     @Column(columnDefinition = "TIMESTAMP WITH TIME ZONE")
     var due: Instant,
+
+    var isCompleted: Boolean = false,
 
     @OneToMany(cascade = [CascadeType.ALL], mappedBy = "deadline")
     val notifications: MutableList<DeadlineNotification> = mutableListOf(),
@@ -80,11 +78,11 @@ data class Deadline(
         "description" to description,
         "createdAt" to createdAt,
         "due" to due,
-        "status" to status
+        "isCompleted" to isCompleted
     )
 
     fun toDTO() = DeadlineDTO(
-        id, title, description, createdAt, due, status, organization.id
+        id, title, description, createdAt, due, isCompleted, thread.id
     )
 
     fun toResponse(stats: DeadlineStatsDTO, permissions: DeadlinePermissions) = DeadlineResponse(

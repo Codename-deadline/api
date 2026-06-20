@@ -17,7 +17,6 @@ import xyz.om3lette.deadlines_api.data.scopes.deadline.repo.DeadlineRepository
 import xyz.om3lette.deadlines_api.data.scopes.deadline.response.DeadlineCreatedResponse
 import xyz.om3lette.deadlines_api.data.scopes.deadline.response.DeadlineResponse
 import xyz.om3lette.deadlines_api.data.scopes.deadline.response.DeadlineResponseWithRole
-import xyz.om3lette.deadlines_api.data.scopes.enums.ProgressionStatus
 import xyz.om3lette.deadlines_api.data.scopes.thread.repo.ThreadRepository
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeRole
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType
@@ -57,7 +56,6 @@ class DeadlineService(
         title: String,
         description: String?,
         due: Instant,
-        currentStatus: ProgressionStatus,
         assigneesUsernames: List<String>
     ): DeadlineCreatedResponse {
         val now = Instant.now()
@@ -84,7 +82,7 @@ class DeadlineService(
             Deadline(
                 0,
                 thread.organization, thread,
-                title, description, currentStatus,
+                title, description,
                 Instant.now(), due
             )
         )
@@ -281,12 +279,12 @@ class DeadlineService(
         deadlineId: Long,
         title: String?,
         description: String?,
-        status: ProgressionStatus?,
+        isCompleted: Boolean?,
         due: Instant?
     ) {
         if (
             title == null && description == null &&
-            status == null && due == null
+            isCompleted == null && due == null
         ) {
             return
         }
@@ -310,7 +308,7 @@ class DeadlineService(
 
         if (title != null) deadline.title = title
         if (description != null) deadline.description = description
-        if (status != null) deadline.status = status
+        if (isCompleted != null) deadline.isCompleted = isCompleted
 
         deadlineRepository.save(deadline)
     }

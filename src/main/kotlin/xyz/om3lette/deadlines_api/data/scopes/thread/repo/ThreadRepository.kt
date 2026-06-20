@@ -20,7 +20,7 @@ interface ThreadRepository : JpaRepository<Thread, Long> {
             t.id as threadId,
             COUNT(us.id) as assignees,
             COUNT(d.id) as deadlines,
-            COUNT(CASE WHEN d.status = 'FINISHED' THEN 1 END) as completedDeadlines
+            COUNT(CASE WHEN d.isCompleted = TRUE THEN 1 END) as completedDeadlines
         FROM Thread t
         LEFT JOIN UserScope us ON us.scopeId = t.id AND us.scopeType = 'THR'
         LEFT JOIN Deadline d ON d.thread = t

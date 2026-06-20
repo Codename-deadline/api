@@ -1,7 +1,6 @@
 package xyz.om3lette.deadlines_api
 
 import xyz.om3lette.deadlines_api.data.scopes.deadline.model.Deadline
-import xyz.om3lette.deadlines_api.data.scopes.enums.ProgressionStatus
 import xyz.om3lette.deadlines_api.data.scopes.organization.enums.OrganizationType
 import xyz.om3lette.deadlines_api.data.scopes.organization.model.Organization
 import xyz.om3lette.deadlines_api.data.scopes.thread.model.Thread
@@ -34,7 +33,7 @@ object DomainObjectBuilder {
             id = 52,
             organization = org,
             thread = thread,
-            status = ProgressionStatus.IN_PROGRESS,
+            isCompleted = false,
             title = "test-deadline",
             description = "test-deadline-desc",
             createdAt = Instant.now(),
