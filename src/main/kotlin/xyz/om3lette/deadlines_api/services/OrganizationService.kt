@@ -7,8 +7,9 @@ import org.springframework.data.domain.Sort
 import org.springframework.stereotype.Service
 import xyz.om3lette.deadlines_api.data.common.response.PaginationResponse
 import xyz.om3lette.deadlines_api.data.permissions.dto.OrganizationScope
+import xyz.om3lette.deadlines_api.data.scopes.common.dto.UsernameRolePair
+import xyz.om3lette.deadlines_api.data.scopes.common.dto.UsernameRolePairList
 import xyz.om3lette.deadlines_api.data.scopes.deadline.repo.DeadlineRepository
-import xyz.om3lette.deadlines_api.data.scopes.organization.dto.InvitationDTO
 import xyz.om3lette.deadlines_api.data.scopes.organization.enums.OrganizationType
 import xyz.om3lette.deadlines_api.data.scopes.organization.model.Organization
 import xyz.om3lette.deadlines_api.data.scopes.organization.model.OrganizationInvitation
@@ -50,7 +51,7 @@ class OrganizationService(
         title: String,
         description: String?,
         type: OrganizationType,
-        usernameRolePairToInvite: List<InvitationDTO>
+        usernameRolePairToInvite: UsernameRolePairList
     ): OrganizationCreatedResponse {
         val organization = organizationRepository.save(
             Organization(
@@ -70,20 +71,20 @@ class OrganizationService(
         )
 
         val invitations: MutableList<OrganizationInvitation> = mutableListOf()
-        val usernameToInvitation: Map<String, InvitationDTO> = usernameRolePairToInvite.associateBy {
-            it.username.lowercase()
-        }
+        val usernameToInvitation: Map<String, UsernameRolePair> = usernameRolePairToInvite.filterByScope(
+            ScopeType.ORGANIZATION
+        ).associateBy { it.username.lowercase() }
         userRepository.findByUsernameInIgnoreCase(usernameToInvitation.keys.toList()).forEach { user ->
 //          Usernames which were used in a db lookup are the keys of the map -> they exist in the map
             val usernameRolePair = usernameToInvitation[user.username.lowercase()]!!
-            if (usernameRolePair.toScopeRole() == ScopeRole.ORG_OWNER) return@forEach
+            if (usernameRolePair.role == ScopeRole.ORG_OWNER) return@forEach
 
             invitations.add(
                 organizationInvitationService.newPendingInvitation(
                     issuer,
                     user,
                     organization,
-                    usernameRolePair.toScopeRole()
+                    usernameRolePair.role
                 )
             )
         }

@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service
 import xyz.om3lette.deadlines_api.data.common.response.PaginationResponse
 import xyz.om3lette.deadlines_api.data.permissions.dto.OrganizationScope
 import xyz.om3lette.deadlines_api.data.permissions.dto.ThreadScope
+import xyz.om3lette.deadlines_api.data.scopes.common.dto.UsernameRolePairList
 import xyz.om3lette.deadlines_api.data.scopes.organization.repo.OrganizationRepository
 import xyz.om3lette.deadlines_api.data.scopes.thread.dto.ThreadStatsDTO
 import xyz.om3lette.deadlines_api.data.scopes.thread.model.Thread
@@ -45,7 +46,7 @@ class ThreadService(
         organizationId: Long,
         title: String,
         description: String?,
-        assigneesUsernames: List<String>
+        assignees: UsernameRolePairList
     ): ThreadCreatedResponse {
         requirePermission(
             permissionService.canCreateThread(issuer, organizationId)
@@ -71,9 +72,11 @@ class ThreadService(
                 creationTime
             )
         )
+
+        val assigneeMap = assignees.filterByScope(ScopeType.THREAD).associateBy { it.username.lowercase() }
         userScopeRepository.findByScopeIdAndScopeTypeAndUsernameInIgnoreCase(
             organization.id, ScopeType.ORGANIZATION,
-            assigneesUsernames.map { it.lowercase() }
+            assigneeMap.keys.map { it }
         ).forEach { userScope ->
             threadAssigneeScopes.add(
                 UserScope(
@@ -81,7 +84,7 @@ class ThreadService(
                     userScope.user,
                     ScopeType.THREAD,
                     thread.id,
-                    ScopeRole.THR_ASSIGNEE,
+                    assigneeMap[userScope.user.username.lowercase()]!!.role,
                     creationTime
                 )
             )

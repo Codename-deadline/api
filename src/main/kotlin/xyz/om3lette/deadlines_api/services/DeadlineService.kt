@@ -11,6 +11,7 @@ import xyz.om3lette.deadlines_api.data.notifications.model.DeadlineNotification
 import xyz.om3lette.deadlines_api.data.notifications.repo.DeadlineNotificationRepository
 import xyz.om3lette.deadlines_api.data.permissions.dto.DeadlineScope
 import xyz.om3lette.deadlines_api.data.permissions.dto.ThreadScope
+import xyz.om3lette.deadlines_api.data.scopes.common.dto.UsernameRolePairList
 import xyz.om3lette.deadlines_api.data.scopes.deadline.dto.DeadlineStatsDTO
 import xyz.om3lette.deadlines_api.data.scopes.deadline.model.Deadline
 import xyz.om3lette.deadlines_api.data.scopes.deadline.repo.DeadlineRepository
@@ -56,7 +57,7 @@ class DeadlineService(
         title: String,
         description: String?,
         due: Instant,
-        assigneesUsernames: List<String>
+        assignees: UsernameRolePairList
     ): DeadlineCreatedResponse {
         val now = Instant.now()
         val minExpirationTime = now.plus(minDeadlineExpiryTimeMinutes, ChronoUnit.MINUTES)
@@ -86,29 +87,23 @@ class DeadlineService(
                 Instant.now(), due
             )
         )
+        val assigneeMap = assignees.filterByScope(ScopeType.DEADLINE).associateBy { it.username.lowercase() }
         val deadlineAssigneeScopes: MutableList<UserScope> = mutableListOf()
         userScopeRepository.findByScopeTypeScopeIdInAndUsernameInIgnoreCase(
             thread.organization.id,
             ScopeType.ORGANIZATION,
-            assigneesUsernames.map { it.lowercase() }
+            assigneeMap.keys.map { it }
         )
             .groupBy { it.user.id }.values
             .map{ scopes -> scopes.maxBy { it.role } }
             .forEach { userScope ->
-                // If a user is an admin he has an access anyway => don't add another entry
-                if (
-                    userScope.user.isAdminOr {
-                        userScope.role.isEqualOrHigherThan(ScopeRole.THR_ASSIGNEE)
-                    }
-                ) return@forEach
-
                 deadlineAssigneeScopes.add(
                     UserScope(
                         0,
                         userScope.user,
                         ScopeType.DEADLINE,
                         deadline.id,
-                        ScopeRole.DDL_ASSIGNEE,
+                        assigneeMap[userScope.user.username.lowercase()]!!.role,
                         Instant.now()
                     )
                 )

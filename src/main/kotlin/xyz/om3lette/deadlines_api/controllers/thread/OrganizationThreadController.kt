@@ -41,6 +41,6 @@ class OrganizationThreadController(
         organizationId,
         request.title,
         request.description,
-        request.usersToAssign
+        request.invitations
     )
 }

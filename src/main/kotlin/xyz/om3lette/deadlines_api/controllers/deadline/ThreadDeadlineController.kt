@@ -42,6 +42,6 @@ class ThreadDeadlineController(
         request.title,
         request.description,
         request.due,
-        request.usernamesToAssign
+        request.invitations
     )
 }
