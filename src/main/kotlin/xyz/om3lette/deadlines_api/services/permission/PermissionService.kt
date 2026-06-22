@@ -96,7 +96,7 @@ class PermissionService(
         thrIds: List<Long> = emptyList(),
         ddlIds: List<Long> = emptyList()
     ) {
-        if (orgIds.isEmpty() && thrIds.isEmpty() && ddlIds.isNotEmpty()) return
+        if (orgIds.isEmpty() && thrIds.isEmpty() && ddlIds.isEmpty()) return
         permissionContext.putAll(
             userScopeRepository.findUserRolesInScopes(
                 user.id, orgIds, thrIds, ddlIds

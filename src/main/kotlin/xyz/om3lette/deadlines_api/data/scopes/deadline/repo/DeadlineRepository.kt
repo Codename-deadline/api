@@ -7,7 +7,6 @@ import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
 import xyz.om3lette.deadlines_api.data.scopes.deadline.dto.DeadlineStatsDTO
 import xyz.om3lette.deadlines_api.data.scopes.deadline.model.Deadline
-import xyz.om3lette.deadlines_api.data.scopes.thread.dto.ThreadStatsDTO
 import xyz.om3lette.deadlines_api.data.scopes.thread.model.Thread
 
 interface DeadlineRepository : JpaRepository<Deadline, Long> {
@@ -20,13 +19,10 @@ interface DeadlineRepository : JpaRepository<Deadline, Long> {
     @Query("""
         SELECT
             d.id as deadlineId,
-            COUNT(us.id) as assignees,
-            COUNT(at.id) as attachments
+            (SELECT COUNT(us.id) FROM UserScope us WHERE us.scopeId = d.id AND us.scopeType = 'DDL') as assignees,
+            (SELECT COUNT(at.id) FROM Attachment at WHERE at.deadline = d) as attachments
         FROM Deadline d
-        LEFT JOIN UserScope us ON us.scopeId = d.id AND us.scopeType = 'DDL'
-        LEFT JOIN Attachment at ON at.deadline = d
         WHERE d.id IN :ids
-        GROUP BY d.id
     """)
     fun getDeadlineStats(@Param("ids") deadlineIds: List<Long>): List<DeadlineStatsDTO>
 

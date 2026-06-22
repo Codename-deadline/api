@@ -79,14 +79,19 @@ class DeadlineService(
             permissionService.canCreateDeadline(issuer, thread)
         )
 
+        val creationTimestamp = Instant.now()
         val deadline = deadlineRepository.save(
             Deadline(
-                0,
-                thread.organization, thread,
-                title, description,
-                Instant.now(), due
+                id = 0,
+                organization = thread.organization,
+                thread = thread,
+                title = title,
+                description = description,
+                createdAt = creationTimestamp,
+                due = due
             )
         )
+
         val assigneeMap = assignees.filterByScope(ScopeType.DEADLINE).associateBy { it.username.lowercase() }
         val deadlineAssigneeScopes: MutableList<UserScope> = mutableListOf()
         userScopeRepository.findByScopeTypeScopeIdInAndUsernameInIgnoreCase(
@@ -104,7 +109,7 @@ class DeadlineService(
                         ScopeType.DEADLINE,
                         deadline.id,
                         assigneeMap[userScope.user.username.lowercase()]!!.role,
-                        Instant.now()
+                        creationTimestamp
                     )
                 )
             }
@@ -203,12 +208,28 @@ class DeadlineService(
         )
     }
 
-    private fun prepareDeadlineResponseData(user: User, deadlineIds: List<Long>, prefetchRoles: Boolean = true): Map<Long, DeadlineStatsDTO> {
-        if (prefetchRoles) {
-            permissionService.prefetchUserRoles(user, ddlIds = deadlineIds)
+    private fun prepareDeadlineResponseData(user: User, deadlines: List<Deadline>, prefetchRoles: Boolean = true): Map<Long, DeadlineStatsDTO> {
+        val deadlineIds = mutableSetOf<Long>()
+        val threadIds = mutableSetOf<Long>()
+        val organizationIds = mutableSetOf<Long>()
+
+        for (deadline in deadlines) {
+            deadlineIds.add(deadline.id)
+            threadIds.add(deadline.thread.id)
+            organizationIds.add(deadline.organization.id)
         }
 
-        return deadlineRepository.getDeadlineStats(deadlineIds)
+        val deadlineIdsList = deadlineIds.toList()
+        if (prefetchRoles) {
+            permissionService.prefetchUserRoles(
+                user,
+                orgIds = organizationIds.toList(),
+                thrIds = threadIds.toList(),
+                ddlIds = deadlineIdsList
+            )
+        }
+
+        return deadlineRepository.getDeadlineStats(deadlineIdsList)
             .associateBy { it.deadlineId }
     }
 
@@ -237,7 +258,7 @@ class DeadlineService(
             issuer.id, PageRequest.of(pageNumber, pageSize)
         )
 
-        val stats = prepareDeadlineResponseData(issuer, userDeadlines.map { it.id }.toList())
+        val stats = prepareDeadlineResponseData(issuer, userDeadlines.toList())
         return PaginationResponse.fromPage(
             userDeadlines.map {
                 mapDeadlineToFullResponse(issuer, it, stats)
@@ -260,7 +281,7 @@ class DeadlineService(
         val threadDeadlines = deadlineRepository.findAllByThread(
             thread, PageRequest.of(pageNumber, pageSize)
         )
-        val stats = prepareDeadlineResponseData(issuer, threadDeadlines.map { it.id }.toList())
+        val stats = prepareDeadlineResponseData(issuer, threadDeadlines.toList())
         return PaginationResponse.fromPage(
             threadDeadlines.map {
                 mapDeadlineToFullResponse(issuer, it, stats)

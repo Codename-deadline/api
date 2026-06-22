@@ -164,12 +164,25 @@ class ThreadService(
         )
     }
 
-    private fun prepareThreadResponseData(user: User, threadIds: List<Long>, prefetchRoles: Boolean = true): Map<Long, ThreadStatsDTO> {
-        if (prefetchRoles) {
-            permissionService.prefetchUserRoles(user, thrIds = threadIds)
+    private fun prepareThreadResponseData(user: User, threads: List<Thread>, prefetchRoles: Boolean = true): Map<Long, ThreadStatsDTO> {
+        val threadIds = mutableSetOf<Long>()
+        val organizationIds = mutableSetOf<Long>()
+
+        for (thread in threads) {
+            threadIds.add(thread.id)
+            organizationIds.add(thread.organization.id)
         }
 
-        return threadRepository.getThreadStats(threadIds)
+        val threadIdsList = threadIds.toList()
+        if (prefetchRoles) {
+            permissionService.prefetchUserRoles(
+                user,
+                orgIds = organizationIds.toList(),
+                thrIds = threadIdsList
+            )
+        }
+
+        return threadRepository.getThreadStats(threadIdsList)
             .associateBy { it.threadId }
     }
 
@@ -193,17 +206,15 @@ class ThreadService(
         pageNumber: Int,
         pageSize: Int
     ): PaginationResponse<ThreadResponseWithRole> {
-        // TODO: Replace with a single db query using exists. See deadlines impl
-        val threadIds = userScopeRepository.findAllScopeIdsByUserAndScopeType(
-            issuer.id, ScopeType.THREAD, PageRequest.of(pageNumber, pageSize)
-        )
+        val threadsPage = threadRepository.findAllByUser(issuer.id, PageRequest.of(pageNumber, pageSize))
+        val threadsList = threadsPage.toList()
 
-        val stats = prepareThreadResponseData(issuer, threadIds.toList())
+        val stats = prepareThreadResponseData(issuer, threadsList)
         return PaginationResponse(
-            threadRepository.findAllById(threadIds).map {
+            threadsList.map {
                 mapThreadToFullResponse(issuer, it, stats)
             },
-            totalPages = threadIds.totalPages
+            totalPages = threadsPage.totalPages
         )
     }
 
@@ -223,7 +234,7 @@ class ThreadService(
         val threads = threadRepository.findAllByOrganization(
             organization, PageRequest.of(pageNumber, pageSize)
         )
-        val stats = prepareThreadResponseData(issuer, threads.map { it.id }.toList())
+        val stats = prepareThreadResponseData(issuer, threads.toList())
 
         return threads.toPaginationResponse {
             mapThreadToFullResponse(issuer, it, stats)
