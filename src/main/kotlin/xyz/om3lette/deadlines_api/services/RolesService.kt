@@ -33,9 +33,6 @@ class RolesService(
         RolesMetadataResponse(roles, matrix)
     }
 
-    private fun filterRolesByPrefix(scopeRolePrefix: String): List<ScopeRole> =
-        ScopeRole.entries.filter { role -> role.name.startsWith(scopeRolePrefix) }
-
     fun changeRole(
         issuer: User,
         scopeId: Long,
@@ -47,7 +44,7 @@ class RolesService(
         if (issuer.username.equals(subjectUsername, ignoreCase = true)) {
             throw StatusCodeException(400, ErrorCode.ROLE_CHANGE_SELF)
         }
-        if (newRole !in filterRolesByPrefix(scopeType.code)) {
+        if (!newRole.canBeAssignedInScope(scopeType)) {
             throw StatusCodeException(400, ErrorCode.ROLE_CHANGE_INVALID_SCOPE_ROLE)
         }
 

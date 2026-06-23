@@ -1,20 +1,17 @@
 package xyz.om3lette.deadlines_api.data.scopes.deadline.response
 
-import xyz.om3lette.deadlines_api.data.scopes.enums.ProgressionStatus
-import java.time.Instant
+import com.fasterxml.jackson.annotation.JsonUnwrapped
+import xyz.om3lette.deadlines_api.data.scopes.deadline.dto.DeadlineDTO
+import xyz.om3lette.deadlines_api.data.scopes.deadline.dto.DeadlinePermissions
+import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeRole
 
 data class DeadlineResponse(
-    val id: Long,
-
-    val title: String,
-
-    val description: String?,
-
-    val createdAt: Instant,
-
-    val due: Instant,
-
-    val progress: Short,
-
-    val status: ProgressionStatus
-)
+    @get:JsonUnwrapped
+    val deadline: DeadlineDTO,
+    val stats: DeadlineStatsResponse,
+    val permissions: DeadlinePermissions
+) {
+    fun withRole(scopeRole: ScopeRole?, globalRole: ScopeRole?): DeadlineResponseWithRole = DeadlineResponseWithRole(
+        this, role = scopeRole, globalRole = globalRole
+    )
+}

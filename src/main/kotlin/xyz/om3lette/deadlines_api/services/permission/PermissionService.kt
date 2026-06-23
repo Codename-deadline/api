@@ -7,10 +7,12 @@ import xyz.om3lette.deadlines_api.data.permissions.dto.DeadlineScope
 import xyz.om3lette.deadlines_api.data.permissions.dto.OrganizationScope
 import xyz.om3lette.deadlines_api.data.permissions.dto.PermissionScope
 import xyz.om3lette.deadlines_api.data.permissions.dto.ThreadScope
+import xyz.om3lette.deadlines_api.data.scopes.deadline.dto.DeadlinePermissions
 import xyz.om3lette.deadlines_api.data.scopes.deadline.model.Deadline
 import xyz.om3lette.deadlines_api.data.scopes.organization.dto.OrganizationPermissions
 import xyz.om3lette.deadlines_api.data.scopes.organization.enums.OrganizationType
 import xyz.om3lette.deadlines_api.data.scopes.organization.model.Organization
+import xyz.om3lette.deadlines_api.data.scopes.organization.model.OrganizationInvitation
 import xyz.om3lette.deadlines_api.data.scopes.thread.dto.ThreadPermissions
 import xyz.om3lette.deadlines_api.data.scopes.thread.model.Thread
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeRole
@@ -94,7 +96,7 @@ class PermissionService(
         thrIds: List<Long> = emptyList(),
         ddlIds: List<Long> = emptyList()
     ) {
-        if (orgIds.isEmpty() && thrIds.isEmpty() && ddlIds.isNotEmpty()) return
+        if (orgIds.isEmpty() && thrIds.isEmpty() && ddlIds.isEmpty()) return
         permissionContext.putAll(
             userScopeRepository.findUserRolesInScopes(
                 user.id, orgIds, thrIds, ddlIds
@@ -121,6 +123,13 @@ class PermissionService(
         delete = canDeleteThread(issuer, thread),
         manageAssignees = canManageThreadAssignees(issuer, thread),
         createDeadlines = canCreateDeadline(issuer, thread)
+    )
+
+    fun buildDeadlinePermissions(issuer: User, deadline: Deadline) = DeadlinePermissions(
+        update = canUpdateDeadline(issuer, deadline),
+        delete = canDeleteDeadline(issuer, deadline),
+        manageAssignees = canManageDeadlineAssignees(issuer, deadline),
+        manageAttachments = canManageDeadlineAttachments(issuer, deadline)
     )
 
     /*
@@ -236,6 +245,11 @@ class PermissionService(
     fun canSendOrganizationInvitation(issuer: User, organizationId: Long): Boolean =
         issuer.isAdminOrHasRoleAnd(roleForOrganizationLazy(issuer, organizationId)) { role ->
             role >= ScopeRole.ORG_ADMIN
+        }
+
+    fun canAccessOrganizationInvitation(issuer: User, invitation: OrganizationInvitation): Boolean =
+        issuer.isAdminOr {
+            invitation.invitedBy.id == issuer.id || invitation.invitedUser.id == issuer.id
         }
 
     /*

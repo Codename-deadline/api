@@ -18,6 +18,8 @@ import org.springframework.data.domain.PageImpl
 import xyz.om3lette.deadlines_api.DomainObjectBuilder
 import xyz.om3lette.deadlines_api.data.permissions.dto.OrganizationScope
 import xyz.om3lette.deadlines_api.data.permissions.dto.ThreadScope
+import xyz.om3lette.deadlines_api.data.scopes.common.dto.UsernameRolePair
+import xyz.om3lette.deadlines_api.data.scopes.common.dto.UsernameRolePairList
 import xyz.om3lette.deadlines_api.data.scopes.organization.model.Organization
 import xyz.om3lette.deadlines_api.data.scopes.organization.repo.OrganizationRepository
 import xyz.om3lette.deadlines_api.data.scopes.thread.dto.ThreadPermissions
@@ -127,7 +129,7 @@ class ThreadServiceTest {
 
             val res = assertThrows<StatusCodeException> {
                 threadService.createThread(
-                    dummyUserBob,organization.id, "t", null, listOf()
+                    dummyUserBob,organization.id, "t", null, UsernameRolePairList()
                 )
             }
             assertEquals(403, res.statusCode)
@@ -140,7 +142,7 @@ class ThreadServiceTest {
 
             val res = assertThrows<StatusCodeException> {
                 threadService.createThread(
-                    dummyUserBob,organization.id, "t", null, listOf()
+                    dummyUserBob,organization.id, "t", null, UsernameRolePairList()
                 )
             }
             assertEquals(404, res.statusCode)
@@ -154,7 +156,7 @@ class ThreadServiceTest {
         fun `happy path (no assignees) commits thread and returns threadId`() {
             val res =
                 threadService.createThread(
-                    dummyUserBob,organization.id, "t", null, listOf()
+                    dummyUserBob,organization.id, "t", null, UsernameRolePairList()
                 )
             assertAll(
                 { assertTrue(savedThreadSlot.isCaptured) },
@@ -169,8 +171,10 @@ class ThreadServiceTest {
         fun `happy path commits thread, creates UserScopes for assignees and returns threadId`() {
             val res =
                 threadService.createThread(
-                    dummyUserBob,organization.id, "t", null, listOf(
-                        dummyUserAlice.username
+                    dummyUserBob,organization.id, "t", null, UsernameRolePairList(
+                        listOf(
+                            UsernameRolePair(dummyUserAlice.username, ScopeRole.THR_ASSIGNEE)
+                        )
                     )
                 )
             assertTrue(savedThreadSlot.isCaptured)

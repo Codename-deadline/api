@@ -33,8 +33,7 @@ class OrganizationInvitationService(
     private val permissionService: PermissionService
 ) {
     fun createInvitation(issuer: User, organizationId: Long, usernameToInvite: String, role: ScopeRole): InvitationCreatedResponse {
-        // TODO: Introduce a narrow organization role type or move to payload validation
-        if (role == ScopeRole.ORG_OWNER || !role.name.startsWith("ORG")) {
+        if (role == ScopeRole.ORG_OWNER || !role.canBeAssignedInScope(ScopeType.ORGANIZATION)) {
             throw StatusCodeException(400, ErrorCode.INVITATION_INVALID_ROLE)
         }
 
@@ -57,7 +56,7 @@ class OrganizationInvitationService(
 
         // FIXME: Add a db partial index to disallow multiple pending invitations of the same user at the same time
         val invitation = try {
-            organizationInvitationRepository.save(createInvitation(issuer, userToInvite, organization, role))
+            organizationInvitationRepository.save(newPendingInvitation(issuer, userToInvite, organization, role))
         } catch (_: DataIntegrityViolationException) {
             throw StatusCodeException(400, ErrorCode.INVITATION_ALREADY_INVITED)
         }
@@ -66,8 +65,14 @@ class OrganizationInvitationService(
         return InvitationCreatedResponse(invitation.id)
     }
 
-    fun getInvitation(issuer: User, invitationId: Long): OrganizationInvitationResponse =
-        organizationInvitationRepository.findByIdOr404(invitationId, ErrorCode.INVITATION_NOT_FOUND).toResponse()
+    fun getInvitation(issuer: User, invitationId: Long): OrganizationInvitationResponse {
+        val invitation = organizationInvitationRepository.findByIdOr404(invitationId, ErrorCode.INVITATION_NOT_FOUND)
+        requirePermission(
+            permissionService.canAccessOrganizationInvitation(issuer, invitation)
+        )
+        return invitation.toResponse()
+    }
+
 
     fun resolveInvitation(userAcceptingInvitation: User, invitationId: Long, newStatus: InvitationStatus) {
         val organizationInvitation = organizationInvitationRepository.findByIdOr404(
@@ -101,7 +106,7 @@ class OrganizationInvitationService(
         }
     }
 
-    fun createInvitation(issuer: User, userToInvite: User, organization: Organization, role: ScopeRole) =
+    fun newPendingInvitation(issuer: User, userToInvite: User, organization: Organization, role: ScopeRole) =
         OrganizationInvitation(
             0,
             issuer,

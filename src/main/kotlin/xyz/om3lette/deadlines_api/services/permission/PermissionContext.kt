@@ -39,15 +39,15 @@ class PermissionContext {
                 val orgRole = getHighestRole(
                     OrganizationScope(permissionScope.thread.organization.id)
                 ) ?: return null
-                val threadRole = get(permissionScope.thread.id, ScopeType.THREAD) ?: return null
-                return maxOf(orgRole, threadRole)
+                val threadRole = get(permissionScope.thread.id, ScopeType.THREAD)
+                return maxOf(orgRole, threadRole ?: orgRole)
             }
             is DeadlineScope -> {
                 val maxOfThreadAndOrgRole = getHighestRole(
                     ThreadScope(permissionScope.deadline.thread)
                 ) ?: return null
-                val deadlineRole = get(permissionScope.deadline.id, ScopeType.DEADLINE) ?: return null
-                return maxOf(maxOfThreadAndOrgRole, deadlineRole)
+                val deadlineRole = get(permissionScope.deadline.id, ScopeType.DEADLINE)
+                return maxOf(maxOfThreadAndOrgRole, deadlineRole ?: maxOfThreadAndOrgRole)
             }
         }
 

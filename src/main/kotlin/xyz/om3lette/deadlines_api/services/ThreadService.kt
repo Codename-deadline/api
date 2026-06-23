@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service
 import xyz.om3lette.deadlines_api.data.common.response.PaginationResponse
 import xyz.om3lette.deadlines_api.data.permissions.dto.OrganizationScope
 import xyz.om3lette.deadlines_api.data.permissions.dto.ThreadScope
+import xyz.om3lette.deadlines_api.data.scopes.common.dto.UsernameRolePairList
 import xyz.om3lette.deadlines_api.data.scopes.organization.repo.OrganizationRepository
 import xyz.om3lette.deadlines_api.data.scopes.thread.dto.ThreadStatsDTO
 import xyz.om3lette.deadlines_api.data.scopes.thread.model.Thread
@@ -45,7 +46,7 @@ class ThreadService(
         organizationId: Long,
         title: String,
         description: String?,
-        assigneesUsernames: List<String>
+        assignees: UsernameRolePairList
     ): ThreadCreatedResponse {
         requirePermission(
             permissionService.canCreateThread(issuer, organizationId)
@@ -71,9 +72,11 @@ class ThreadService(
                 creationTime
             )
         )
+
+        val assigneeMap = assignees.filterByScope(ScopeType.THREAD).associateBy { it.username.lowercase() }
         userScopeRepository.findByScopeIdAndScopeTypeAndUsernameInIgnoreCase(
             organization.id, ScopeType.ORGANIZATION,
-            assigneesUsernames.map { it.lowercase() }
+            assigneeMap.keys.map { it }
         ).forEach { userScope ->
             threadAssigneeScopes.add(
                 UserScope(
@@ -81,7 +84,7 @@ class ThreadService(
                     userScope.user,
                     ScopeType.THREAD,
                     thread.id,
-                    ScopeRole.THR_ASSIGNEE,
+                    assigneeMap[userScope.user.username.lowercase()]!!.role,
                     creationTime
                 )
             )
@@ -101,7 +104,7 @@ class ThreadService(
     }
 
     fun addAssignee(issuer: User, threadId: Long, username: String, role: ScopeRole) {
-        if (!role.name.startsWith("THR")) {
+        if (!role.canBeAssignedInScope(ScopeType.THREAD)) {
             throw StatusCodeException(400, ErrorCode.INVITATION_INVALID_ROLE)
         }
         if (username.equals(issuer.username, ignoreCase = true)) {
@@ -161,12 +164,25 @@ class ThreadService(
         )
     }
 
-    private fun prepareThreadResponseData(user: User, threadIds: List<Long>, prefetchRoles: Boolean = true): Map<Long, ThreadStatsDTO> {
-        if (prefetchRoles) {
-            permissionService.prefetchUserRoles(user, thrIds = threadIds)
+    private fun prepareThreadResponseData(user: User, threads: List<Thread>, prefetchRoles: Boolean = true): Map<Long, ThreadStatsDTO> {
+        val threadIds = mutableSetOf<Long>()
+        val organizationIds = mutableSetOf<Long>()
+
+        for (thread in threads) {
+            threadIds.add(thread.id)
+            organizationIds.add(thread.organization.id)
         }
 
-        return threadRepository.getThreadStats(threadIds)
+        val threadIdsList = threadIds.toList()
+        if (prefetchRoles) {
+            permissionService.prefetchUserRoles(
+                user,
+                orgIds = organizationIds.toList(),
+                thrIds = threadIdsList
+            )
+        }
+
+        return threadRepository.getThreadStats(threadIdsList)
             .associateBy { it.threadId }
     }
 
@@ -190,16 +206,15 @@ class ThreadService(
         pageNumber: Int,
         pageSize: Int
     ): PaginationResponse<ThreadResponseWithRole> {
-        val threadIds = userScopeRepository.findAllScopeIdsByUserAndScopeType(
-            issuer.id, ScopeType.THREAD, PageRequest.of(pageNumber, pageSize)
-        )
+        val threadsPage = threadRepository.findAllByUser(issuer.id, PageRequest.of(pageNumber, pageSize))
+        val threadsList = threadsPage.toList()
 
-        val stats = prepareThreadResponseData(issuer, threadIds.toList())
+        val stats = prepareThreadResponseData(issuer, threadsList)
         return PaginationResponse(
-            threadRepository.findAllById(threadIds).map {
+            threadsList.map {
                 mapThreadToFullResponse(issuer, it, stats)
             },
-            totalPages = threadIds.totalPages
+            totalPages = threadsPage.totalPages
         )
     }
 
@@ -219,7 +234,7 @@ class ThreadService(
         val threads = threadRepository.findAllByOrganization(
             organization, PageRequest.of(pageNumber, pageSize)
         )
-        val stats = prepareThreadResponseData(issuer, threads.map { it.id }.toList())
+        val stats = prepareThreadResponseData(issuer, threads.toList())
 
         return threads.toPaginationResponse {
             mapThreadToFullResponse(issuer, it, stats)

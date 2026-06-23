@@ -15,22 +15,22 @@ import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.assertAll
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
+import xyz.om3lette.deadlines_api.data.scopes.common.dto.UsernameRolePair
+import xyz.om3lette.deadlines_api.data.scopes.common.dto.UsernameRolePairList
 import xyz.om3lette.deadlines_api.data.scopes.deadline.repo.DeadlineRepository
 import xyz.om3lette.deadlines_api.data.scopes.organization.enums.InvitationStatus
-import xyz.om3lette.deadlines_api.data.scopes.organization.enums.OrganizationInvitationRole
 import xyz.om3lette.deadlines_api.data.scopes.organization.enums.OrganizationType
-import xyz.om3lette.deadlines_api.data.scopes.organization.dto.InvitationDTO
 import xyz.om3lette.deadlines_api.data.scopes.organization.model.Organization
 import xyz.om3lette.deadlines_api.data.scopes.organization.model.OrganizationInvitation
 import xyz.om3lette.deadlines_api.data.scopes.organization.repo.OrganizationInvitationRepository
 import xyz.om3lette.deadlines_api.data.scopes.organization.repo.OrganizationRepository
 import xyz.om3lette.deadlines_api.data.scopes.thread.repo.ThreadRepository
-import xyz.om3lette.deadlines_api.data.user.model.User
-import xyz.om3lette.deadlines_api.data.user.repo.UserRepository
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeRole
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType
 import xyz.om3lette.deadlines_api.data.scopes.userScope.model.UserScope
 import xyz.om3lette.deadlines_api.data.scopes.userScope.repo.UserScopeRepository
+import xyz.om3lette.deadlines_api.data.user.model.User
+import xyz.om3lette.deadlines_api.data.user.repo.UserRepository
 import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
 import xyz.om3lette.deadlines_api.services.permission.PermissionService
 import java.time.Instant
@@ -153,7 +153,7 @@ class OrganizationServiceTest {
             every { organizationRepository.save(capture(savedOrganizationSlot)) } returnsArgument 0
 
             every { organizationInvitationRepository.saveAll(capture(savedInvitationsSlot)) } returnsArgument 0
-            every { organizationInvitationService.createInvitation(dummyUserBob, dummyUserAlice, any(), any()) } returns dummyInvitation
+            every { organizationInvitationService.newPendingInvitation(dummyUserBob, dummyUserAlice, any(), any()) } returns dummyInvitation
         }
 
         @Test
@@ -163,7 +163,7 @@ class OrganizationServiceTest {
                 "My first org",
                 null,
                 OrganizationType.PUBLIC,
-                listOf()
+                UsernameRolePairList(emptyList())
             )
 
             verify {
@@ -194,8 +194,10 @@ class OrganizationServiceTest {
                 "My first org",
                 null,
                 OrganizationType.PUBLIC,
-                listOf(
-                    InvitationDTO("Alice", OrganizationInvitationRole.ORG_ADMIN)
+                UsernameRolePairList(
+                    listOf(
+                        UsernameRolePair("Alice", ScopeRole.ORG_ADMIN)
+                    )
                 )
             )
 
