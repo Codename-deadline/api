@@ -1,7 +1,10 @@
 package xyz.om3lette.deadlines_api.services
 
+import jakarta.transaction.Transactional
 import org.springframework.dao.DataIntegrityViolationException
+import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
+import xyz.om3lette.deadlines_api.data.common.response.PaginationResponse
 import xyz.om3lette.deadlines_api.data.scopes.organization.enums.InvitationStatus
 import xyz.om3lette.deadlines_api.data.scopes.organization.enums.OrganizationType
 import xyz.om3lette.deadlines_api.data.scopes.organization.model.Organization
@@ -73,18 +76,44 @@ class OrganizationInvitationService(
         return invitation.toResponse()
     }
 
+    fun revokeInvitation(issuer: User, invitationId: Long) {
+        val invitation = organizationInvitationRepository.findByIdOr404(invitationId, ErrorCode.INVITATION_NOT_FOUND)
+        requirePermission(
+            permissionService.canAccessOrganizationInvitation(issuer, invitation)
+        )
+        invitation.status = InvitationStatus.REVOKED
+        organizationInvitationRepository.save(invitation)
+    }
 
+    fun getPendingInvitationsByUser(
+        issuer: User, pageNumber: Int, pageSize: Int
+    ): PaginationResponse<OrganizationInvitationResponse> =
+        PaginationResponse.fromPage(
+            organizationInvitationRepository.findAllPendingByInvitedUserId(
+                issuer.id, PageRequest.of(pageNumber, pageSize)
+            ).map { it.toResponse() }
+        )
+
+    fun getPendingSentInvitationsByUser(
+        issuer: User, pageNumber: Int, pageSize: Int
+    ): PaginationResponse<OrganizationInvitationResponse> =
+        PaginationResponse.fromPage(
+            organizationInvitationRepository.findAllPendingSentByUserId(
+                issuer.id, PageRequest.of(pageNumber, pageSize)
+            ).map { it.toResponse() }
+        )
+
+    @Transactional
     fun resolveInvitation(userAcceptingInvitation: User, invitationId: Long, newStatus: InvitationStatus) {
         val organizationInvitation = organizationInvitationRepository.findByIdOr404(
             invitationId, ErrorCode.INVITATION_NOT_FOUND
         )
 
-        if (organizationInvitation.status != InvitationStatus.PENDING) {
-            throw StatusCodeException(400, ErrorCode.INVITATION_ALREADY_ANSWERED)
-        }
-
         if (organizationInvitation.invitedUser.id != userAcceptingInvitation.id) {
             throw StatusCodeException(403, ErrorCode.AUTH_INSUFFICIENT_PERMISSIONS)
+        }
+        if (organizationInvitation.status != InvitationStatus.PENDING) {
+            throw StatusCodeException(400, ErrorCode.INVITATION_ALREADY_ANSWERED)
         }
 
         organizationInvitation.status = newStatus

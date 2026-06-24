@@ -8,6 +8,7 @@ import org.springframework.security.core.userdetails.UserDetails
 import xyz.om3lette.deadlines_api.data.integration.bot.enums.Language
 import xyz.om3lette.deadlines_api.data.integration.messengerAccount.model.UserMessengerAccount
 import xyz.om3lette.deadlines_api.data.user.enums.UserRole
+import xyz.om3lette.deadlines_api.data.user.response.MinimalUserResponse
 import xyz.om3lette.deadlines_api.data.user.response.UserResponse
 import java.time.Instant
 
@@ -70,5 +71,9 @@ data class User(
 
     fun toResponse() = UserResponse(
         id, username, fullName, joinedAt, language
+    )
+
+    fun toMinimalResponse() = MinimalUserResponse(
+        username, fullName
     )
 }
