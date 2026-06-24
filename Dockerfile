@@ -1,4 +1,4 @@
-FROM gradle:9.2.1-jdk25 AS builder
+FROM gradle:9.5.1-jdk25 AS builder
 
 COPY . /workspace/app
 
