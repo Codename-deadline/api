@@ -248,7 +248,7 @@ class PermissionServiceTest {
 
         @Test
         fun canManageOrganizationMembers() = testForMinAcceptableRole(
-            ScopeRole.ORG_ADMIN, orgScope(), permissionService::canManageAssignees
+            ScopeRole.ORG_ADMIN, orgScope(), permissionService::canAddAssignees
         )
     }
 
@@ -296,7 +296,7 @@ class PermissionServiceTest {
 
         @Test
         fun canManageThreadAssignees() = testForMinAcceptableRole(
-            ScopeRole.THR_ADMIN, thrScope(),permissionService::canManageAssignees
+            ScopeRole.THR_ADMIN, thrScope(),permissionService::canAddAssignees
         )
     }
 
@@ -334,7 +334,7 @@ class PermissionServiceTest {
 
         @Test
         fun canManageDeadlineAssignees() = testForMinAcceptableRole(
-            ScopeRole.THR_ADMIN, ddlScope(), permissionService::canManageAssignees
+            ScopeRole.THR_ADMIN, ddlScope(), permissionService::canAddAssignees
         )
 
         @Test

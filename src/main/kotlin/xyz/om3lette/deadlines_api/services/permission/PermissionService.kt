@@ -200,12 +200,24 @@ class PermissionService(
     /*
         Helper wrappers
      */
-    fun canManageAssignees(issuer: User, permissionScope: PermissionScope) =
+    fun canAddAssignees(issuer: User, permissionScope: PermissionScope) =
         when (permissionScope) {
             is OrganizationScope -> canManageOrganizationMembers(issuer, permissionScope.orgId)
             is ThreadScope -> canManageThreadAssignees(issuer, permissionScope.thread)
             is DeadlineScope -> canManageDeadlineAssignees(issuer, permissionScope.deadline)
         }
+
+    fun canRemoveAssignee(issuer: User, permissionScope: PermissionScope, memberRole: ScopeRole): Boolean {
+        if (!canAddAssignees(issuer, permissionScope))
+            return false
+        val userRole: ScopeRole = when (permissionScope) {
+            is OrganizationScope -> roleForOrganizationLazy(issuer, permissionScope.orgId)
+            is ThreadScope -> roleForThreadLazy(issuer, permissionScope.thread)
+            is DeadlineScope -> roleForDeadlineLazy(issuer, permissionScope.deadline)
+        }() ?: return false
+
+        return userRole > memberRole
+    }
 
     /**
      * Checks if a user has access to a scope.
@@ -274,7 +286,7 @@ class PermissionService(
     }
 
     fun canChangeRole(issuer: User, permissionScope: PermissionScope, newRole: ScopeRole): Boolean {
-            if (!canManageAssignees(issuer, permissionScope)) return false
+            if (!canAddAssignees(issuer, permissionScope)) return false
             return issuer.isAdminOrHasRoleAnd(findRoleByPermissionScopeLazy(issuer, permissionScope)) { role ->
                 // '<'  Implicitly forbids multiple organization owners
                 canAssignWithCurrentRole(role, newRole)

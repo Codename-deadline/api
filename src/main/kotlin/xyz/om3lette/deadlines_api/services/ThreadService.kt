@@ -29,7 +29,6 @@ import xyz.om3lette.deadlines_api.services.permission.PermissionService
 import xyz.om3lette.deadlines_api.util.jpaRepository.findByIdOr404
 import xyz.om3lette.deadlines_api.util.page.toPaginationResponse
 import xyz.om3lette.deadlines_api.util.requirePermission
-import xyz.om3lette.deadlines_api.util.userRepository.findByUsernameIgnoreCaseOr404
 import java.time.Instant
 
 @Service
@@ -116,7 +115,7 @@ class ThreadService(
             username, ScopeType.ORGANIZATION, thread.organization.id
         ).orElseThrow{ StatusCodeException(400, ErrorCode.INVITATION_NOT_ORG_MEMBER) }
         requirePermission(
-            permissionService.canManageAssignees(issuer, ThreadScope(thread))
+            permissionService.canAddAssignees(issuer, ThreadScope(thread))
         )
 
         userScopeRepository.save(
@@ -137,17 +136,20 @@ class ThreadService(
             throw StatusCodeException(400, ErrorCode.ACTION_SELF_REMOVAL)
         }
 
+        val permissionDTO = userScopeRepository.findRoleAndUserIdByUsernameLowerAndScopeIdAndScopeType(
+            assigneeUsername.lowercase(), threadId, ScopeType.THREAD
+        ) ?: throw StatusCodeException(404, ErrorCode.MEMBER_NOT_FOUND)
+        val permissionScope = ThreadScope(
+            threadRepository.findByIdOr404(threadId, ErrorCode.THR_NOT_FOUND)
+        )
         requirePermission(
-            permissionService.canManageAssignees(issuer, ThreadScope(
-                threadRepository.findByIdOr404(threadId, ErrorCode.THR_NOT_FOUND)
-            ))
+            permissionService.canRemoveAssignee(issuer, permissionScope, permissionDTO.role)
         )
 
         // FIXME: RETHINK
         // Deadline scopes for the user do not exist as he was a THREAD_ASSIGNEE which already grants access
         // to all deadlines of the given thread
-        val userToRemove = userRepository.findByUsernameIgnoreCaseOr404(assigneeUsername)
-        userScopeRepository.deleteByUserAndScopeId(userToRemove, null, threadId, null)
+        userScopeRepository.deleteByUserIdAndScopeId(permissionDTO.userId, null, threadId, null)
     }
 
     fun getThread(issuer: User, threadId: Long): ThreadResponse {

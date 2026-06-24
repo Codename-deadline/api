@@ -17,6 +17,7 @@ import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.data.domain.PageImpl
 import xyz.om3lette.deadlines_api.DomainObjectBuilder
 import xyz.om3lette.deadlines_api.data.permissions.dto.OrganizationScope
+import xyz.om3lette.deadlines_api.data.permissions.dto.PermissionRoleDTO
 import xyz.om3lette.deadlines_api.data.permissions.dto.ThreadScope
 import xyz.om3lette.deadlines_api.data.scopes.common.dto.UsernameRolePair
 import xyz.om3lette.deadlines_api.data.scopes.common.dto.UsernameRolePairList
@@ -218,16 +219,18 @@ class ThreadServiceTest {
 
     @Nested
     inner class RemoveAssignee() {
-        private val deletedUserSlot: CapturingSlot<User> = slot()
+        private val deletedUserIdSlot: CapturingSlot<Long> = slot()
 
         @BeforeEach
         fun commonHappyStubs() {
-            val aliceUsername = dummyUserAlice.username
-            every { userRepository.findByUsernameIgnoreCase(aliceUsername) } returns Optional.of(dummyUserAlice)
-            every { permissionService.canManageAssignees(any(), thrScope()) } returns true
+            every { userScopeRepository.findRoleAndUserIdByUsernameLowerAndScopeIdAndScopeType(
+                dummyUserAlice.username.lowercase(), any(), any()
+            ) } returns PermissionRoleDTO(dummyUserAlice.id, dummyUserScopeAlice.role)
 
-            every { userScopeRepository.deleteByUserAndScopeId(
-                capture(deletedUserSlot), any(), thread.id, any()
+            every { permissionService.canRemoveAssignee(any(), thrScope(), any()) } returns true
+
+            every { userScopeRepository.deleteByUserIdAndScopeId(
+                capture(deletedUserIdSlot), any(), thread.id, any()
             ) } returns 0
         }
 
@@ -237,37 +240,39 @@ class ThreadServiceTest {
                 threadService.removeAssignee(dummyUserBob,thread.id, dummyUserBob.username)
             }
             assertEquals(400, res.statusCode)
-            assertFalse(deletedUserSlot.isCaptured)
+            assertFalse(deletedUserIdSlot.isCaptured)
         }
 
         @Test
         fun `permissions not satisfied throws StatusCodeException 403`() {
-            every { permissionService.canManageAssignees(any(), thrScope()) } returns false
+            every { permissionService.canRemoveAssignee(any(), thrScope(), any()) } returns false
 
             val res = assertThrows<StatusCodeException> {
                 threadService.removeAssignee(dummyUserBob,thread.id, dummyUserAlice.username)
             }
             assertEquals(403, res.statusCode)
-            assertFalse(deletedUserSlot.isCaptured)
+            assertFalse(deletedUserIdSlot.isCaptured)
         }
 
         @Test
         fun `user to remove not found throws StatusCodeException 404`() {
-            every { userRepository.findByUsernameIgnoreCase(any()) } returns Optional.empty()
+            every { userScopeRepository.findRoleAndUserIdByUsernameLowerAndScopeIdAndScopeType(
+                dummyUserAlice.username.lowercase(), any(), any()
+            ) } returns null
 
             val res = assertThrows<StatusCodeException> {
                 threadService.removeAssignee(dummyUserBob,thread.id, dummyUserAlice.username)
             }
             assertEquals(404, res.statusCode)
-            assertFalse(deletedUserSlot.isCaptured)
+            assertFalse(deletedUserIdSlot.isCaptured)
         }
 
         @Test
         fun `happy path deletes UserScope`() {
             threadService.removeAssignee(dummyUserBob,thread.id, dummyUserAlice.username)
 
-            assertTrue(deletedUserSlot.isCaptured)
-            assertEquals(dummyUserAlice.username, deletedUserSlot.captured.username)
+            assertTrue(deletedUserIdSlot.isCaptured)
+            assertEquals(dummyUserAlice.id, deletedUserIdSlot.captured)
         }
     }
 
@@ -285,7 +290,7 @@ class ThreadServiceTest {
 
         @Test
         fun `happy path returns thread map`() {
-            every { permissionService.canManageAssignees(dummyUserBob, any()) } returns false
+            every { permissionService.canAddAssignees(dummyUserBob, any()) } returns false
 
             val res: ThreadResponse = threadService.getThread(dummyUserBob,thread.id)
             assertAll(

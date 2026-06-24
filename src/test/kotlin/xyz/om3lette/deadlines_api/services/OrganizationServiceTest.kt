@@ -15,6 +15,8 @@ import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.assertAll
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
+import xyz.om3lette.deadlines_api.DomainObjectBuilder
+import xyz.om3lette.deadlines_api.data.permissions.dto.PermissionRoleDTO
 import xyz.om3lette.deadlines_api.data.scopes.common.dto.UsernameRolePair
 import xyz.om3lette.deadlines_api.data.scopes.common.dto.UsernameRolePairList
 import xyz.om3lette.deadlines_api.data.scopes.deadline.repo.DeadlineRepository
@@ -29,7 +31,6 @@ import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeRole
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType
 import xyz.om3lette.deadlines_api.data.scopes.userScope.model.UserScope
 import xyz.om3lette.deadlines_api.data.scopes.userScope.repo.UserScopeRepository
-import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.data.user.repo.UserRepository
 import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
 import xyz.om3lette.deadlines_api.services.permission.PermissionService
@@ -62,21 +63,8 @@ class OrganizationServiceTest {
         organizationInvitationService
     )
 
-    private val dummyUserBob = spyk(User(
-        0,
-        "Bob",
-        Instant.now(),
-        "Bob the tester",
-        "raw-password"
-    ))
-
-    private val dummyUserAlice = spyk(User(
-        1,
-        "Alice",
-        Instant.now(),
-        "Alice the tester",
-        "raw-password"
-    ))
+    private val dummyUserBob = DomainObjectBuilder.userBob()
+    private val dummyUserAlice = DomainObjectBuilder.userAlice()
 
     private val dummyOrganization = Organization(
         256,
@@ -121,13 +109,12 @@ class OrganizationServiceTest {
             dummyUserBob, dummyOrganization.id, ScopeType.ORGANIZATION
         ) } returns Optional.of(dummyUserScopeBob)
         every { userRepository.findByUsernameInIgnoreCase(emptyList()) } returns emptyList()
-        every { userRepository.findByUsernameInIgnoreCase(listOf("alice")) } returns listOf(dummyUserAlice)
-        every { userRepository.findByUsernameIgnoreCase("Alice") } returns Optional.of(dummyUserAlice)
+        every { userRepository.findByUsernameInIgnoreCase(listOf(dummyUserAlice.username)) } returns listOf(dummyUserAlice)
 
         every { organizationRepository.findById(dummyOrganization.id) } returns Optional.of(dummyOrganization)
 
-        every { userScopeRepository.deleteByUserAndScopeId(dummyUserAlice, dummyOrganization.id, null, null) } returns 1
-        every { userScopeRepository.deleteByUserAndScopeTypeAndScopeIdIn(dummyUserAlice, any(), any()) } returns 1
+        every { userScopeRepository.deleteByUserIdAndScopeId(dummyUserAlice.id, dummyOrganization.id, null, null) } returns 1
+        every { userScopeRepository.deleteByUserIdAndScopeTypeAndScopeIdIn(dummyUserAlice.id, any(), any()) } returns 1
         every { threadRepository.findAllIdsByOrganizationId(any()) } returns listOf()
         every { deadlineRepository.findAllIdsByOrganizationId(any()) } returns listOf()
 
@@ -196,7 +183,7 @@ class OrganizationServiceTest {
                 OrganizationType.PUBLIC,
                 UsernameRolePairList(
                     listOf(
-                        UsernameRolePair("Alice", ScopeRole.ORG_ADMIN)
+                        UsernameRolePair(dummyUserAlice.username, ScopeRole.ORG_ADMIN)
                     )
                 )
             )
@@ -283,33 +270,38 @@ class OrganizationServiceTest {
 
         @BeforeEach
         fun commonHappyStubs() {
-            every { permissionService.canManageAssignees(any(), any()) } returns true
+            every { permissionService.canRemoveAssignee(any(), any(), any()) } returns true
         }
 
         @Test
         fun `if member is not found throws StatusCodeException 404`() {
-            every { userRepository.findByUsernameIgnoreCase("UnknownMember") } returns Optional.empty()
+            every { userScopeRepository.findRoleAndUserIdByUsernameLowerAndScopeIdAndScopeType(
+                any(), any(), any()
+            ) } returns null
 
             val res = assertThrows<StatusCodeException> {
                 organizationService.removeMember(dummyUserBob, dummyOrganization.id, "UnknownMember")
             }
 
             assertAll(
-                { verify(exactly = 0) {userScopeRepository.deleteByUserAndScopeTypeAndScopeIdIn(any(), any(), any()) } },
+                { verify(exactly = 0) {userScopeRepository.deleteByUserIdAndScopeTypeAndScopeIdIn(any(), any(), any()) } },
                 { assertEquals(404, res.statusCode) }
             )
         }
 
         @Test
         fun `not enough permissions throws StatusCodeException 403`() {
-            every { permissionService.canManageAssignees(any(), any()) } returns false
+            every { userScopeRepository.findRoleAndUserIdByUsernameLowerAndScopeIdAndScopeType(
+                dummyUserAlice.username.lowercase(), any(), any()
+            ) } returns PermissionRoleDTO(dummyUserAlice.id, dummyUserScopeAlice.role)
+            every { permissionService.canRemoveAssignee(any(), any(), any()) } returns false
 
             val res = assertThrows<StatusCodeException>{
-                organizationService.removeMember(dummyUserBob, dummyOrganization.id, "Alice")
+                organizationService.removeMember(dummyUserBob, dummyOrganization.id, dummyUserAlice.username)
             }
 
             assertAll(
-                { verify(exactly = 0) {userScopeRepository.deleteByUserAndScopeTypeAndScopeIdIn(any(), any(), any()) } },
+                { verify(exactly = 0) {userScopeRepository.deleteByUserIdAndScopeTypeAndScopeIdIn(any(), any(), any()) } },
                 { assertEquals(403, res.statusCode) }
             )
         }
@@ -317,21 +309,25 @@ class OrganizationServiceTest {
         @Test
         fun `removing issuer throws StatusCodeException 400`() {
             val res = assertThrows<StatusCodeException>{
-                organizationService.removeMember(dummyUserBob, dummyOrganization.id, "BOB")
+                organizationService.removeMember(dummyUserBob, dummyOrganization.id, dummyUserBob.username)
             }
 
             assertAll(
-                { verify(exactly = 0) { userScopeRepository.deleteByUserAndScopeTypeAndScopeIdIn(any(), any(), any()) } },
+                { verify(exactly = 0) { userScopeRepository.deleteByUserIdAndScopeTypeAndScopeIdIn(any(), any(), any()) } },
                 { assertEquals(400, res.statusCode) }
             )
         }
 
         @Test
         fun `happy path removes organization member`() {
-            dummyOrganization.members.add(dummyUserScopeAlice)
-            organizationService.removeMember(dummyUserBob, dummyOrganization.id, "Alice")
+            every { userScopeRepository.findRoleAndUserIdByUsernameLowerAndScopeIdAndScopeType(
+                dummyUserAlice.username.lowercase(), any(), any()
+            ) } returns PermissionRoleDTO(dummyUserAlice.id, dummyUserScopeAlice.role)
 
-            verify(exactly = 1) { userScopeRepository.deleteByUserAndScopeId(dummyUserAlice, dummyOrganization.id, null, null) }
+            dummyOrganization.members.add(dummyUserScopeAlice)
+            organizationService.removeMember(dummyUserBob, dummyOrganization.id, dummyUserAlice.username)
+
+            verify(exactly = 1) { userScopeRepository.deleteByUserIdAndScopeId(dummyUserAlice.id, dummyOrganization.id, null, null) }
         }
     }
 }

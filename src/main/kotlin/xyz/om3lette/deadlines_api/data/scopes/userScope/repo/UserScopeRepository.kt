@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
+import xyz.om3lette.deadlines_api.data.permissions.dto.PermissionRoleDTO
 import xyz.om3lette.deadlines_api.data.scopes.userScope.dto.ScopeRoleDTO
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType
 import xyz.om3lette.deadlines_api.data.scopes.userScope.model.UserScope
@@ -14,6 +15,19 @@ import xyz.om3lette.deadlines_api.data.user.model.User
 import java.util.Optional
 
 interface UserScopeRepository : JpaRepository<UserScope, Long> {
+    @Query("""
+        SELECT
+            us.user.id as userId,
+            us.role as role
+        FROM UserScope us
+        JOIN User u ON LOWER(u._username) = :usernameLower
+        WHERE us.scopeId = :scopeId
+            AND us.scopeType = :scopeType
+    """)
+    fun findRoleAndUserIdByUsernameLowerAndScopeIdAndScopeType(
+        usernameLower: String, scopeId: Long, scopeType: ScopeType
+    ): PermissionRoleDTO?
+
     fun findByUserAndScopeIdAndScopeType(
         user: User,
         scopeId: Long,
@@ -64,7 +78,7 @@ interface UserScopeRepository : JpaRepository<UserScope, Long> {
     @Query(
         """
             DELETE FROM UserScope us
-            WHERE us.user = :user
+            WHERE us.user.id = :userId
                 AND (
                     (us.scopeType = 'ORG' AND us.scopeId = :orgId)
                     OR (us.scopeType = 'THR' AND us.scopeId = :thrId)
@@ -72,8 +86,8 @@ interface UserScopeRepository : JpaRepository<UserScope, Long> {
                 )
         """
     )
-    fun deleteByUserAndScopeId(
-        user: User,
+    fun deleteByUserIdAndScopeId(
+        userId: Long,
         orgId: Long?,
         thrId: Long?,
         ddlId: Long?,
@@ -81,8 +95,8 @@ interface UserScopeRepository : JpaRepository<UserScope, Long> {
 
     @Modifying
     @Transactional
-    fun deleteByUserAndScopeTypeAndScopeIdIn(
-        user: User,
+    fun deleteByUserIdAndScopeTypeAndScopeIdIn(
+        userId: Long,
         scopeType: ScopeType,
         scopeId: Collection<Long>
     ): Int

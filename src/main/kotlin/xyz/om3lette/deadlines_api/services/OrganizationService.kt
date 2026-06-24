@@ -32,7 +32,6 @@ import xyz.om3lette.deadlines_api.services.permission.PermissionService
 import xyz.om3lette.deadlines_api.util.jpaRepository.findByIdOr404
 import xyz.om3lette.deadlines_api.util.page.toPaginationResponse
 import xyz.om3lette.deadlines_api.util.requirePermission
-import xyz.om3lette.deadlines_api.util.userRepository.findByUsernameIgnoreCaseOr404
 import java.time.Instant
 
 @Service
@@ -107,24 +106,29 @@ class OrganizationService(
             throw StatusCodeException(400, ErrorCode.ACTION_SELF_REMOVAL)
         }
 
+        val permissionDTO = userScopeRepository.findRoleAndUserIdByUsernameLowerAndScopeIdAndScopeType(
+            memberUsernameToRemove.lowercase(), orgId, ScopeType.ORGANIZATION
+        ) ?: throw StatusCodeException(404, ErrorCode.MEMBER_NOT_FOUND)
         requirePermission(
-            permissionService.canManageAssignees(issuer, OrganizationScope(orgId))
+            permissionService.canRemoveAssignee(
+                issuer, OrganizationScope(orgId), permissionDTO.role
+            )
         )
 
-        val userToRemove = userRepository.findByUsernameIgnoreCaseOr404(memberUsernameToRemove)
-        userScopeRepository.deleteByUserAndScopeId(userToRemove, orgId, null, null)
+        userScopeRepository.deleteByUserIdAndScopeId(permissionDTO.userId, orgId, null, null)
 
+        // TODO: Minimize number of queries
         val threadIds = threadRepository.findAllIdsByOrganizationId(orgId)
         if (threadIds.isNotEmpty()) {
-            userScopeRepository.deleteByUserAndScopeTypeAndScopeIdIn(
-                userToRemove, ScopeType.THREAD, threadIds
+            userScopeRepository.deleteByUserIdAndScopeTypeAndScopeIdIn(
+                permissionDTO.userId, ScopeType.THREAD, threadIds
             )
         }
 
         val deadlinesIds = deadlineRepository.findAllIdsByOrganizationId(orgId)
         if (deadlinesIds.isNotEmpty()) {
-            userScopeRepository.deleteByUserAndScopeTypeAndScopeIdIn(
-                userToRemove, ScopeType.DEADLINE,deadlinesIds
+            userScopeRepository.deleteByUserIdAndScopeTypeAndScopeIdIn(
+                permissionDTO.userId, ScopeType.DEADLINE,deadlinesIds
             )
         }
     }

@@ -19,6 +19,8 @@ enum class ErrorCode(val code: String) {
     USER_ALREADY_EXISTS("user.already-exists"),
     USER_NOT_FOUND("user.not-found"),
 
+    MEMBER_NOT_FOUND("member.not-found"),
+
     ACTION_SELF_REMOVAL("action.self-removal"),
 
     ROLE_CHANGE_SELF("role-change.self"),

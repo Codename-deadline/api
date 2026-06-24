@@ -33,8 +33,6 @@ import xyz.om3lette.deadlines_api.services.permission.PermissionService
 import xyz.om3lette.deadlines_api.util.jpaRepository.findByIdOr404
 import xyz.om3lette.deadlines_api.util.page.toPaginationResponse
 import xyz.om3lette.deadlines_api.util.requirePermission
-import xyz.om3lette.deadlines_api.util.user.isAdminOr
-import xyz.om3lette.deadlines_api.util.userRepository.findByUsernameIgnoreCaseOr404
 import java.time.Duration
 import java.time.Instant
 import java.time.temporal.ChronoUnit
@@ -163,7 +161,7 @@ class DeadlineService(
             username, ScopeType.ORGANIZATION, deadline.organization.id
         ).orElseThrow{ StatusCodeException(400, ErrorCode.INVITATION_NOT_ORG_MEMBER) }
         requirePermission(
-            permissionService.canManageAssignees(issuer, DeadlineScope(deadline))
+            permissionService.canAddAssignees(issuer, DeadlineScope(deadline))
         )
 
         userScopeRepository.save(
@@ -184,14 +182,17 @@ class DeadlineService(
             throw StatusCodeException(400, ErrorCode.ACTION_SELF_REMOVAL)
         }
 
+        val permissionDTO = userScopeRepository.findRoleAndUserIdByUsernameLowerAndScopeIdAndScopeType(
+            assigneeUsername.lowercase(), deadlineId, ScopeType.DEADLINE
+        ) ?: throw StatusCodeException(404, ErrorCode.MEMBER_NOT_FOUND)
+        val permissionScope = DeadlineScope(
+            deadlineRepository.findByIdOr404(deadlineId, ErrorCode.DDL_NOT_FOUND)
+        )
         requirePermission(
-            permissionService.canManageAssignees(issuer, DeadlineScope(
-                deadlineRepository.findByIdOr404(deadlineId, ErrorCode.DDL_NOT_FOUND)
-            ))
+            permissionService.canRemoveAssignee(issuer, permissionScope, permissionDTO.role)
         )
 
-        val userToRemove = userRepository.findByUsernameIgnoreCaseOr404(assigneeUsername)
-        userScopeRepository.deleteByUserAndScopeId(userToRemove, null, null, deadlineId)
+        userScopeRepository.deleteByUserIdAndScopeId(permissionDTO.userId, null, null, deadlineId)
     }
 
     fun getDeadline(issuer: User, deadlineId: Long): DeadlineResponse {
