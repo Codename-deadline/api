@@ -34,36 +34,4 @@ class OrganizationInvitationController(
         request.username,
         request.role
     )
-
-    @GetMapping("/{invitationId}")
-    @Operation(summary = "Get invitation details")
-    fun getInvitation(
-        @AuthenticationPrincipal user: User,
-        @PathVariable invitationId: Long
-    ) = organizationInvitationService.getInvitation(user, invitationId)
-
-    @PostMapping("/{invitationId}/accept")
-    @Operation(
-        summary = "Accept an invitation",
-        description = "Upon accepting user is added to the organization with a role specified in the invitation."
-    )
-    fun acceptInvitation(
-        @AuthenticationPrincipal user: User,
-        @PathVariable invitationId: Long
-    ) = organizationInvitationService.resolveInvitation(
-        user,
-        invitationId,
-        InvitationStatus.ACCEPTED
-    )
-
-    @PostMapping("/{invitationId}/decline")
-    @Operation(summary = "Decline invitation")
-    fun declineInvitation(
-        @AuthenticationPrincipal user: User,
-        @PathVariable invitationId: Long
-    ) = organizationInvitationService.resolveInvitation(
-        user,
-        invitationId,
-        InvitationStatus.DECLINED
-    )
 }

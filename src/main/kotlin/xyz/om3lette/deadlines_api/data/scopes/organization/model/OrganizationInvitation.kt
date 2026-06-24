@@ -30,6 +30,7 @@ data class OrganizationInvitation(
     @Enumerated(value = EnumType.STRING)
     var status: InvitationStatus,
 
+    @Enumerated(value = EnumType.STRING)
     val role: ScopeRole,
 
     @Column(columnDefinition = "TIMESTAMP WITH TIME ZONE")
@@ -51,8 +52,8 @@ data class OrganizationInvitation(
 
     fun toResponse() = OrganizationInvitationResponse(
         id,
-        invitedBy.toResponse(),
-        invitedUser.toResponse(),
+        invitedBy.toMinimalResponse(),
+        invitedUser.toMinimalResponse(),
         organization.toDTO(),
         status.name,
         role.name,
