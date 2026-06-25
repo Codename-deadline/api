@@ -20,9 +20,9 @@ interface UserScopeRepository : JpaRepository<UserScope, Long> {
             us.user.id as userId,
             us.role as role
         FROM UserScope us
-        JOIN User u ON LOWER(u._username) = :usernameLower
         WHERE us.scopeId = :scopeId
             AND us.scopeType = :scopeType
+            AND LOWER(us.user._username) = :usernameLower
     """)
     fun findRoleAndUserIdByUsernameLowerAndScopeIdAndScopeType(
         usernameLower: String, scopeId: Long, scopeType: ScopeType
