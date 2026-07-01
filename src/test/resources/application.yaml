@@ -1,0 +1,40 @@
+spring:
+  profiles:
+    active: test
+  security:
+    jwt:
+      secret: ${JWT_SECRET:amt2bWZrbXZta21wYXNwZHZtYVtwc2Rudmpkb2JuYjBhW3Nkdm5kZnVwWzxvaXNkdm5ib3c5ZXVwaXV2bmhiZnk4czk=}
+      access-expiration: ${JWT_ACCESS_EXPIRATION:10000}
+      refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800}
+  redis:
+    hostname: ${REDIS_HOSTNAME:localhost}
+    port: ${REDIS_PORT:6379}
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+
+jdbc:
+  driverClassName: org.h2.Driver
+  url: jdbc:h2:mem:db;DB_CLOSE_DELAY=-1
+  username: sa
+  password:
+
+users:
+  max-sessions: ${USERS_MAX_SESSIONS:5}
+  max-linked-accounts-per-messenger: ${USERS_MAX_LINKED_ACCOUNTS_PER_MESSENGER:2}
+
+outbox:
+  batch-size: ${OUTBOX_BATCH_SIZE:200}
+  max-retries: ${OUTBOX_MAX_RETRIES:5}
+
+storage:
+  s3:
+    endpoint: ${S3_ENDPOINT:http://localhost:3900}
+    region: ${S3_REGION:garage}
+    bucket: ${S3_BUCKET:attachments}
+    access-key: ${S3_ACCESS_KEY:ROOT}
+    secret-key: ${S3_SECRET_KEY:CHANGEME}
+    create-bucket: ${S3_CREATE_BUCKET:true}
+
+integration:
+  telegram:
+    bot-token: ${TELEGRAM_BOT_TOKEN:}

@@ -17,6 +17,7 @@ import xyz.om3lette.deadlines_api.data.common.response.PaginationResponse
 import xyz.om3lette.deadlines_api.data.permissions.dto.DeadlineScope
 import xyz.om3lette.deadlines_api.data.scopes.deadline.repo.DeadlineRepository
 import xyz.om3lette.deadlines_api.data.user.model.User
+import xyz.om3lette.deadlines_api.configs.properties.StorageProperties
 import xyz.om3lette.deadlines_api.exceptions.enums.ErrorCode
 import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
 import xyz.om3lette.deadlines_api.services.permission.PermissionService
@@ -32,13 +33,14 @@ import java.util.UUID
 @Service
 class AttachmentsService (
     private val minioClient: MinioClient,
-    private val bucketName: String = "attachments", // TODO: Replace with @Value?
+    storageProperties: StorageProperties,
     private val permissionService: PermissionService,
     private val attachmentRepository: AttachmentRepository,
     private val deadlineRepository: DeadlineRepository,
     private val fileCheckerService: FileCheckerService
 ) {
     private val logger = LoggerFactory.getLogger(AttachmentsService::class.java)
+    private val bucketName = storageProperties.s3.bucket
 
     fun createAttachment(
         issuer: User,

@@ -3,8 +3,8 @@ package xyz.om3lette.deadlines_api.services.auth.providers.tma
 import io.github.sanvew.tg.init.data.InitDataUtils.isValid
 import io.github.sanvew.tg.init.data.InitDataUtils.parse
 import io.github.sanvew.tg.init.data.type.InitData
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
+import xyz.om3lette.deadlines_api.configs.properties.IntegrationProperties
 import xyz.om3lette.deadlines_api.data.integration.bot.enums.Language
 import xyz.om3lette.deadlines_api.data.jwt.dto.TokenPair
 import xyz.om3lette.deadlines_api.exceptions.enums.ErrorCode
@@ -17,10 +17,10 @@ import xyz.om3lette.deadlines_api.services.auth.otp.UserProvisioningService
 @Service
 class TmaAuthProvider(
     private val authService: AuthService,
-    private val userProvisioningService: UserProvisioningService
+    private val userProvisioningService: UserProvisioningService,
+    integrationProperties: IntegrationProperties
 ) {
-    @Value("\${integration.telegram.bot-token}")
-    private lateinit var botToken: String
+    private val botToken = integrationProperties.telegram.botToken
 
     fun register(
         initData: String,

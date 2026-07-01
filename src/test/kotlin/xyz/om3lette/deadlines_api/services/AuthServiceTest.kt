@@ -14,6 +14,7 @@ import org.springframework.security.authentication.AuthenticationManager
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.Authentication
 import org.springframework.security.crypto.password.PasswordEncoder
+import xyz.om3lette.deadlines_api.configs.properties.UsersProperties
 import xyz.om3lette.deadlines_api.data.jwt.model.RefreshToken
 import xyz.om3lette.deadlines_api.data.jwt.repo.RefreshTokenRepository
 import xyz.om3lette.deadlines_api.data.user.model.User
@@ -39,7 +40,7 @@ class AuthServiceTest {
     private val refreshTokenRepository: RefreshTokenRepository = mockk()
 
     private val service = AuthService(
-        maxSessions,
+        UsersProperties(maxSessions = maxSessions),
         jwtService,
         authManager,
         passwordEncoder,

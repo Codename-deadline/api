@@ -1,8 +1,8 @@
 package xyz.om3lette.deadlines_api.services.permission
 
 import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
+import xyz.om3lette.deadlines_api.configs.properties.UsersProperties
 import xyz.om3lette.deadlines_api.data.permissions.dto.DeadlineScope
 import xyz.om3lette.deadlines_api.data.permissions.dto.OrganizationScope
 import xyz.om3lette.deadlines_api.data.permissions.dto.PermissionScope
@@ -25,11 +25,9 @@ import xyz.om3lette.deadlines_api.util.user.isAdminOrHasRoleAnd
 @Service
 class PermissionService(
     private val userScopeRepository: UserScopeRepository,
-    private val permissionContext: PermissionContext
+    private val permissionContext: PermissionContext,
+    private val usersProperties: UsersProperties
 ) {
-    @Value("\${users.max-linked-accounts-per-messenger}")
-    private var maxLinkedAccountsPerMessenger: Int = 5
-
     private val logger = LoggerFactory.getLogger(PermissionService::class.java)
 
     private fun roleForOrganizationLazy(user: User, organizationId: Long): () -> ScopeRole? =
@@ -269,7 +267,7 @@ class PermissionService(
      */
     fun canLinkAccount(issuer: User, accountsLinkedForMessenger: Int) =
         issuer.isAdminOr {
-            accountsLinkedForMessenger < maxLinkedAccountsPerMessenger
+            accountsLinkedForMessenger < usersProperties.maxLinkedAccountsPerMessenger
         }
     
     fun canRegisterChat(user: User?) = user != null

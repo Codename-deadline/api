@@ -3,9 +3,9 @@ package xyz.om3lette.deadlines_api.services
 import io.jsonwebtoken.Claims
 import io.jsonwebtoken.Jwts
 import io.jsonwebtoken.security.Keys
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.security.core.userdetails.UserDetails
 import org.springframework.stereotype.Service
+import xyz.om3lette.deadlines_api.configs.properties.JwtProperties
 import java.time.Instant
 import java.util.Base64
 import java.util.Date
@@ -14,16 +14,12 @@ import javax.crypto.SecretKey
 
 @Service
 class JwtService(
-    @param:Value("\${spring.security.jwt.secret}") private val jwtSecret: String
+    private val jwtProperties: JwtProperties
 ) {
 
-    private val secretKey: SecretKey = Keys.hmacShaKeyFor(Base64.getDecoder().decode(jwtSecret))
-
-    @Value("\${spring.security.jwt.access.expiration}")
-    private val jwtAccessExpiration: Long = 5 * 60
-
-    @Value("\${spring.security.jwt.refresh.expiration}")
-    private val jwtRefreshExpiration: Long = 7 * 24 * 60 * 60
+    private val secretKey: SecretKey = Keys.hmacShaKeyFor(
+        Base64.getDecoder().decode(jwtProperties.secret)
+    )
 
     private fun generateToken(
         userDetails: UserDetails,
@@ -53,11 +49,11 @@ class JwtService(
     }
 
     fun generateAccessToken(userDetails: UserDetails): Pair<String, String> {
-        return generateToken(userDetails, jwtAccessExpiration, HashMap())
+        return generateToken(userDetails, jwtProperties.accessExpiration, HashMap())
     }
 
     fun generateRefreshToken(userDetails: UserDetails): Pair<String, String> {
-        return generateToken(userDetails, jwtRefreshExpiration, mapOf("refresh" to true))
+        return generateToken(userDetails, jwtProperties.refreshExpiration, mapOf("refresh" to true))
     }
 
     fun extractAllClaims(token: String): Claims {

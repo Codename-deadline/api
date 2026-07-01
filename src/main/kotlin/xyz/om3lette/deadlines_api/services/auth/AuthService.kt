@@ -2,12 +2,12 @@ package xyz.om3lette.deadlines_api.services.auth
 
 import io.jsonwebtoken.Claims
 import jakarta.servlet.http.HttpServletRequest
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.security.authentication.AuthenticationManager
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
+import xyz.om3lette.deadlines_api.configs.properties.UsersProperties
 import xyz.om3lette.deadlines_api.data.integration.bot.enums.Language
 import xyz.om3lette.deadlines_api.data.jwt.model.RefreshToken
 import xyz.om3lette.deadlines_api.data.jwt.repo.RefreshTokenRepository
@@ -21,7 +21,7 @@ import java.time.Instant
 
 @Service
 class AuthService(
-    @param:Value("\${users.max-sessions}") private val maxSessions: Int,
+    private val usersProperties: UsersProperties,
     private val jwtService: JwtService,
     val authenticationManager: AuthenticationManager,
     private val passwordEncoder: PasswordEncoder,
@@ -54,14 +54,14 @@ class AuthService(
     fun signInNoPasswordCheck(user: User): TokenPair {
         val openedSessions = refreshTokenRepository.findAllValidByUser(user).count()
 
-        if (openedSessions >= maxSessions) {
+        if (openedSessions >= usersProperties.maxSessions) {
             throw StatusCodeException(
                 statusCode = 400,
                 code = ErrorCode.AUTH_SESSIONS_LIMIT_EXCEEDED,
                 detail = "Sessions limit reached: $openedSessions",
                 params = mapOf(
                     "opened" to openedSessions,
-                    "max" to maxSessions
+                    "max" to usersProperties.maxSessions
                 )
             )
         }

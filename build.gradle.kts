@@ -45,6 +45,7 @@ dependencies {
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("redis.clients:jedis")
 	implementation("io.minio:minio:9.0.2")
+	implementation("software.amazon.awssdk:bom:2.46.17")
 	implementation("org.apache.tika:tika-core:3.3.1")
     implementation("org.apache.tika:tika-parsers-standard-package:3.3.1")
 
