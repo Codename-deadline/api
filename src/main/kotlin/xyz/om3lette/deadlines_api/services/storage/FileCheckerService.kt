@@ -30,9 +30,11 @@ class FileCheckerService(
     }
 
     fun getAttachmentFileInfoOr403(fileStream: MultipartFile): AttachmentFileInfo {
-        val mimeType = tika.detect(TikaInputStream.get(fileStream.inputStream), Metadata().apply {
-            set(TikaCoreProperties.RESOURCE_NAME_KEY, fileStream.originalFilename)
-        })
+        val mimeType = TikaInputStream.get(fileStream.inputStream).use { inputStream ->
+            tika.detect(inputStream, Metadata().apply {
+                set(TikaCoreProperties.RESOURCE_NAME_KEY, fileStream.originalFilename)
+            })
+        }
 
         requirePermission(
             isFileAllowed(mimeType),

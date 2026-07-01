@@ -14,16 +14,16 @@ import software.amazon.awssdk.services.s3.model.GetObjectRequest
 import software.amazon.awssdk.services.s3.model.PutObjectRequest
 import software.amazon.awssdk.services.s3.presigner.S3Presigner
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest
+import xyz.om3lette.deadlines_api.configs.properties.StorageProperties
+import xyz.om3lette.deadlines_api.data.attachments.enums.AttachmentDisposition
 import xyz.om3lette.deadlines_api.data.attachments.model.Attachment
 import xyz.om3lette.deadlines_api.data.attachments.repo.AttachmentRepository
 import xyz.om3lette.deadlines_api.data.attachments.reponse.AttachmentCreatedResponse
 import xyz.om3lette.deadlines_api.data.attachments.reponse.AttachmentResponse
 import xyz.om3lette.deadlines_api.data.common.response.PaginationResponse
-import xyz.om3lette.deadlines_api.data.attachments.enums.AttachmentDisposition
 import xyz.om3lette.deadlines_api.data.permissions.dto.DeadlineScope
 import xyz.om3lette.deadlines_api.data.scopes.deadline.repo.DeadlineRepository
 import xyz.om3lette.deadlines_api.data.user.model.User
-import xyz.om3lette.deadlines_api.configs.properties.StorageProperties
 import xyz.om3lette.deadlines_api.exceptions.enums.ErrorCode
 import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
 import xyz.om3lette.deadlines_api.services.permission.PermissionService
@@ -32,7 +32,7 @@ import xyz.om3lette.deadlines_api.util.page.toPaginationResponse
 import xyz.om3lette.deadlines_api.util.requirePermission
 import java.net.URI
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 @Service
 class AttachmentsService (
@@ -186,7 +186,14 @@ class AttachmentsService (
             .contentLength(fileStream.size)
             .build()
 
-        s3Client.putObject(request, RequestBody.fromInputStream(fileStream.inputStream, fileStream.size))
+        s3Client.putObject(
+            request,
+            RequestBody.fromContentProvider(
+                { fileStream.inputStream },
+                fileStream.size,
+                mimeType
+            )
+        )
     }
 
     private fun deleteObject(objectKey: String) {
