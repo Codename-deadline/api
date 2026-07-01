@@ -6,9 +6,15 @@ import org.apache.tika.metadata.Metadata
 import org.apache.tika.metadata.TikaCoreProperties
 import org.springframework.stereotype.Service
 import org.springframework.web.multipart.MultipartFile
-import xyz.om3lette.deadlines_api.data.attachments.enums.AttachmentType
+import xyz.om3lette.deadlines_api.data.attachments.enums.AttachmentCategory
 import xyz.om3lette.deadlines_api.exceptions.enums.ErrorCode
 import xyz.om3lette.deadlines_api.util.requirePermission
+
+data class AttachmentFileInfo(
+    val mimeType: String,
+    val category: AttachmentCategory,
+    val sizeBytes: Long
+)
 
 @Service
 class FileCheckerService(
@@ -23,7 +29,7 @@ class FileCheckerService(
         return !forbiddenSubtypes.contains(subtype)
     }
 
-    fun getAttachmentTypeOr403(fileStream: MultipartFile): Pair<String, AttachmentType> {
+    fun getAttachmentFileInfoOr403(fileStream: MultipartFile): AttachmentFileInfo {
         val mimeType = tika.detect(TikaInputStream.get(fileStream.inputStream), Metadata().apply {
             set(TikaCoreProperties.RESOURCE_NAME_KEY, fileStream.originalFilename)
         })
@@ -34,13 +40,13 @@ class FileCheckerService(
             400
         )
 
-        val attachmentType = when {
-            mimeType.startsWith("video") -> AttachmentType.VIDEO
-            mimeType.startsWith("audio") -> AttachmentType.AUDIO
-            mimeType.startsWith("text") -> AttachmentType.TEXT
-            mimeType.startsWith("image") -> AttachmentType.IMAGE
-            else -> AttachmentType.OTHER
+        val attachmentCategory = when {
+            mimeType.startsWith("video") -> AttachmentCategory.VIDEO
+            mimeType.startsWith("audio") -> AttachmentCategory.AUDIO
+            mimeType.startsWith("text") -> AttachmentCategory.TEXT
+            mimeType.startsWith("image") -> AttachmentCategory.IMAGE
+            else -> AttachmentCategory.OTHER
         }
-        return Pair(mimeType, attachmentType)
+        return AttachmentFileInfo(mimeType, attachmentCategory, fileStream.size)
     }
 }

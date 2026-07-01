@@ -1,19 +1,25 @@
 package xyz.om3lette.deadlines_api.services.storage
 
-import io.minio.MinioClient
 import org.slf4j.LoggerFactory
-import org.springframework.core.io.InputStreamResource
 import org.springframework.data.domain.PageRequest
-import org.springframework.http.HttpHeaders
-import org.springframework.http.MediaType
+import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.http.ResponseEntity.status
 import org.springframework.stereotype.Service
 import org.springframework.web.multipart.MultipartFile
+import software.amazon.awssdk.core.sync.RequestBody
+import software.amazon.awssdk.services.s3.S3Client
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest
+import software.amazon.awssdk.services.s3.model.GetObjectRequest
+import software.amazon.awssdk.services.s3.model.PutObjectRequest
+import software.amazon.awssdk.services.s3.presigner.S3Presigner
+import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest
 import xyz.om3lette.deadlines_api.data.attachments.model.Attachment
 import xyz.om3lette.deadlines_api.data.attachments.repo.AttachmentRepository
 import xyz.om3lette.deadlines_api.data.attachments.reponse.AttachmentCreatedResponse
 import xyz.om3lette.deadlines_api.data.attachments.reponse.AttachmentResponse
 import xyz.om3lette.deadlines_api.data.common.response.PaginationResponse
+import xyz.om3lette.deadlines_api.data.attachments.enums.AttachmentDisposition
 import xyz.om3lette.deadlines_api.data.permissions.dto.DeadlineScope
 import xyz.om3lette.deadlines_api.data.scopes.deadline.repo.DeadlineRepository
 import xyz.om3lette.deadlines_api.data.user.model.User
@@ -22,17 +28,16 @@ import xyz.om3lette.deadlines_api.exceptions.enums.ErrorCode
 import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
 import xyz.om3lette.deadlines_api.services.permission.PermissionService
 import xyz.om3lette.deadlines_api.util.jpaRepository.findByIdOr404
-import xyz.om3lette.deadlines_api.util.minioClient.getObject
-import xyz.om3lette.deadlines_api.util.minioClient.putObject
-import xyz.om3lette.deadlines_api.util.minioClient.removeObject
 import xyz.om3lette.deadlines_api.util.page.toPaginationResponse
 import xyz.om3lette.deadlines_api.util.requirePermission
+import java.net.URI
 import java.time.Instant
 import java.util.UUID
 
 @Service
 class AttachmentsService (
-    private val minioClient: MinioClient,
+    private val s3Client: S3Client,
+    private val s3Presigner: S3Presigner,
     storageProperties: StorageProperties,
     private val permissionService: PermissionService,
     private val attachmentRepository: AttachmentRepository,
@@ -40,7 +45,7 @@ class AttachmentsService (
     private val fileCheckerService: FileCheckerService
 ) {
     private val logger = LoggerFactory.getLogger(AttachmentsService::class.java)
-    private val bucketName = storageProperties.s3.bucket
+    private val s3Properties = storageProperties.s3
 
     fun createAttachment(
         issuer: User,
@@ -53,21 +58,20 @@ class AttachmentsService (
             permissionService.canManageDeadlineAttachments(issuer, deadline)
         )
 
-        val (mimeType, attachmentType) = fileCheckerService.getAttachmentTypeOr403(fileStream)
+        val fileInfo = fileCheckerService.getAttachmentFileInfoOr403(fileStream)
         val objectKey = UUID.randomUUID().toString()
 
         try {
-            minioClient.putObject(bucketName, objectKey) {
-                stream(fileStream.inputStream, fileStream.size, -1)
-                contentType(mimeType)
-            }
+            putObject(objectKey, fileStream, fileInfo.mimeType)
 
             val attachment = attachmentRepository.save(
                 Attachment(
                     0,
                     objectKey,
                     filename,
-                    attachmentType,
+                    fileInfo.category,
+                    fileInfo.mimeType,
+                    fileInfo.sizeBytes,
                     issuer,
                     deadline,
                     Instant.now()
@@ -76,7 +80,7 @@ class AttachmentsService (
             return AttachmentCreatedResponse(attachment.id)
         } catch (e: Exception) {
             runCatching {
-                minioClient.removeObject(bucketName, objectKey)
+                deleteObject(objectKey)
             }
             logger.error("Attachment upload failed: $e")
             throw StatusCodeException(500, ErrorCode.ATTACHMENT_UPLOAD_FAILED)
@@ -86,20 +90,19 @@ class AttachmentsService (
     fun replaceAttachment(issuer: User, attachmentId: Long, fileStream: MultipartFile, filename: String?) {
         val attachment = attachmentRepository.findByIdOr404(attachmentId, ErrorCode.ATTACHMENT_NOT_FOUND)
         // Avoid a db request by first validating the fileStream
-        val (mimeType, newAttachmentType) = fileCheckerService.getAttachmentTypeOr403(fileStream)
+        val fileInfo = fileCheckerService.getAttachmentFileInfoOr403(fileStream)
 
         requirePermission(
             permissionService.canManageDeadlineAttachments(issuer, attachment.deadline)
         )
 
         try {
-            minioClient.putObject(bucketName, attachment.objectKey) {
-                stream(fileStream.inputStream, fileStream.size, -1)
-                contentType(mimeType)
-            }
+            putObject(attachment.objectKey, fileStream, fileInfo.mimeType)
 
             attachment.uploadedAt = Instant.now()
-            attachment.type = newAttachmentType
+            attachment.category = fileInfo.category
+            attachment.mimeType = fileInfo.mimeType
+            attachment.sizeBytes = fileInfo.sizeBytes
             if (filename != null) attachment.filename = filename
 
             attachmentRepository.save(attachment)
@@ -129,29 +132,21 @@ class AttachmentsService (
         )
 
         try {
-            minioClient.removeObject(bucketName, attachment.objectKey)
-//          FIXME: Potential orphan db entries if `delete` fails
+            deleteObject(attachment.objectKey)
+            // FIXME: Potential orphan db entries if `delete` fails
             attachmentRepository.delete(attachment)
         } catch (_: Exception) {
             throw StatusCodeException(500, ErrorCode.ATTACHMENT_UPLOAD_FAILED)
         }
     }
 
-    fun getAttachment(issuer: User, attachmentId: Long): ResponseEntity<InputStreamResource> {
+    fun getAttachment(issuer: User, attachmentId: Long, disposition: String?): ResponseEntity<Void> {
         val attachment = getAttachmentByIdAndCheckPermissions(issuer, attachmentId)
-        val getObjectResponse = minioClient.getObject(bucketName, attachment.objectKey)
+        val presignedUrl = presignGetObjectUrl(attachment, AttachmentDisposition.from(disposition))
 
-        val headers = getObjectResponse.headers()
-
-        val contentType = MediaType.parseMediaType(headers["Content-Type"] ?: MediaType.ALL_VALUE)
-        val length = headers["Content-Length"]?.toLong() ?: -1L
-        val resource = InputStreamResource(getObjectResponse)
-
-        return ResponseEntity.ok()
-            .contentType(contentType)
-            .contentLength(length)
-            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"${attachment.filename}\"")
-            .body(resource)
+        return status(HttpStatus.FOUND)
+            .location(URI.create(presignedUrl))
+            .build()
     }
 
     fun getAttachmentMetadata(issuer: User, attachmentId: Long): AttachmentResponse =
@@ -182,6 +177,46 @@ class AttachmentsService (
         )
         return attachment
     }
+
+    private fun putObject(objectKey: String, fileStream: MultipartFile, mimeType: String) {
+        val request = PutObjectRequest.builder()
+            .bucket(s3Properties.bucket)
+            .key(objectKey)
+            .contentType(mimeType)
+            .contentLength(fileStream.size)
+            .build()
+
+        s3Client.putObject(request, RequestBody.fromInputStream(fileStream.inputStream, fileStream.size))
+    }
+
+    private fun deleteObject(objectKey: String) {
+        s3Client.deleteObject(
+            DeleteObjectRequest.builder()
+                .bucket(s3Properties.bucket)
+                .key(objectKey)
+                .build()
+        )
+    }
+
+    private fun presignGetObjectUrl(attachment: Attachment, disposition: AttachmentDisposition): String {
+        val getObjectRequest = GetObjectRequest.builder()
+            .bucket(s3Properties.bucket)
+            .key(attachment.objectKey)
+            .responseContentType(attachment.mimeType)
+            .responseContentDisposition(
+                "${disposition.headerValue}; filename=\"${attachment.filename.contentDispositionEscaped()}\""
+            )
+            .build()
+        val presignRequest = GetObjectPresignRequest.builder()
+            .signatureDuration(s3Properties.presignedUrlExpiration)
+            .getObjectRequest(getObjectRequest)
+            .build()
+
+        return s3Presigner.presignGetObject(presignRequest).url().toString()
+    }
+
+    private fun String.contentDispositionEscaped(): String =
+        replace("\\", "\\\\").replace("\"", "\\\"")
 
 
 }

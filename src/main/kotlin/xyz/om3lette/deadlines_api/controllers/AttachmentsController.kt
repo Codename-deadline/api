@@ -1,6 +1,10 @@
 package xyz.om3lette.deadlines_api.controllers
 
 import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.media.Content
+import io.swagger.v3.oas.annotations.media.Encoding
+import io.swagger.v3.oas.annotations.media.Schema
+import io.swagger.v3.oas.annotations.parameters.RequestBody as OpenApiRequestBody
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
@@ -22,6 +26,11 @@ import xyz.om3lette.deadlines_api.data.attachments.request.FileMetadata
 import xyz.om3lette.deadlines_api.data.attachments.request.PatchFileMetadataRequest
 import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.services.storage.AttachmentsService
+
+private data class AttachmentUploadRequest(
+    val meta: FileMetadata,
+    val file: MultipartFile
+)
 
 @SecurityRequirement(name = "bearerAuth")
 @RestController
@@ -49,11 +58,12 @@ class AttachmentsController(
     ) = attachmentsService.replaceAttachment(user, attachmentId, file, meta.filename)
 
     @GetMapping("/{attachmentId}")
-    @Operation(summary = "Get attachment metadata")
+    @Operation(summary = "Get attachment")
     fun getAttachment(
         @AuthenticationPrincipal user: User,
-        @PathVariable attachmentId: Long
-    ) = attachmentsService.getAttachment(user, attachmentId)
+        @PathVariable attachmentId: Long,
+        @RequestParam("disposition", required = false) disposition: String?
+    ) = attachmentsService.getAttachment(user, attachmentId, disposition)
 
     @DeleteMapping("/{attachmentId}")
     @Operation(summary = "Delete attachment")
