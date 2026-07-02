@@ -202,18 +202,15 @@ class DeadlineService(
         userScopeRepository.deleteByUserIdAndScopeId(permissionDTO.userId, null, null, deadlineId)
     }
 
-    fun getDeadline(issuer: User, deadlineId: Long): DeadlineResponse {
+    fun getDeadline(issuer: User, deadlineId: Long): DeadlineResponseWithRole {
         val deadline = deadlineRepository.findByIdOr404(deadlineId, ErrorCode.DDL_NOT_FOUND)
 
         requirePermission(
             permissionService.hasAccess(issuer, DeadlineScope(deadline))
         )
 
-        val stats = deadlineRepository.getDeadlineStats(listOf(deadline.id))[0]
-        return deadline.toResponse(
-            stats,
-            permissionService.buildDeadlinePermissions(issuer, deadline)
-        )
+        val stats = prepareDeadlineResponseData(issuer, listOf(deadline), false)
+        return mapDeadlineToFullResponse(issuer, deadline, stats)
     }
 
     private fun prepareDeadlineResponseData(user: User, deadlines: List<Deadline>, prefetchRoles: Boolean = true): Map<Long, DeadlineStatsDTO> {
