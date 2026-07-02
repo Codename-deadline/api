@@ -2,8 +2,8 @@ package xyz.om3lette.deadlines_api.services
 
 import jakarta.transaction.Transactional
 import org.springframework.data.domain.PageRequest
-import org.springframework.data.domain.Sort
 import org.springframework.stereotype.Service
+import xyz.om3lette.deadlines_api.configs.properties.DeadlinesProperties
 import xyz.om3lette.deadlines_api.data.common.response.PaginationResponse
 import xyz.om3lette.deadlines_api.data.notifications.enums.NotificationStatus
 import xyz.om3lette.deadlines_api.data.notifications.enums.TimeRemaining
@@ -31,7 +31,6 @@ import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
 import xyz.om3lette.deadlines_api.services.permission.PermissionContext
 import xyz.om3lette.deadlines_api.services.permission.PermissionService
 import xyz.om3lette.deadlines_api.util.jpaRepository.findByIdOr404
-import xyz.om3lette.deadlines_api.util.page.toPaginationResponse
 import xyz.om3lette.deadlines_api.util.requirePermission
 import java.time.Duration
 import java.time.Instant
@@ -40,6 +39,7 @@ import java.time.temporal.ChronoUnit
 @Service
 class DeadlineService(
     private val minDeadlineExpiryTimeMinutes: Long = 15,
+    deadlinesProperties: DeadlinesProperties,
     private val userRepository: UserRepository,
     private val userScopeRepository: UserScopeRepository,
     private val threadRepository: ThreadRepository,
@@ -47,6 +47,7 @@ class DeadlineService(
     private val deadlineNotificationRepository: DeadlineNotificationRepository,
     private val permissionService: PermissionService
 ) {
+    private val maxAssignees = deadlinesProperties.maxAssignees
 
     @Transactional
     fun createDeadline(
@@ -91,6 +92,9 @@ class DeadlineService(
         )
 
         val assigneeMap = assignees.filterByScope(ScopeType.DEADLINE).associateBy { it.username.lowercase() }
+        if (assigneeMap.size > maxAssignees) {
+            throw StatusCodeException(409, ErrorCode.DDL_ASSIGNEE_LIMIT_EXCEEDED)
+        }
         val deadlineAssigneeScopes: MutableList<UserScope> = mutableListOf()
         userScopeRepository.findByScopeTypeScopeIdInAndUsernameInIgnoreCase(
             thread.organization.id,
@@ -163,6 +167,9 @@ class DeadlineService(
         requirePermission(
             permissionService.canAddAssignees(issuer, DeadlineScope(deadline))
         )
+        if (userScopeRepository.countDeadlineAssignees(deadline.id) >= maxAssignees) {
+            throw StatusCodeException(409, ErrorCode.DDL_ASSIGNEE_LIMIT_EXCEEDED)
+        }
 
         userScopeRepository.save(
             UserScope(
@@ -332,19 +339,14 @@ class DeadlineService(
 
     fun getDeadlineAssignees(
         issuer: User,
-        deadlineId: Long,
-        pageNumber: Int,
-        pageSize: Int
-    ): PaginationResponse<UserScopeResponse> {
+        deadlineId: Long
+    ): List<UserScopeResponse> {
         val deadline = deadlineRepository.findByIdOr404(deadlineId, ErrorCode.DDL_NOT_FOUND)
 
         requirePermission(
             permissionService.hasAccess(issuer, DeadlineScope(deadline))
         )
 
-        val pageRequest = PageRequest.of(pageNumber, pageSize, Sort.by("role").descending())
-        return userScopeRepository.findAllByScopeIdAndScopeType(
-            deadlineId, ScopeType.DEADLINE, pageRequest
-        ).toPaginationResponse { it.toResponse() }
+        return userScopeRepository.findAllDeadlineAssignees(deadlineId).map { it.toResponse() }
     }
 }

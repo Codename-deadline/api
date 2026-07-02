@@ -1,7 +1,6 @@
 package xyz.om3lette.deadlines_api.services.storage
 
 import org.slf4j.LoggerFactory
-import org.springframework.data.domain.PageRequest
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.http.ResponseEntity.status
@@ -14,13 +13,13 @@ import software.amazon.awssdk.services.s3.model.GetObjectRequest
 import software.amazon.awssdk.services.s3.model.PutObjectRequest
 import software.amazon.awssdk.services.s3.presigner.S3Presigner
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest
+import xyz.om3lette.deadlines_api.configs.properties.AttachmentsProperties
 import xyz.om3lette.deadlines_api.configs.properties.StorageProperties
 import xyz.om3lette.deadlines_api.data.attachments.enums.AttachmentDisposition
 import xyz.om3lette.deadlines_api.data.attachments.model.Attachment
 import xyz.om3lette.deadlines_api.data.attachments.repo.AttachmentRepository
 import xyz.om3lette.deadlines_api.data.attachments.reponse.AttachmentCreatedResponse
 import xyz.om3lette.deadlines_api.data.attachments.reponse.AttachmentResponse
-import xyz.om3lette.deadlines_api.data.common.response.PaginationResponse
 import xyz.om3lette.deadlines_api.data.permissions.dto.DeadlineScope
 import xyz.om3lette.deadlines_api.data.scopes.deadline.repo.DeadlineRepository
 import xyz.om3lette.deadlines_api.data.user.model.User
@@ -28,7 +27,6 @@ import xyz.om3lette.deadlines_api.exceptions.enums.ErrorCode
 import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
 import xyz.om3lette.deadlines_api.services.permission.PermissionService
 import xyz.om3lette.deadlines_api.util.jpaRepository.findByIdOr404
-import xyz.om3lette.deadlines_api.util.page.toPaginationResponse
 import xyz.om3lette.deadlines_api.util.requirePermission
 import java.net.URI
 import java.time.Instant
@@ -39,6 +37,7 @@ class AttachmentsService (
     private val s3Client: S3Client,
     private val s3Presigner: S3Presigner,
     storageProperties: StorageProperties,
+    attachmentsProperties: AttachmentsProperties,
     private val permissionService: PermissionService,
     private val attachmentRepository: AttachmentRepository,
     private val deadlineRepository: DeadlineRepository,
@@ -46,6 +45,7 @@ class AttachmentsService (
 ) {
     private val logger = LoggerFactory.getLogger(AttachmentsService::class.java)
     private val s3Properties = storageProperties.s3
+    private val maxAttachmentsPerDeadline = attachmentsProperties.maxPerDeadline
 
     fun createAttachment(
         issuer: User,
@@ -57,6 +57,9 @@ class AttachmentsService (
         requirePermission(
             permissionService.canManageDeadlineAttachments(issuer, deadline)
         )
+        if (attachmentRepository.countByDeadline(deadline) >= maxAttachmentsPerDeadline) {
+            throw StatusCodeException(409, ErrorCode.ATTACHMENT_LIMIT_EXCEEDED)
+        }
 
         val fileInfo = fileCheckerService.getAttachmentFileInfoOr403(fileStream)
         val objectKey = UUID.randomUUID().toString()
@@ -87,11 +90,11 @@ class AttachmentsService (
         }
     }
 
-    fun replaceAttachment(issuer: User, attachmentId: Long, fileStream: MultipartFile, filename: String?) {
+    fun replaceAttachment(issuer: User, attachmentId: Long, fileStream: MultipartFile) {
         val attachment = attachmentRepository.findByIdOr404(attachmentId, ErrorCode.ATTACHMENT_NOT_FOUND)
+
         // Avoid a db request by first validating the fileStream
         val fileInfo = fileCheckerService.getAttachmentFileInfoOr403(fileStream)
-
         requirePermission(
             permissionService.canManageDeadlineAttachments(issuer, attachment.deadline)
         )
@@ -103,7 +106,6 @@ class AttachmentsService (
             attachment.category = fileInfo.category
             attachment.mimeType = fileInfo.mimeType
             attachment.sizeBytes = fileInfo.sizeBytes
-            if (filename != null) attachment.filename = filename
 
             attachmentRepository.save(attachment)
         } catch (_: Exception) {
@@ -154,18 +156,15 @@ class AttachmentsService (
 
     fun getDeadlineAttachmentsMetadata(
         issuer: User,
-        deadlineId: Long,
-        pageNumber: Int,
-        pageSize: Int
-    ): PaginationResponse<AttachmentResponse> {
+        deadlineId: Long
+    ): List<AttachmentResponse> {
         val deadline = deadlineRepository.findByIdOr404(deadlineId, ErrorCode.DDL_NOT_FOUND)
         requirePermission(
             permissionService.hasAccess(issuer, DeadlineScope(deadline))
         )
-        return attachmentRepository.findAllByDeadline(
-            deadline,
-            PageRequest.of(pageNumber, pageSize)
-        ).toPaginationResponse { it.toResponse() }
+        // There is no pagination as it is logical frontend wise to fetch all the metadata at once,
+        // while the `maxAttachmentsPerDeadline` insures that the response has an acceptable size
+        return attachmentRepository.findAllByDeadlineOrderByUploadedAtDesc(deadline).map { it.toResponse() }
     }
 
 

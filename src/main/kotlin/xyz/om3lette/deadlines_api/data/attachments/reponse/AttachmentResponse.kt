@@ -1,6 +1,6 @@
 package xyz.om3lette.deadlines_api.data.attachments.reponse
 
-import xyz.om3lette.deadlines_api.data.user.response.UserResponse
+import xyz.om3lette.deadlines_api.data.user.response.MinimalUserResponse
 import java.time.Instant
 
 data class AttachmentResponse(
@@ -14,7 +14,7 @@ data class AttachmentResponse(
 
     val sizeBytes: Long,
 
-    val uploadedBy: UserResponse,
+    val uploadedBy: MinimalUserResponse,
 
     val attachedTo: Long,
 

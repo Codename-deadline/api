@@ -26,6 +26,12 @@ outbox:
   batch-size: ${OUTBOX_BATCH_SIZE:200}
   max-retries: ${OUTBOX_MAX_RETRIES:5}
 
+attachments:
+  max-per-deadline: ${ATTACHMENTS_MAX_PER_DEADLINE:25}
+
+deadlines:
+  max-assignees: ${DEADLINES_MAX_ASSIGNEES:10}
+
 storage:
   s3:
     endpoint: ${S3_ENDPOINT:http://localhost:3900}

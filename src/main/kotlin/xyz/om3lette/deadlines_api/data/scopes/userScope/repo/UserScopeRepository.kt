@@ -72,6 +72,21 @@ interface UserScopeRepository : JpaRepository<UserScope, Long> {
         pageable: Pageable
     ): Page<UserScope>
 
+    @Query("""
+        SELECT COUNT(us) FROM UserScope us
+        WHERE us.scopeId = :deadlineId
+            AND us.scopeType = :scopeType
+    """)
+    fun countDeadlineAssignees(deadlineId: Long, scopeType: ScopeType = ScopeType.DEADLINE): Long
+
+    @Query("""
+        SELECT us FROM UserScope us
+        WHERE us.scopeId = :deadlineId
+            AND us.scopeType = :scopeType
+        ORDER BY us.role DESC, us.assignedAt ASC
+    """)
+    fun findAllDeadlineAssignees(deadlineId: Long, scopeType: ScopeType = ScopeType.DEADLINE): List<UserScope>
+
 
     @Modifying
     @Transactional

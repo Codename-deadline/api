@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import xyz.om3lette.deadlines_api.data.scopes.deadline.requests.AddDeadlineAssigneeRequest
 import xyz.om3lette.deadlines_api.data.scopes.deadline.requests.PatchDeadlineRequest
@@ -72,9 +71,8 @@ class DeadlineController(
     )
     fun getAssignees(
         @AuthenticationPrincipal user: User,
-        @PathVariable deadlineId: Long,
-        @RequestParam("page") pageNumber: Int
-    ) = deadlineService.getDeadlineAssignees(user, deadlineId, pageNumber, 10)
+        @PathVariable deadlineId: Long
+    ) = deadlineService.getDeadlineAssignees(user, deadlineId)
 
     @DeleteMapping("/assignees/{assigneeUsername}")
     @Operation(summary = "Remove an assignee")

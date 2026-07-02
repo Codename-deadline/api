@@ -56,7 +56,7 @@ data class Attachment(
         category.name,
         mimeType,
         sizeBytes,
-        uploadedBy.toResponse(),
+        uploadedBy.toMinimalResponse(),
         deadline.id,
         uploadedAt
     )
