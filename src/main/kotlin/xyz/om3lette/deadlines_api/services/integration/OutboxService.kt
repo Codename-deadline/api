@@ -1,8 +1,8 @@
 package xyz.om3lette.deadlines_api.services.integration
 
 import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
+import xyz.om3lette.deadlines_api.configs.properties.OutboxProperties
 import xyz.om3lette.deadlines_api.data.notifications.enums.NotificationStatus
 import xyz.om3lette.deadlines_api.data.outbox.enums.ProcessResult
 import xyz.om3lette.deadlines_api.data.outbox.model.Outbox
@@ -13,11 +13,12 @@ import xyz.om3lette.deadlines_api.services.integration.outboxHandler.OutboxHandl
 @Service
 class OutboxService(
     private val outboxRepository: OutboxRepository,
-    handlers: List<OutboxHandler>
+    handlers: List<OutboxHandler>,
+    outboxProperties: OutboxProperties
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
-    @Value("\${outbox.batch-size}") private val batchSize = 200
-    @Value("\${outbox.max-retries}") private val maxRetries = 5
+    private val batchSize = outboxProperties.batchSize
+    private val maxRetries = outboxProperties.maxRetries
 
     private val handlersByTopic: Map<String, OutboxHandler> =
         handlers

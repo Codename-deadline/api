@@ -1,7 +1,6 @@
 package xyz.om3lette.deadlines_api.services
 
 import io.mockk.every
-import io.mockk.impl.annotations.InjectMockKs
 import io.mockk.impl.annotations.MockK
 import io.mockk.junit5.MockKExtension
 import io.mockk.spyk
@@ -13,8 +12,8 @@ import org.junit.jupiter.api.extension.ExtendWith
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
-import org.springframework.beans.factory.annotation.Value
 import xyz.om3lette.deadlines_api.DomainObjectBuilder
+import xyz.om3lette.deadlines_api.configs.properties.UsersProperties
 import xyz.om3lette.deadlines_api.data.permissions.dto.DeadlineScope
 import xyz.om3lette.deadlines_api.data.permissions.dto.OrganizationScope
 import xyz.om3lette.deadlines_api.data.permissions.dto.PermissionScope
@@ -47,7 +46,6 @@ class PermissionServiceTest {
     @MockK
     lateinit var permissionContext: PermissionContext
 
-    @InjectMockKs
     lateinit var permissionService: PermissionService
 
     private val admin = DomainObjectBuilder.admin()
@@ -62,11 +60,16 @@ class PermissionServiceTest {
     fun thrScope() = ThreadScope(thread)
     fun ddlScope() = DeadlineScope(deadline)
 
-    @Value("\${users.max-linked-accounts-per-messenger}")
-    private var maxLinkedAccountsPerMessenger: Int = 5
+    private val maxLinkedAccountsPerMessenger = 5
 
     @BeforeEach
     fun commonHappyStubs() {
+        permissionService = PermissionService(
+            userScopeRepository,
+            permissionContext,
+            UsersProperties(maxLinkedAccountsPerMessenger = maxLinkedAccountsPerMessenger)
+        )
+
         organization = DomainObjectBuilder.organization()
         thread = DomainObjectBuilder.thread(organization)
         deadline = DomainObjectBuilder.deadline(organization, thread)

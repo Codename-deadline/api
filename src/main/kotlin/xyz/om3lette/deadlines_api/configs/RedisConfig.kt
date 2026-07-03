@@ -1,24 +1,23 @@
 package xyz.om3lette.deadlines_api.configs
 
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.data.redis.connection.RedisStandaloneConfiguration
 import org.springframework.data.redis.connection.jedis.JedisConnectionFactory
 import org.springframework.data.redis.core.RedisTemplate
+import xyz.om3lette.deadlines_api.configs.properties.RedisProperties
 
 
 @Configuration
 class RedisConfig(
-    @param:Value("\${spring.redis.hostname}") val redisHostname: String,
-    @param:Value("\${spring.redis.port}") val redisPort: Int
+    private val redisProperties: RedisProperties
 ) {
     @Bean
     fun jedisConnectionFactory(): JedisConnectionFactory =
         JedisConnectionFactory(
             RedisStandaloneConfiguration().apply {
-                hostName = redisHostname
-                port = redisPort
+                hostName = redisProperties.hostname
+                port = redisProperties.port
             }
         )
 

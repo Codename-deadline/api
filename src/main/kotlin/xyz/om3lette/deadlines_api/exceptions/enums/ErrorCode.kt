@@ -42,6 +42,7 @@ enum class ErrorCode(val code: String) {
 
     DDL_NOT_FOUND("deadline.not-found"),
     DDL_INVALID_TIMESTAMP("deadline.invalid-timestamp"),
+    DDL_ASSIGNEE_LIMIT_EXCEEDED("deadline.assignee-limit-exceeded"),
 
     INTEGRATION_ACCOUNT_ALREADY_IN_USE("integration.account-not-available"),
     INTEGRATION_ACCOUNT_NOT_LINKED("integration.account-not-linked"),
@@ -50,6 +51,7 @@ enum class ErrorCode(val code: String) {
 
     ATTACHMENT_NOT_FOUND("attachment.not-found"),
     ATTACHMENT_UPLOAD_FAILED("attachment.upload-failed"),
+    ATTACHMENT_LIMIT_EXCEEDED("attachment.limit-exceeded"),
     ATTACHMENT_INVALID_FILE_TYPE("attachment.invalid-file-type");
 
     @JsonValue
