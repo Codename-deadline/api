@@ -18,5 +18,7 @@ data class AttachmentResponse(
 
     val attachedTo: Long,
 
-    val uploadedAt: Instant
+    val uploadedAt: Instant,
+
+    val permissions: AttachmentPermissions,
 )

@@ -3,6 +3,8 @@ package xyz.om3lette.deadlines_api.services.permission
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import xyz.om3lette.deadlines_api.configs.properties.UsersProperties
+import xyz.om3lette.deadlines_api.data.attachments.model.Attachment
+import xyz.om3lette.deadlines_api.data.attachments.reponse.AttachmentPermissions
 import xyz.om3lette.deadlines_api.data.permissions.dto.DeadlineScope
 import xyz.om3lette.deadlines_api.data.permissions.dto.OrganizationScope
 import xyz.om3lette.deadlines_api.data.permissions.dto.PermissionScope
@@ -130,6 +132,11 @@ class PermissionService(
         manageAttachments = canManageDeadlineAttachments(issuer, deadline)
     )
 
+    fun buildDeadlineAttachmentPermissions(issuer: User, ddlAttachment: Attachment) = AttachmentPermissions(
+        update = canUpdateDeadlineAttachment(issuer, ddlAttachment),
+        delete = canDeleteDeadlineAttachment(issuer, ddlAttachment),
+    )
+
     /*
         Thread permissions:
      */
@@ -190,9 +197,20 @@ class PermissionService(
             role >= ScopeRole.THR_ADMIN
         }
 
+    // ===========================
+    // Deadlines attachments
+    // ===========================
     fun canManageDeadlineAttachments(issuer: User, deadline: Deadline): Boolean =
         issuer.isAdminOrHasRoleAnd(roleForDeadlineLazy(issuer, deadline)) { role ->
             role >= ScopeRole.DDL_ASSIGNEE
+        }
+
+    fun canUpdateDeadlineAttachment(issuer: User, attachment: Attachment): Boolean =
+        issuer.isAdminOr { issuer.id == attachment.uploadedBy.id }
+
+    fun canDeleteDeadlineAttachment(issuer: User, attachment: Attachment): Boolean =
+        issuer.isAdminOrHasRoleAnd(roleForDeadlineLazy(issuer, attachment.deadline)) { role ->
+            role >= ScopeRole.THR_ADMIN || issuer.id == attachment.uploadedBy.id
         }
 
     /*

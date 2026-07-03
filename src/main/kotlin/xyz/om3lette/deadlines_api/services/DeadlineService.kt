@@ -329,6 +329,7 @@ class DeadlineService(
 
         if (title != null) deadline.title = title
         if (description != null) deadline.description = description
+        // TODO: Create/remove notifications
         if (isCompleted != null) deadline.isCompleted = isCompleted
 
         deadlineRepository.save(deadline)

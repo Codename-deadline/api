@@ -151,8 +151,12 @@ class AttachmentsService (
             .build()
     }
 
-    fun getAttachmentMetadata(issuer: User, attachmentId: Long): AttachmentResponse =
-        getAttachmentByIdAndCheckPermissions(issuer, attachmentId).toResponse()
+    fun getAttachmentMetadata(issuer: User, attachmentId: Long): AttachmentResponse {
+        val attachment = getAttachmentByIdAndCheckPermissions(issuer, attachmentId)
+        return attachment.toResponse(
+            permissionService.buildDeadlineAttachmentPermissions(issuer, attachment)
+        )
+    }
 
     fun getDeadlineAttachmentsMetadata(
         issuer: User,
@@ -164,7 +168,9 @@ class AttachmentsService (
         )
         // There is no pagination as it is logical frontend wise to fetch all the metadata at once,
         // while the `maxAttachmentsPerDeadline` insures that the response has an acceptable size
-        return attachmentRepository.findAllByDeadlineOrderByUploadedAtDesc(deadline).map { it.toResponse() }
+        return attachmentRepository.findAllByDeadlineOrderByUploadedAtDesc(deadline).map { it.toResponse(
+            permissionService.buildDeadlineAttachmentPermissions(issuer, it)
+        ) }
     }
 
 

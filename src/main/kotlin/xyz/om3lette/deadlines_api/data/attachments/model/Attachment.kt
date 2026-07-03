@@ -3,6 +3,7 @@ package xyz.om3lette.deadlines_api.data.attachments.model
 import jakarta.persistence.*
 import jakarta.validation.constraints.Size
 import xyz.om3lette.deadlines_api.data.attachments.enums.AttachmentCategory
+import xyz.om3lette.deadlines_api.data.attachments.reponse.AttachmentPermissions
 import xyz.om3lette.deadlines_api.data.attachments.reponse.AttachmentResponse
 import xyz.om3lette.deadlines_api.data.scopes.deadline.model.Deadline
 import xyz.om3lette.deadlines_api.data.user.model.User
@@ -50,7 +51,7 @@ data class Attachment(
         "uploadedAt" to uploadedAt
     )
 
-    fun toResponse() = AttachmentResponse(
+    fun toResponse(permissions: AttachmentPermissions) = AttachmentResponse(
         id,
         filename,
         category.name,
@@ -58,6 +59,7 @@ data class Attachment(
         sizeBytes,
         uploadedBy.toMinimalResponse(),
         deadline.id,
-        uploadedAt
+        uploadedAt,
+        permissions
     )
 }
