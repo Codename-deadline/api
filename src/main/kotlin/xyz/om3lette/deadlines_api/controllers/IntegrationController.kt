@@ -14,7 +14,7 @@ import xyz.om3lette.deadlines_api.services.integration.IntegrationService
 
 @SecurityRequirement(name = "bearerAuth")
 @RestController
-@RequestMapping("/api/integration")
+@RequestMapping("/integration")
 @Tag(name = "Integrations", description = "Endpoints for linking/managing other platforms integration")
 class IntegrationController(
     private val integrationService: IntegrationService

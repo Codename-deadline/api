@@ -13,7 +13,7 @@ import xyz.om3lette.deadlines_api.services.ThreadService
 
 @SecurityRequirement(name = "bearerAuth")
 @RestController
-@RequestMapping("/api/threads")
+@RequestMapping("/threads")
 @Tag(name = "Threads")
 class GeneralThreadController(
     private val threadService: ThreadService,

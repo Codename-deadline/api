@@ -27,17 +27,20 @@ class SecurityConfig(
     private val restAuthenticationEntryPoint: RestAuthenticationEntryPoint
 ) {
     companion object {
+        private fun api(path: String) = ApiPathPrefixConfig.API_PREFIX + path
+
         val PUBLIC_URLS = arrayOf(
-            "/api/auth/register-otp",
-            "/api/auth/register-tma",
-            "/api/auth/refresh-token",
-            "/api/auth/verify-password",
-            "/api/auth/otp",
-            "/api/auth/otp/verify",
+            api("/auth/register-otp"),
+            api("/auth/register-tma"),
+            api("/auth/refresh-token"),
+            api("/auth/verify-password"),
+            api("/auth/otp"),
+            api("/auth/otp/verify"),
+            api("/metadata"),
+            api("/roles/metadata"),
             "/v3/api-docs/**",
             "/swagger-ui/**",
-            "/api/metadata",
-            "/api/roles/metadata"
+            "/actuator/health",
         )
     }
 

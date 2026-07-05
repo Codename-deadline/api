@@ -17,7 +17,7 @@ import xyz.om3lette.deadlines_api.services.DeadlineService
 
 @SecurityRequirement(name = "bearerAuth")
 @RestController
-@RequestMapping("/api/threads/{threadId}/deadlines")
+@RequestMapping("/threads/{threadId}/deadlines")
 @Tag(name = "Deadlines")
 class ThreadDeadlineController(
     val deadlineService: DeadlineService

@@ -11,7 +11,7 @@ import xyz.om3lette.deadlines_api.data.otp.request.RegisterOtpRequest
 import xyz.om3lette.deadlines_api.services.auth.otp.OtpService
 
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/auth")
 @Tag(name = "Authentication")
 class AuthWithOtpController(
     private val otpService: OtpService

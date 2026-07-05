@@ -13,7 +13,7 @@ import xyz.om3lette.deadlines_api.services.DeadlineService
 
 @SecurityRequirement(name = "bearerAuth")
 @RestController
-@RequestMapping("/api/deadlines")
+@RequestMapping("/deadlines")
 @Tag(name = "Deadlines")
 class GeneralDeadlineController(
     private val deadlineService: DeadlineService,

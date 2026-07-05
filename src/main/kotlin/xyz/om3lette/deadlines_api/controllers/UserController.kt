@@ -14,7 +14,7 @@ import xyz.om3lette.deadlines_api.services.UserService
 
 @SecurityRequirement(name = "bearerAuth")
 @RestController
-@RequestMapping("/api/user")
+@RequestMapping("/user")
 @Tag(name = "User")
 class UserController(
     private val userService: UserService

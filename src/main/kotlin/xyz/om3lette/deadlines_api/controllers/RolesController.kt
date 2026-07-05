@@ -18,7 +18,7 @@ import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.services.RolesService
 
 @RestController
-@RequestMapping("/api/roles")
+@RequestMapping("/roles")
 @Tag(name = "Roles", description = "Role management in organization / thread / deadline")
 class RolesController(
     private val rolesService: RolesService

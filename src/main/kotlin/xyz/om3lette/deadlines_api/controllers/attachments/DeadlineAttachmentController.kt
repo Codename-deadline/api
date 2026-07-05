@@ -19,7 +19,7 @@ import xyz.om3lette.deadlines_api.services.storage.AttachmentsService
 
 @SecurityRequirement(name = "bearerAuth")
 @RestController
-@RequestMapping("/api/deadlines/{deadlineId}/attachments")
+@RequestMapping("/deadlines/{deadlineId}/attachments")
 @Tag(name = "Deadlines")
 class DeadlineAttachmentController(
     private val attachmentsService: AttachmentsService

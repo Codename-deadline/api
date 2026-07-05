@@ -16,7 +16,7 @@ import xyz.om3lette.deadlines_api.services.OrganizationInvitationService
 
 @SecurityRequirement(name = "bearerAuth")
 @RestController
-@RequestMapping("/api/invitation")
+@RequestMapping("/invitation")
 @Tag(name = "Invitations")
 class InvitationController(
     private val organizationInvitationService: OrganizationInvitationService

@@ -6,19 +6,13 @@ import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.validation.Valid
 import org.springframework.security.core.annotation.AuthenticationPrincipal
-import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.PostMapping
-import org.springframework.web.bind.annotation.RequestBody
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.bind.annotation.*
 import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.data.user.request.ChangePasswordRequest
-import xyz.om3lette.deadlines_api.data.user.request.RegisterRequest
-import xyz.om3lette.deadlines_api.data.user.request.SignInRequest
 import xyz.om3lette.deadlines_api.services.auth.AuthService
 
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/auth")
 @Tag(name = "Authentication")
 class AuthController(
     val authService: AuthService

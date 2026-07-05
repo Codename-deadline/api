@@ -10,7 +10,7 @@ import xyz.om3lette.deadlines_api.data.otp.request.provider.TmaRegisterRequest
 import xyz.om3lette.deadlines_api.services.auth.providers.tma.TmaAuthProvider
 
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/auth")
 @Tag(name = "Authentication")
 class AuthProvidersController(
     private val tmaAuthProvider: TmaAuthProvider

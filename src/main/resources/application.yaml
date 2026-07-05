@@ -4,7 +4,7 @@ spring:
   config:
     import:
       - optional:file:.env[.properties]
-      - optional:file:../deployment/.env[.properties]
+      - optional:file:../deployment/generated/.env[.properties]
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:dev}
   datasource:
@@ -35,6 +35,20 @@ spring:
     producer:
       properties:
         spring.json.add.type.headers: false
+
+management:
+  endpoints:
+    access:
+      default: none
+    web:
+      exposure:
+        include: health
+      discovery:
+        enabled: false
+  endpoint:
+    health:
+      access: read-only
+      show-details: ${SHOW_HEALTH_DETAILS:never}
 
 users:
   max-sessions: ${USERS_MAX_SESSIONS:50}

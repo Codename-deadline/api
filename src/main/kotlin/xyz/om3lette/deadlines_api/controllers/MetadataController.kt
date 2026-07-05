@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.RestController
 import xyz.om3lette.deadlines_api.services.MetadataService
 
 @RestController
-@RequestMapping("/api/metadata")
+@RequestMapping("/metadata")
 @Tag(name = "Metadata", description = "Application metadata versions")
 class MetadataController(
     private val metadataService: MetadataService

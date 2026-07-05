@@ -21,7 +21,7 @@ import kotlin.math.min
 
 @SecurityRequirement(name = "bearerAuth")
 @RestController
-@RequestMapping("/api/organization")
+@RequestMapping("/organization")
 @Tag(name = "Organizations")
 class OrganizationController(
     private val organizationService: OrganizationService
