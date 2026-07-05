@@ -32,6 +32,7 @@ data class Chat(
 
     val messengerChatId: Long,
 
+    @Enumerated(EnumType.STRING)
     val messenger: Messenger,
 
     @field:Size(max = 256)

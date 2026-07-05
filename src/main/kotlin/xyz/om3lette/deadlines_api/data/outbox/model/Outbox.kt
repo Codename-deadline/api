@@ -1,14 +1,7 @@
 package xyz.om3lette.deadlines_api.data.outbox.model
 
 import io.hypersistence.utils.hibernate.type.json.JsonType
-import jakarta.persistence.Column
-import jakarta.persistence.Convert
-import jakarta.persistence.Entity
-import jakarta.persistence.Enumerated
-import jakarta.persistence.GeneratedValue
-import jakarta.persistence.GenerationType
-import jakarta.persistence.Id
-import jakarta.persistence.Table
+import jakarta.persistence.*
 import org.hibernate.annotations.Type
 import tools.jackson.databind.JsonNode
 import xyz.om3lette.deadlines_api.data.integration.bot.enums.Messenger
@@ -26,9 +19,10 @@ data class Outbox(
 
     val notificationId: Long,
 
-    @Enumerated
+    @Enumerated(EnumType.STRING)
     val source: OutboxSource,
 
+    @Enumerated(EnumType.STRING)
     val messenger: Messenger,
 
     val priority: Int,

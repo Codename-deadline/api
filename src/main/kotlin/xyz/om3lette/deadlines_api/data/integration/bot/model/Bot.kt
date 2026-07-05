@@ -2,6 +2,8 @@ package xyz.om3lette.deadlines_api.data.integration.bot.model
 
 import jakarta.persistence.CascadeType
 import jakarta.persistence.Entity
+import jakarta.persistence.EnumType
+import jakarta.persistence.Enumerated
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
@@ -24,6 +26,7 @@ data class Bot(
     @GeneratedValue
     val id: Long,
 
+    @Enumerated(EnumType.STRING)
     val messenger: Messenger,
 
     val botId: Long,

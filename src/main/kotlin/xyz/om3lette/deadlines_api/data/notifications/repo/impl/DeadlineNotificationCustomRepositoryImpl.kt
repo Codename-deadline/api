@@ -94,7 +94,7 @@ class DeadlineNotificationCustomRepositoryImpl(
             )
             SELECT
                 notification_id,
-                0,
+                'DDL_EXPIRATION',
                 messenger,
                 now(),
                 'P',
