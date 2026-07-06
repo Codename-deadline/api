@@ -14,7 +14,7 @@ data class AttachmentResponse(
 
     val sizeBytes: Long,
 
-    val uploadedBy: MinimalUserResponse,
+    val uploadedBy: MinimalUserResponse?,
 
     val attachedTo: Long,
 

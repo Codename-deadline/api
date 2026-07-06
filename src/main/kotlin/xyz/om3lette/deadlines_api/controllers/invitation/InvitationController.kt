@@ -21,20 +21,6 @@ import xyz.om3lette.deadlines_api.services.OrganizationInvitationService
 class InvitationController(
     private val organizationInvitationService: OrganizationInvitationService
 ) {
-    @GetMapping("/me/pending")
-    @Operation(summary = "Get pending invitations where the user is the invited party")
-    fun getPendingInvitationsByUser(
-        @AuthenticationPrincipal user: User,
-        @RequestParam("page") pageNumber: Int
-    ) = organizationInvitationService.getPendingInvitationsByUser(user, pageNumber, 10)
-
-    @GetMapping("/me/pending-sent")
-    @Operation(summary = "Get pending invitations which were sent by the user")
-    fun getPendingSentInvitationsByUser(
-        @AuthenticationPrincipal user: User,
-        @RequestParam("page") pageNumber: Int
-    ) = organizationInvitationService.getPendingSentInvitationsByUser(user, pageNumber, 10)
-
     @GetMapping("/{invitationId}")
     @Operation(summary = "Get invitation details")
     fun getInvitation(
@@ -73,4 +59,24 @@ class InvitationController(
         invitationId,
         InvitationStatus.DECLINED
     )
+
+    @GetMapping("/me/pending-received-number")
+    @Operation(summary = "Get number of pending invitations which were sent to the user")
+    fun getNumberOfPendingInvitation(
+        @AuthenticationPrincipal user: User,
+    ) = organizationInvitationService.getNumberOfPendingInvitationsByUser(user)
+
+    @GetMapping("/me/pending-received")
+    @Operation(summary = "Get pending invitations which were sent to the user")
+    fun getPendingInvitationsByUser(
+        @AuthenticationPrincipal user: User,
+        @RequestParam("page") pageNumber: Int
+    ) = organizationInvitationService.getPendingInvitationsByUser(user, pageNumber, 10)
+
+    @GetMapping("/me/pending-sent")
+    @Operation(summary = "Get pending invitations which were sent by the user")
+    fun getPendingSentInvitationsByUser(
+        @AuthenticationPrincipal user: User,
+        @RequestParam("page") pageNumber: Int
+    ) = organizationInvitationService.getPendingSentInvitationsByUser(user, pageNumber, 10)
 }

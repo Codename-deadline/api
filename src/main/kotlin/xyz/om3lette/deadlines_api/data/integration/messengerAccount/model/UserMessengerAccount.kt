@@ -1,5 +1,6 @@
 package xyz.om3lette.deadlines_api.data.integration.messengerAccount.model
 
+import jakarta.persistence.CascadeType
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
@@ -11,6 +12,8 @@ import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
 import jakarta.persistence.UniqueConstraint
+import org.hibernate.annotations.OnDelete
+import org.hibernate.annotations.OnDeleteAction
 import xyz.om3lette.deadlines_api.data.integration.bot.enums.Messenger
 import xyz.om3lette.deadlines_api.data.user.model.User
 
@@ -26,7 +29,8 @@ data class UserMessengerAccount (
     @Id
     val id: Long,
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.EAGER, cascade = [CascadeType.REMOVE])
+    @OnDelete(action = OnDeleteAction.CASCADE)
     @JoinColumn("user_id")
     val user: User,
 

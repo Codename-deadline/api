@@ -1,6 +1,8 @@
 package xyz.om3lette.deadlines_api.data.jwt.model
 
 import jakarta.persistence.*
+import org.hibernate.annotations.OnDelete
+import org.hibernate.annotations.OnDeleteAction
 import xyz.om3lette.deadlines_api.data.user.model.User
 import java.time.Instant
 
@@ -20,7 +22,8 @@ data class RefreshToken(
 
     var revoked: Boolean = false,
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY, cascade = [CascadeType.REMOVE])
+    @OnDelete(action = OnDeleteAction.CASCADE)
     @JoinColumn(name = "user_id")
     val user: User
 )

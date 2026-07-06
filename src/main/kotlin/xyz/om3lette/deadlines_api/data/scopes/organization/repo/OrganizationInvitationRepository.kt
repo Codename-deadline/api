@@ -22,4 +22,12 @@ interface OrganizationInvitationRepository : JpaRepository<OrganizationInvitatio
             AND i.status = 'PENDING'
     """)
     fun findAllPendingSentByUserId(userId: Long, pageable: Pageable): Page<OrganizationInvitation>
+
+    @Query("""
+        SELECT COUNT(i.id)
+        FROM OrganizationInvitation i
+        WHERE i.invitedUser.id = :userId
+            AND i.status = 'PENDING'
+    """)
+    fun countPendingByInvitedUserId(userId: Long): Int
 }

@@ -206,11 +206,11 @@ class PermissionService(
         }
 
     fun canUpdateDeadlineAttachment(issuer: User, attachment: Attachment): Boolean =
-        issuer.isAdminOr { issuer.id == attachment.uploadedBy.id }
+        issuer.isAdminOr { issuer.id == attachment.uploadedBy?.id }
 
     fun canDeleteDeadlineAttachment(issuer: User, attachment: Attachment): Boolean =
         issuer.isAdminOrHasRoleAnd(roleForDeadlineLazy(issuer, attachment.deadline)) { role ->
-            role >= ScopeRole.THR_ADMIN || issuer.id == attachment.uploadedBy.id
+            role >= ScopeRole.THR_ADMIN || issuer.id == attachment.uploadedBy?.id
         }
 
     /*

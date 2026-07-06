@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.constraints.Size
 import org.springframework.security.core.annotation.AuthenticationPrincipal
+import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
@@ -25,6 +26,12 @@ class UserController(
     fun getUser(
         @AuthenticationPrincipal user: User
     ) = user.toResponse()
+
+    @DeleteMapping
+    @Operation(summary = "Delete user")
+    fun deleteUser(
+        @AuthenticationPrincipal user: User
+    ) = userService.deleteUser(user)
 
     @GetMapping("/hints")
     @Operation(summary = "Get a batch of usernames starting with")

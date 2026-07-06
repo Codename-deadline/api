@@ -1,6 +1,8 @@
 package xyz.om3lette.deadlines_api.data.scopes.userScope.model
 
 import jakarta.persistence.*
+import org.hibernate.annotations.OnDelete
+import org.hibernate.annotations.OnDeleteAction
 
 import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.data.scopes.userScope.converters.ScopeTypeConverter
@@ -23,7 +25,8 @@ data class UserScope(
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "scope_seq")
     val id: Long = 0,
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.EAGER, cascade = [CascadeType.REMOVE])
+    @OnDelete(action = OnDeleteAction.CASCADE)
     val user: User,
 
     @Convert(converter = ScopeTypeConverter::class)

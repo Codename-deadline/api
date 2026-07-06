@@ -12,6 +12,7 @@ import xyz.om3lette.deadlines_api.data.scopes.organization.model.OrganizationInv
 import xyz.om3lette.deadlines_api.data.scopes.organization.repo.OrganizationInvitationRepository
 import xyz.om3lette.deadlines_api.data.scopes.organization.repo.OrganizationRepository
 import xyz.om3lette.deadlines_api.data.scopes.organization.response.OrganizationInvitationResponse
+import xyz.om3lette.deadlines_api.data.scopes.organization.response.OrganizationInvitationsPendingResponse
 import xyz.om3lette.deadlines_api.data.scopes.organization.response.member.InvitationCreatedResponse
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeRole
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType
@@ -101,6 +102,11 @@ class OrganizationInvitationService(
             organizationInvitationRepository.findAllPendingSentByUserId(
                 issuer.id, PageRequest.of(pageNumber, pageSize)
             ).map { it.toResponse() }
+        )
+
+    fun getNumberOfPendingInvitationsByUser(issuer: User) =
+        OrganizationInvitationsPendingResponse(
+            pending = organizationInvitationRepository.countPendingByInvitedUserId(issuer.id)
         )
 
     @Transactional

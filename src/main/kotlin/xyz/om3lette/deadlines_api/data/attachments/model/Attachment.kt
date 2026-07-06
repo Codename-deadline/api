@@ -2,6 +2,8 @@ package xyz.om3lette.deadlines_api.data.attachments.model
 
 import jakarta.persistence.*
 import jakarta.validation.constraints.Size
+import org.hibernate.annotations.OnDelete
+import org.hibernate.annotations.OnDeleteAction
 import xyz.om3lette.deadlines_api.data.attachments.enums.AttachmentCategory
 import xyz.om3lette.deadlines_api.data.attachments.reponse.AttachmentPermissions
 import xyz.om3lette.deadlines_api.data.attachments.reponse.AttachmentResponse
@@ -30,8 +32,9 @@ data class Attachment(
     var sizeBytes: Long,
 
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "user_id")
-    val uploadedBy: User,
+    @OnDelete(action = OnDeleteAction.SET_NULL)
+    @JoinColumn(name = "user_id", nullable = true)
+    val uploadedBy: User?,
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "deadline_id")
@@ -46,7 +49,7 @@ data class Attachment(
         "category" to category.name,
         "mimeType" to (mimeType),
         "sizeBytes" to (sizeBytes),
-        "uploadedBy" to uploadedBy.toMap(),
+        "uploadedBy" to uploadedBy?.toMap(),
         "attachedTo" to deadline.id,
         "uploadedAt" to uploadedAt
     )
@@ -57,7 +60,7 @@ data class Attachment(
         category.name,
         mimeType,
         sizeBytes,
-        uploadedBy.toMinimalResponse(),
+        uploadedBy?.toMinimalResponse(),
         deadline.id,
         uploadedAt,
         permissions

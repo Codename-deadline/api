@@ -2,6 +2,7 @@ package xyz.om3lette.deadlines_api.services
 
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
+import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.data.user.repo.UserRepository
 
 @Service
@@ -12,4 +13,6 @@ class UserService(
         userRepository.findUsernamesStartingWithIgnoreCase(
             usernameStart, Pageable.ofSize(10)
         )
+
+    fun deleteUser(user: User) = userRepository.delete(user)
 }
