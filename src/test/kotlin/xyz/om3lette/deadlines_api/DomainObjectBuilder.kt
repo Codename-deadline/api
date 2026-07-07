@@ -28,10 +28,9 @@ object DomainObjectBuilder {
             organization = org
         )
 
-    fun deadline(org: Organization, thread: Thread): Deadline =
+    fun deadline(thread: Thread): Deadline =
         Deadline(
             id = 52,
-            organization = org,
             thread = thread,
             isCompleted = false,
             title = "test-deadline",

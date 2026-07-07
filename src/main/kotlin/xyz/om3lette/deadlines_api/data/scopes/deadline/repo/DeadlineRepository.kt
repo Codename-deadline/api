@@ -11,7 +11,7 @@ import xyz.om3lette.deadlines_api.data.scopes.thread.model.Thread
 
 interface DeadlineRepository : JpaRepository<Deadline, Long> {
 
-    @Query("SELECT d.id FROM Deadline d WHERE d.organization.id = :orgId")
+    @Query("SELECT d.id FROM Deadline d WHERE d.thread.organization.id = :orgId")
     fun findAllIdsByOrganizationId(@Param("orgId") organizationId: Long): List<Long>
 
     fun findAllByThread(thread: Thread, pageable: Pageable): Page<Deadline>

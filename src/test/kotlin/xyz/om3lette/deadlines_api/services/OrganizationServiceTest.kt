@@ -19,14 +19,12 @@ import xyz.om3lette.deadlines_api.DomainObjectBuilder
 import xyz.om3lette.deadlines_api.data.permissions.dto.PermissionRoleDTO
 import xyz.om3lette.deadlines_api.data.scopes.common.dto.UsernameRolePair
 import xyz.om3lette.deadlines_api.data.scopes.common.dto.UsernameRolePairList
-import xyz.om3lette.deadlines_api.data.scopes.deadline.repo.DeadlineRepository
 import xyz.om3lette.deadlines_api.data.scopes.organization.enums.InvitationStatus
 import xyz.om3lette.deadlines_api.data.scopes.organization.enums.OrganizationType
 import xyz.om3lette.deadlines_api.data.scopes.organization.model.Organization
 import xyz.om3lette.deadlines_api.data.scopes.organization.model.OrganizationInvitation
 import xyz.om3lette.deadlines_api.data.scopes.organization.repo.OrganizationInvitationRepository
 import xyz.om3lette.deadlines_api.data.scopes.organization.repo.OrganizationRepository
-import xyz.om3lette.deadlines_api.data.scopes.thread.repo.ThreadRepository
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeRole
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType
 import xyz.om3lette.deadlines_api.data.scopes.userScope.model.UserScope
@@ -46,8 +44,6 @@ import kotlin.test.assertTrue
 class OrganizationServiceTest {
     private val userRepository: UserRepository = mockk()
     private val userScopeRepository: UserScopeRepository = mockk()
-    private val threadRepository: ThreadRepository = mockk()
-    private val deadlineRepository: DeadlineRepository = mockk()
     private val organizationRepository: OrganizationRepository = mockk()
     private val organizationInvitationRepository: OrganizationInvitationRepository = mockk()
     private val permissionService: PermissionService = mockk()
@@ -55,8 +51,6 @@ class OrganizationServiceTest {
     private val organizationService: OrganizationService = OrganizationService(
         userRepository,
         userScopeRepository,
-        threadRepository,
-        deadlineRepository,
         organizationRepository,
         organizationInvitationRepository,
         permissionService,
@@ -113,10 +107,7 @@ class OrganizationServiceTest {
 
         every { organizationRepository.findById(dummyOrganization.id) } returns Optional.of(dummyOrganization)
 
-        every { userScopeRepository.deleteByUserIdAndScopeId(dummyUserAlice.id, dummyOrganization.id, null, null) } returns 1
-        every { userScopeRepository.deleteByUserIdAndScopeTypeAndScopeIdIn(dummyUserAlice.id, any(), any()) } returns 1
-        every { threadRepository.findAllIdsByOrganizationId(any()) } returns listOf()
-        every { deadlineRepository.findAllIdsByOrganizationId(any()) } returns listOf()
+        every { userScopeRepository.deleteByUserIdAndOrganizationId(dummyUserAlice.id, dummyOrganization.id) } returns 1
 
         every { dummyUserScopeBob.role } returns ScopeRole.ORG_OWNER
 
@@ -284,7 +275,7 @@ class OrganizationServiceTest {
             }
 
             assertAll(
-                { verify(exactly = 0) {userScopeRepository.deleteByUserIdAndScopeTypeAndScopeIdIn(any(), any(), any()) } },
+                { verify(exactly = 0) { userScopeRepository.deleteByUserIdAndOrganizationId(any(), any()) } },
                 { assertEquals(404, res.statusCode) }
             )
         }
@@ -301,7 +292,7 @@ class OrganizationServiceTest {
             }
 
             assertAll(
-                { verify(exactly = 0) {userScopeRepository.deleteByUserIdAndScopeTypeAndScopeIdIn(any(), any(), any()) } },
+                { verify(exactly = 0) { userScopeRepository.deleteByUserIdAndOrganizationId(any(), any()) } },
                 { assertEquals(403, res.statusCode) }
             )
         }
@@ -313,7 +304,7 @@ class OrganizationServiceTest {
             }
 
             assertAll(
-                { verify(exactly = 0) { userScopeRepository.deleteByUserIdAndScopeTypeAndScopeIdIn(any(), any(), any()) } },
+                { verify(exactly = 0) { userScopeRepository.deleteByUserIdAndOrganizationId(any(), any()) } },
                 { assertEquals(400, res.statusCode) }
             )
         }
@@ -327,7 +318,7 @@ class OrganizationServiceTest {
             dummyOrganization.members.add(dummyUserScopeAlice)
             organizationService.removeMember(dummyUserBob, dummyOrganization.id, dummyUserAlice.username)
 
-            verify(exactly = 1) { userScopeRepository.deleteByUserIdAndScopeId(dummyUserAlice.id, dummyOrganization.id, null, null) }
+            verify(exactly = 1) { userScopeRepository.deleteByUserIdAndOrganizationId(dummyUserAlice.id, dummyOrganization.id) }
         }
     }
 }

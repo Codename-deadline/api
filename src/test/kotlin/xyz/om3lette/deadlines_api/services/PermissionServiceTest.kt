@@ -72,7 +72,7 @@ class PermissionServiceTest {
 
         organization = DomainObjectBuilder.organization()
         thread = DomainObjectBuilder.thread(organization)
-        deadline = DomainObjectBuilder.deadline(organization, thread)
+        deadline = DomainObjectBuilder.deadline(thread)
 
         // Cache passthrough
         every {
@@ -112,7 +112,7 @@ class PermissionServiceTest {
             curOrgId = thread.organization.id
             thrId = thread.id
         } else if (deadline != null) {
-            curOrgId = deadline.organization.id
+            curOrgId = deadline.thread.organization.id
             thrId = deadline.thread.id
             ddlId = deadline.id
         }

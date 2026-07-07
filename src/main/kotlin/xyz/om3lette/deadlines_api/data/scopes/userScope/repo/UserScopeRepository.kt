@@ -122,6 +122,25 @@ interface UserScopeRepository : JpaRepository<UserScope, Long> {
         scopeId: Collection<Long>
     ): Int
 
+    @Modifying
+    @Transactional
+    @Query(
+        """
+            DELETE FROM UserScope us
+            WHERE us.user.id = :userId
+                AND (
+                    (us.scopeType = 'ORG' AND us.scopeId = :orgId)
+                    OR (us.scopeType = 'THR' AND us.scopeId IN (
+                        SELECT t.id FROM Thread t WHERE t.organization.id = :orgId
+                    ))
+                    OR (us.scopeType = 'DDL' AND us.scopeId IN (
+                        SELECT d.id FROM Deadline d WHERE d.thread.organization.id = :orgId
+                    ))
+                )
+        """
+    )
+    fun deleteByUserIdAndOrganizationId(userId: Long, orgId: Long): Int
+
     @Query(
         """
         SELECT role, scopeId, scopeType FROM UserScope us

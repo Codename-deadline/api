@@ -4,7 +4,6 @@ import jakarta.annotation.PostConstruct
 import org.slf4j.LoggerFactory
 import org.springframework.security.authentication.AuthenticationManager
 import org.springframework.security.authentication.BadCredentialsException
-import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 import xyz.om3lette.deadlines_api.data.integration.bot.enums.Language
 import xyz.om3lette.deadlines_api.data.integration.bot.enums.Messenger
@@ -35,7 +34,7 @@ class OtpService(
     private val authService: AuthService,
     private val authenticationManager: AuthenticationManager,
     private val userMessengerAccountRepository: UserMessengerAccountRepository,
-    private val passwordEncoder: PasswordEncoder,
+    private val otpCodeHasher: OtpCodeHasher,
     private val otpRepository: OtpRepository,
     private val otpRegisterRequestRepository: OtpRegisterRequestRepository,
     private val otpPasswordCheckRepository: OtpPasswordCheckRepository,
@@ -105,8 +104,6 @@ class OtpService(
         return OtpResponse(otpId)
     }
 
-
-    // TODO: Consider using something lighter than bcrypt
     private fun createAndSendOtp(
         identifier: String,
         channel: OtpChannel,
@@ -115,7 +112,7 @@ class OtpService(
         username: String? = null
     ): UUID {
         val code = generateNumericCode(OtpConstraints.CODE_LENGTH)
-        val hashedCode: String = passwordEncoder.encode(code)!!
+        val hashedCode: String = otpCodeHasher.hash(code)
 
         val otp = otpRepository.save(
             Otp(

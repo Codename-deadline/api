@@ -68,7 +68,7 @@ class RolesServiceTest {
     fun commonHappyStubs() {
         organization = DomainObjectBuilder.organization()
         thread = DomainObjectBuilder.thread(organization)
-        deadline = DomainObjectBuilder.deadline(organization, thread)
+        deadline = DomainObjectBuilder.deadline(thread)
         every { threadsRepository.findById(thread.id) } returns Optional.of(thread)
         every { deadlineRepository.findById(deadline.id) } returns Optional.of(deadline)
 

@@ -13,6 +13,7 @@ import xyz.om3lette.deadlines_api.data.integration.chat.model.Chat
 import xyz.om3lette.deadlines_api.data.integration.chat.model.ChatSubscription
 import xyz.om3lette.deadlines_api.data.integration.chat.repo.ChatRepository
 import xyz.om3lette.deadlines_api.data.integration.chat.repo.ChatSubscriptionRepository
+import xyz.om3lette.deadlines_api.data.integration.constraints.IntegrationConstraints
 import xyz.om3lette.deadlines_api.data.integration.messengerAccount.model.UserMessengerAccount
 import xyz.om3lette.deadlines_api.data.integration.messengerAccount.repo.UserMessengerAccountRepository
 import xyz.om3lette.deadlines_api.data.permissions.dto.DeadlineScope
@@ -297,7 +298,7 @@ class IntegrationInternalService(
             )
 
         if (request.language != null) chat.language = Language.valueOf(request.language.name)
-        if (request.title != null) chat.title = request.title.take(256)
+        if (request.title != null) chat.title = request.title.take(IntegrationConstraints.CHAT_TITLE_MAX)
         chatRepository.save(chat)
 
         responseObserver.onNext(
@@ -342,7 +343,7 @@ class IntegrationInternalService(
                     0,
                     request.messengerChatId,
                     bot.messenger,
-                    request.chatTitle.take(256),
+                    request.chatTitle.take(IntegrationConstraints.CHAT_TITLE_MAX),
                     bot,
                     language,
                     Instant.now()

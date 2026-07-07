@@ -81,7 +81,6 @@ class DeadlineService(
         val deadline = deadlineRepository.save(
             Deadline(
                 id = 0,
-                organization = thread.organization,
                 thread = thread,
                 title = title,
                 description = description,
@@ -161,7 +160,7 @@ class DeadlineService(
 
         val deadline = deadlineRepository.findByIdOr404(deadlineId, ErrorCode.DDL_NOT_FOUND)
         val newAssignee = userScopeRepository.findByScopeTypeAndScopeIdAndUsernameIgnoreCase(
-            username, ScopeType.ORGANIZATION, deadline.organization.id
+            username, ScopeType.ORGANIZATION, deadline.thread.organization.id
         ).orElseThrow{ StatusCodeException(400, ErrorCode.INVITATION_NOT_ORG_MEMBER) }
         requirePermission(
             permissionService.canAddAssignees(issuer, DeadlineScope(deadline))
@@ -220,7 +219,7 @@ class DeadlineService(
         for (deadline in deadlines) {
             deadlineIds.add(deadline.id)
             threadIds.add(deadline.thread.id)
-            organizationIds.add(deadline.organization.id)
+            organizationIds.add(deadline.thread.organization.id)
         }
 
         val deadlineIdsList = deadlineIds.toList()

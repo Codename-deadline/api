@@ -10,8 +10,8 @@ import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.core.userdetails.UserDetailsService
 import org.springframework.security.core.userdetails.UsernameNotFoundException
-import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Component
+import xyz.om3lette.deadlines_api.configs.properties.OtpProperties
 import xyz.om3lette.deadlines_api.data.otp.enums.AppAuthority
 import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.exceptions.enums.ErrorCode
@@ -24,12 +24,11 @@ import xyz.om3lette.deadlines_api.redisData.otp.repo.OtpRepository
 class OtpAuthProvider(
     private val userProvisioningService: UserProvisioningService,
     private val userDetailsService: UserDetailsService,
-    private val passwordEncoder: PasswordEncoder,
+    private val otpCodeHasher: OtpCodeHasher,
     private val otpRepository: OtpRepository,
-    private val otpRegisterRequestRepository: OtpRegisterRequestRepository
+    private val otpRegisterRequestRepository: OtpRegisterRequestRepository,
+    private val otpProperties: OtpProperties
 ) : AuthenticationProvider {
-    private val maxOtpAttempts: Int = 3
-
     companion object {
         val OTP_VERIFIED_AUTHORITY: GrantedAuthority = SimpleGrantedAuthority(AppAuthority.OTP_VERIFIED.name)
     }
@@ -47,9 +46,9 @@ class OtpAuthProvider(
         val code = token.credentials as? String ?: ""
         val otp = otpRepository.findById(otpId).orElseThrow { BadCredentialsException("") }
 
-        if (!passwordEncoder.matches(code, otp.hashedCode)) {
+        if (!otpCodeHasher.matches(code, otp.hashedCode)) {
             otp.attempts++
-            if (otp.attempts >= maxOtpAttempts) {
+            if (otp.attempts >= otpProperties.maxAttempts) {
                 cleanupOtp(otp)
                 throw CredentialsExpiredException("")
             }
