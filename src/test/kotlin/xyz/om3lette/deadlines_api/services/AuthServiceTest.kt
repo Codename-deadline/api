@@ -1,10 +1,19 @@
 package xyz.om3lette.deadlines_api.services
 
 import io.jsonwebtoken.Claims
-import io.mockk.*
+import io.mockk.CapturingSlot
+import io.mockk.every
 import io.mockk.junit5.MockKExtension
+import io.mockk.mockk
+import io.mockk.slot
+import io.mockk.verify
 import jakarta.servlet.http.HttpServletRequest
-import org.junit.jupiter.api.*
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Nested
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.api.assertAll
+import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
@@ -14,7 +23,9 @@ import org.springframework.security.authentication.AuthenticationManager
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.Authentication
 import org.springframework.security.crypto.password.PasswordEncoder
+import xyz.om3lette.deadlines_api.DomainObjectBuilder
 import xyz.om3lette.deadlines_api.configs.properties.UsersProperties
+import xyz.om3lette.deadlines_api.data.integration.bot.enums.Language
 import xyz.om3lette.deadlines_api.data.jwt.model.RefreshToken
 import xyz.om3lette.deadlines_api.data.jwt.repo.RefreshTokenRepository
 import xyz.om3lette.deadlines_api.data.user.model.User
@@ -23,12 +34,12 @@ import xyz.om3lette.deadlines_api.exceptions.enums.ErrorCode
 import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
 import xyz.om3lette.deadlines_api.services.auth.AuthService
 import java.time.Instant
-import java.util.*
+import java.util.Date
+import java.util.Optional
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-// TODO: Rewrite
 @ExtendWith(MockKExtension::class)
 class AuthServiceTest {
     private val maxSessions = 2
@@ -47,294 +58,297 @@ class AuthServiceTest {
         userRepository,
         refreshTokenRepository
     )
-    private val dummyUser = User(
-        id = 42,
-        _username = "bob",
-        _password = "current-user-password",
-        fullName = "Test User",
-        joinedAt = Instant.now()
-    )
 
-    val dummyRefreshToken = RefreshToken(
-        0,
-        "someJti",
-        Instant.now().plusSeconds(60),
-        false,
-        dummyUser
-    )
-    val dummyRefreshToken2 = RefreshToken(
-        1,
-        "someJti1",
-        Instant.now().plusSeconds(60),
-        false,
-        dummyUser
-    )
-    val dummyTokens = listOf(dummyRefreshToken, dummyRefreshToken2)
+    private lateinit var user: User
 
+    @BeforeEach
+    fun commonFixtures() {
+        user = DomainObjectBuilder.user(
+            id = 42,
+            username = "bob",
+            fullName = "Bob the tester",
+            password = "current-user-password"
+        )
+    }
+
+    private fun stubAuthenticatedUser(username: String = user.username, password: String = "raw-password") {
+        val auth = mockk<Authentication> {
+            every { principal } returns user
+        }
+        every {
+            authManager.authenticate(
+                match<UsernamePasswordAuthenticationToken> {
+                    it.principal == username && it.credentials == password
+                }
+            )
+        } returns auth
+    }
+
+    private fun stubGeneratedTokenPair(
+        accessToken: String = "access-jwt",
+        refreshToken: String = "refresh-jwt",
+        refreshJti: String = "refresh-jti",
+        savedRefreshTokenSlot: CapturingSlot<RefreshToken> = slot()
+    ): CapturingSlot<RefreshToken> {
+        every { jwtService.generateAccessToken(user) } returns Pair(accessToken, "access-jti")
+        every { jwtService.generateRefreshToken(user) } returns Pair(refreshToken, refreshJti)
+        every { jwtService.extractExpiration(refreshToken) } returns Date.from(Instant.now().plusSeconds(60))
+        every { refreshTokenRepository.save(capture(savedRefreshTokenSlot)) } returnsArgument 0
+        return savedRefreshTokenSlot
+    }
 
     @Nested
     inner class Register {
         @BeforeEach
         fun commonHappyStubs() {
-            every { passwordEncoder.encode("strong-password") } returns "encoded"
+            every { passwordEncoder.encode("strong-password") } returns "encoded-password"
             every { userRepository.save(any()) } returnsArgument 0
         }
 
         @Test
-        fun `when username exists, throws 409`() {
+        fun `duplicate username throws 409`() {
             every { userRepository.save(any()) } throws DataIntegrityViolationException("")
-            val res = assertThrows<StatusCodeException> {
-                service.registerWithPassword("Test1", "Bob the tester", "strong-password", null)
+
+            val ex = assertThrows<StatusCodeException> {
+                service.registerWithPassword("bob", "Bob the tester", "strong-password", null)
             }
-            assertEquals(res.statusCode, 409)
+
+            assertEquals(409, ex.statusCode)
         }
 
         @Test
-        fun `happy path creates user`() {
-            service.registerWithPassword("Bob", "Bob the tester", "strong-password", null)
-            verify { userRepository.save(
-                match { it.username == "Bob" && it.password?.startsWith("encoded") ?: false })
-            }
+        fun `happy path creates user with encoded password and default language`() {
+            val savedUser = slot<User>()
+            every { userRepository.save(capture(savedUser)) } returnsArgument 0
+
+            service.registerWithPassword("bob", "Bob the tester", "strong-password", null)
+
+            assertAll(
+                { assertEquals("bob", savedUser.captured.username) },
+                { assertEquals("Bob the tester", savedUser.captured.fullName) },
+                { assertEquals("encoded-password", savedUser.captured.password) },
+                { assertEquals(Language.EN, savedUser.captured.language) }
+            )
         }
     }
 
     @Nested
     inner class SignIn {
-
         @Test
-        fun `when sessions ge maxSessions, throws StatusCodeException`() {
-            val auth = mockk<Authentication> {
-                every { principal } returns dummyUser
-            }
-            every { authManager.authenticate(any()) } returns auth
-            every { refreshTokenRepository.findAllValidByUser(dummyUser) } returns listOf(mockk(), mockk())
-            val res = assertThrows<StatusCodeException> { service.signInPassword(dummyUser.username, "raw-pw") }
+        fun `session limit reached throws 400`() {
+            stubAuthenticatedUser()
+            every { refreshTokenRepository.findAllValidByUser(user) } returns listOf(
+                DomainObjectBuilder.refreshToken(user, id = 1),
+                DomainObjectBuilder.refreshToken(user, id = 2)
+            )
 
-            assertEquals(res.statusCode, 400)
-            assertEquals(ErrorCode.AUTH_SESSIONS_LIMIT_EXCEEDED, res.code)
+            val ex = assertThrows<StatusCodeException> {
+                service.signInPassword(user.username, "raw-password")
+            }
+
+            assertAll(
+                { assertEquals(400, ex.statusCode) },
+                { assertEquals(ErrorCode.AUTH_SESSIONS_LIMIT_EXCEEDED, ex.code) }
+            )
         }
 
         @Test
         fun `happy path returns token pair and persists refresh token`() {
-            val auth = mockk<Authentication> {
-                every { principal } returns dummyUser
-            }
-            every { authManager.authenticate(
-                match<UsernamePasswordAuthenticationToken> {
-                    it.principal == "bob" && it.credentials == "raw‑pw"
-                }
-            ) } returns auth
+            stubAuthenticatedUser()
+            every { refreshTokenRepository.findAllValidByUser(user) } returns emptyList()
+            val savedRefreshToken = stubGeneratedTokenPair(
+                accessToken = "access-token",
+                refreshToken = "refresh-token",
+                refreshJti = "refresh-jti"
+            )
 
-            // No existing sessions
-            every { refreshTokenRepository.findAllValidByUser(dummyUser) }
-                .returns(emptyList())
+            val result = service.signInPassword("bob", "raw-password")
 
-            val accessToken = "access‑jwt"
-            val refreshJwt  = "refresh‑jwt"
-
-            every { jwtService.generateAccessToken(dummyUser) } returns Pair(accessToken, "jti‑123")
-            every { jwtService.generateRefreshToken(dummyUser) } returns Pair(refreshJwt, "jti‑123")
-            every { jwtService.extractExpiration(any()) } returns Date.from(Instant.now().plusSeconds(60))
-
-            val savedSlot = slot<RefreshToken>()
-            every { refreshTokenRepository.save(capture(savedSlot)) } returnsArgument 0
-
-            val res = service.signInPassword("bob", "raw‑pw")
-            assertEquals(accessToken, res.accessToken)
-            assertEquals(refreshJwt, res.refreshToken)
-
-            // Assert we saved a RefreshToken with correct fields
-            val saved = savedSlot.captured
-            assertEquals("jti‑123", saved.jti)
-            assertFalse(saved.revoked)
-            assertEquals(dummyUser, saved.user)
+            assertAll(
+                { assertEquals("access-token", result.accessToken) },
+                { assertEquals("refresh-token", result.refreshToken) },
+                { assertEquals("refresh-jti", savedRefreshToken.captured.jti) },
+                { assertFalse(savedRefreshToken.captured.revoked) },
+                { assertEquals(user, savedRefreshToken.captured.user) }
+            )
         }
     }
 
-    @TestInstance(TestInstance.Lifecycle.PER_CLASS)
     @Nested
+    @TestInstance(TestInstance.Lifecycle.PER_CLASS)
     inner class TokenRefresh {
-        private val fakeJwt = "fake.jwt.token"
-        private val claims = mockk<Claims>()
+        private val jwt = "valid.jwt"
         private lateinit var request: HttpServletRequest
-        private lateinit var dummyRefreshToken: RefreshToken
+        private lateinit var claims: Claims
+        private lateinit var existingRefreshToken: RefreshToken
 
         @BeforeEach
         fun commonHappyStubs() {
-            dummyRefreshToken = RefreshToken(
-                0,
-                "someJti",
-                Instant.now().plusSeconds(60),
-                false,
-                dummyUser
-            )
-
             request = mockk {
-                every { getHeader("Authorization") } returns "Bearer $fakeJwt"
+                every { getHeader("Authorization") } returns "Bearer $jwt"
             }
+            claims = mockk {
+                every { subject } returns user.username
+                every { this@mockk["jti"] } returns "refresh-jti"
+            }
+            existingRefreshToken = DomainObjectBuilder.refreshToken(user, jti = "refresh-jti")
 
-            every { jwtService.extractAllClaims(fakeJwt) } returns claims
-
-            every { claims.subject } returns "bob"
-            every { claims["jti"] } returns "someJti"
-
-            every { userRepository.findByUsernameIgnoreCase("bob") } returns Optional.of(dummyUser)
-            every { refreshTokenRepository.findByJti("someJti") } returns Optional.of(dummyRefreshToken)
+            every { jwtService.extractAllClaims(jwt) } returns claims
+            every { userRepository.findByUsernameIgnoreCase(user.username) } returns Optional.of(user)
+            every { refreshTokenRepository.findByJti("refresh-jti") } returns Optional.of(existingRefreshToken)
         }
 
         fun badClaimsProvider() = listOf(
-            Arguments.of(null, "someJti"),
-            Arguments.of("alice", null),
+            Arguments.of(null, "refresh-jti"),
+            Arguments.of("bob", null),
             Arguments.of(null, null)
-        ).stream()
+        )
 
-        private fun assertInvalidCredentials(errorCode: ErrorCode = ErrorCode.AUTH_INVALID_CREDENTIALS, stubBlock: () -> Unit) {
-            stubBlock()
+        private fun assertInvalidCredentials(stub: () -> Unit) {
+            stub()
+
             val ex = assertThrows<StatusCodeException> { service.refreshToken(request) }
-            assertEquals(401, ex.statusCode)
-            assertEquals(errorCode, ex.code)
+
+            assertAll(
+                { assertEquals(401, ex.statusCode) },
+                { assertEquals(ErrorCode.AUTH_INVALID_CREDENTIALS, ex.code) }
+            )
         }
 
         @Test
-        fun `missing Authorization header throws StatusCodeException 401`() = assertInvalidCredentials {
-            request = mockk<HttpServletRequest> {
+        fun `missing Authorization header throws 401`() = assertInvalidCredentials {
+            request = mockk {
                 every { getHeader("Authorization") } returns null
             }
         }
 
         @Test
-        fun `invalid Authorization header format throws StatusCodeException 401`() = assertInvalidCredentials {
-            request = mockk<HttpServletRequest> {
-                every { getHeader("Authorization") } returns "Bearer-jwt"
+        fun `invalid Authorization header format throws 401`() = assertInvalidCredentials {
+            request = mockk {
+                every { getHeader("Authorization") } returns "Bearer-token"
             }
         }
 
         @ParameterizedTest
         @MethodSource("badClaimsProvider")
-        fun `missing subject or jti throws StatusCodeException 401`(subject: String?, jti: String?) = assertInvalidCredentials {
+        fun `missing subject or jti throws 401`(subject: String?, jti: String?) = assertInvalidCredentials {
             every { claims.subject } returns subject
             every { claims["jti"] } returns jti
         }
 
         @Test
-        fun `user not found throws StatusCodeException 401`() = assertInvalidCredentials {
-            every { userRepository.findByUsernameIgnoreCase("bob") } returns Optional.empty()
+        fun `user not found throws 401`() = assertInvalidCredentials {
+            every { userRepository.findByUsernameIgnoreCase(user.username) } returns Optional.empty()
         }
 
         @Test
-        fun `refresh token not found throws StatusCodeException 401`() = assertInvalidCredentials {
-            every { refreshTokenRepository.findByJti("someJti") } returns Optional.empty()
+        fun `refresh token not found throws 401`() = assertInvalidCredentials {
+            every { refreshTokenRepository.findByJti("refresh-jti") } returns Optional.empty()
         }
 
         @Test
-        fun `revoked token throws StatusCodeException 401`() = assertInvalidCredentials {
-            dummyRefreshToken.revoked = true
+        fun `revoked refresh token throws 401`() = assertInvalidCredentials {
+            existingRefreshToken.revoked = true
         }
 
         @Test
-        fun `happy path returns token pair`() {
-            every { jwtService.extractExpiration(any()) } returns Date.from(Instant.now().plusSeconds(60))
-            every { jwtService.generateAccessToken(any()) } returns Pair("access", "token-1")
-            every { jwtService.generateRefreshToken(any()) } returns Pair("refresh", "token-2")
+        fun `happy path revokes old token and returns new token pair`() {
+            val savedRefreshToken = stubGeneratedTokenPair(
+                accessToken = "new-access",
+                refreshToken = "new-refresh",
+                refreshJti = "new-refresh-jti"
+            )
 
-            val savedSlot = slot<RefreshToken>()
+            val result = service.refreshToken(request)
 
-            every { refreshTokenRepository.save(capture(savedSlot)) } returnsArgument 0
-
-            val res = service.refreshToken(request)
-            val savedToken = savedSlot.captured
-
-            verify { refreshTokenRepository.save(match { it.jti == savedToken.jti }) }
             assertAll(
-                { assertEquals(true, dummyRefreshToken.revoked) },
-                { assertEquals("access", res.accessToken) },
-                { assertEquals("refresh", res.refreshToken) }
+                { assertTrue(existingRefreshToken.revoked) },
+                { verify { refreshTokenRepository.save(existingRefreshToken) } },
+                { assertEquals("new-access", result.accessToken) },
+                { assertEquals("new-refresh", result.refreshToken) },
+                { assertEquals("new-refresh-jti", savedRefreshToken.captured.jti) }
             )
         }
     }
 
     @Nested
     inner class ChangePassword {
-        private lateinit var oldPassword: String
-        private lateinit var newPassword: String
-
         @BeforeEach
         fun commonHappyStubs() {
-            oldPassword = "old-raw-password"
-            newPassword = "new-raw-password"
-
-            every { passwordEncoder.encode(any()) } returns "encoded"
-            every { passwordEncoder.matches("old-raw-password", "current-user-password") } returns true
+            every { passwordEncoder.encode("new-password") } returns "encoded-new-password"
+            every { passwordEncoder.matches("old-password", "current-user-password") } returns true
             every { passwordEncoder.matches("wrong-password", "current-user-password") } returns false
         }
 
-        private fun assertInvalidInput(errorCode: Int, stubBlock: () -> Unit) {
-            stubBlock()
-            val ex = assertThrows<StatusCodeException> { service.changePassword(dummyUser, oldPassword, newPassword) }
-            assertEquals(errorCode, ex.statusCode)
+        @Test
+        fun `same old and new password throws 400`() {
+            val ex = assertThrows<StatusCodeException> {
+                service.changePassword(user, "same-password", "same-password")
+            }
+
+            assertEquals(400, ex.statusCode)
         }
 
         @Test
-        fun `same old and new password throws StatusCodeException 400`() = assertInvalidInput(400) {
-            newPassword = oldPassword
+        fun `wrong old password throws 403`() {
+            val ex = assertThrows<StatusCodeException> {
+                service.changePassword(user, "wrong-password", "new-password")
+            }
+
+            assertEquals(403, ex.statusCode)
         }
 
         @Test
-        fun `old password not matching throws StatusCodeException 403`() = assertInvalidInput(403) {
-            oldPassword = "wrong-password"
+        fun `user without existing password can set password without old password`() {
+            val userWithoutPassword = DomainObjectBuilder.user(password = null)
+            val savedUser = slot<User>()
+            every { userRepository.save(capture(savedUser)) } returnsArgument 0
+            every { refreshTokenRepository.findAllValidByUser(userWithoutPassword) } returns emptyList()
+            every { refreshTokenRepository.saveAll(emptyList()) } returns emptyList()
+
+            service.changePassword(userWithoutPassword, null, "new-password")
+
+            assertEquals("encoded-new-password", savedUser.captured.password)
         }
 
         @Test
-        fun `happy path updates password`() {
-            val dummyRefreshToken = RefreshToken(
-                0,
-                "someJti",
-                Instant.now().plusSeconds(60),
-                false,
-                dummyUser
+        fun `happy path updates password and revokes valid refresh tokens`() {
+            val validTokens = listOf(
+                DomainObjectBuilder.refreshToken(user, id = 1),
+                DomainObjectBuilder.refreshToken(user, id = 2)
             )
-            val dummyRefreshToken2 = RefreshToken(
-                1,
-                "someJti1",
-                Instant.now().plusSeconds(60),
-                false,
-                dummyUser
+            val savedUser = slot<User>()
+            val savedTokens = slot<List<RefreshToken>>()
+            every { userRepository.save(capture(savedUser)) } returnsArgument 0
+            every { refreshTokenRepository.findAllValidByUser(user) } returns validTokens
+            every { refreshTokenRepository.saveAll(capture(savedTokens)) } returnsArgument 0
+
+            service.changePassword(user, "old-password", "new-password")
+
+            assertAll(
+                { assertEquals(user.id, savedUser.captured.id) },
+                { assertEquals("encoded-new-password", savedUser.captured.password) },
+                { assertTrue(savedTokens.captured.all { it.revoked }) },
+                { assertEquals(validTokens.size, savedTokens.captured.size) }
             )
-            val dummyTokens = listOf(dummyRefreshToken, dummyRefreshToken2)
-
-            val savedUserSlot = slot<User>()
-            every { userRepository.save(capture(savedUserSlot)) } returnsArgument 0
-
-            val savedTokensSlot = slot<List<RefreshToken>>()
-            every { refreshTokenRepository.findAllValidByUser(dummyUser) } returns dummyTokens
-            every { refreshTokenRepository.saveAll(capture(savedTokensSlot)) } returnsArgument 0
-
-            service.changePassword(dummyUser, oldPassword, newPassword)
-            val savedUser = savedUserSlot.captured
-            val savedTokens = savedTokensSlot.captured
-
-            assertEquals(dummyUser.id, savedUser.id)
-            assertTrue( savedTokens.all { it.revoked } )
-            assertEquals(dummyTokens.count(), savedTokens.count())
         }
     }
 
     @Nested
     inner class SignOut {
-        private var savedTokensSlot: CapturingSlot<List<RefreshToken>> = slot()
-
-        @BeforeEach
-        fun commonHappyStubs() {
-            savedTokensSlot.clear()
-            every { refreshTokenRepository.findAllValidByUser(dummyUser) } returns dummyTokens
-            every { refreshTokenRepository.saveAll(capture(savedTokensSlot)) } returnsArgument 0
-        }
-
         @Test
-        fun `happy path revokes all user's refresh tokens`() {
-            service.signOut(dummyUser)
+        fun `happy path revokes all valid refresh tokens`() {
+            val validTokens = listOf(
+                DomainObjectBuilder.refreshToken(user, id = 1),
+                DomainObjectBuilder.refreshToken(user, id = 2)
+            )
+            val savedTokens = slot<List<RefreshToken>>()
+            every { refreshTokenRepository.findAllValidByUser(user) } returns validTokens
+            every { refreshTokenRepository.saveAll(capture(savedTokens)) } returnsArgument 0
 
-            assertTrue(savedTokensSlot.captured.all { it.revoked })
+            service.signOut(user)
+
+            assertTrue(savedTokens.captured.all { it.revoked })
         }
     }
 }

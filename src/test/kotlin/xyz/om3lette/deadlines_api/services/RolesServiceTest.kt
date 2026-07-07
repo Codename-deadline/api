@@ -5,9 +5,7 @@ import io.mockk.every
 import io.mockk.impl.annotations.InjectMockKs
 import io.mockk.impl.annotations.MockK
 import io.mockk.junit5.MockKExtension
-import io.mockk.mockk
 import io.mockk.slot
-import io.mockk.spyk
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
@@ -59,10 +57,9 @@ class RolesServiceTest {
     private lateinit var deadline: Deadline
 
     private lateinit var dummyUserBob: User
-    private val dummyUserScopeBob: UserScope = mockk()
 
     private lateinit var dummyUserAlice: User
-    private val dummyUserScopeAlice: UserScope = spyk<UserScope>()
+    private lateinit var dummyUserScopeAlice: UserScope
 
     @BeforeEach
     fun commonHappyStubs() {
@@ -74,8 +71,13 @@ class RolesServiceTest {
 
         dummyUserBob = DomainObjectBuilder.userBob()
         dummyUserAlice = DomainObjectBuilder.userAlice()
+        dummyUserScopeAlice = DomainObjectBuilder.userScope(
+            user = dummyUserAlice,
+            scopeType = ScopeType.ORGANIZATION,
+            scopeId = organization.id,
+            role = ScopeRole.ORG_MEMBER
+        )
 
-        every { dummyUserScopeAlice.role } returns ScopeRole.ORG_MEMBER
         every {
             userScopeRepository.findByScopeTypeAndScopeIdAndUsernameIgnoreCase(
                 dummyUserAlice.username, any(), organization.id
@@ -211,6 +213,7 @@ class RolesServiceTest {
                 ScopeRole.ORG_ADMIN, ScopeType.ORGANIZATION
             )
             assertTrue(savedUserScopeSlot.isCaptured)
+            assertEquals(ScopeRole.ORG_ADMIN, savedUserScopeSlot.captured.role)
         }
     }
 }

@@ -83,7 +83,7 @@ class PermissionServiceTest {
         }
     }
 
-    fun withRoleScope(user: User, permissionScope: PermissionScope, role: ScopeRole) {
+    fun withRoleScope(user: User, permissionScope: PermissionScope, role: ScopeRole?) {
         when (permissionScope) {
             is OrganizationScope -> withRole(user, orgId = permissionScope.orgId, role = role)
             is ThreadScope -> withRole(user, thread = permissionScope.thread, role = role)
@@ -108,13 +108,20 @@ class PermissionServiceTest {
         var thrId: Long? = null
         var ddlId: Long? = null
 
+        var roleScopeId = orgId ?: 0
+        var roleScopeType = ScopeType.ORGANIZATION
+
         if (thread != null) {
             curOrgId = thread.organization.id
             thrId = thread.id
+            roleScopeId = thread.id
+            roleScopeType = ScopeType.THREAD
         } else if (deadline != null) {
             curOrgId = deadline.thread.organization.id
             thrId = deadline.thread.id
             ddlId = deadline.id
+            roleScopeId = deadline.id
+            roleScopeType = ScopeType.DEADLINE
         }
         every {
             userScopeRepository.findUserRolesInScope(
@@ -124,7 +131,17 @@ class PermissionServiceTest {
                 if (useAny && ddlId == null) any() else ddlId
             )
         } returns if (role == null) emptyList()
-                  else listOf(ScopeRoleDTO(role, organization.id, ScopeType.ORGANIZATION)) // TODO: Meaningful scope id and scope type can be returned
+                  else listOf(ScopeRoleDTO(role, roleScopeId, roleScopeType))
+    }
+
+    private fun <T> withRoleForTarget(user: User, target: T, role: ScopeRole?) {
+        when (target) {
+            is Long -> withRole(user, orgId = target, role = role)
+            is Organization -> withRole(user, orgId = target.id, role = role)
+            is Thread -> withRole(user, thread = target, role = role)
+            is Deadline -> withRole(user, deadline = target, role = role)
+            else -> throw IllegalArgumentException("Unsupported permission target: ${target!!::class}")
+        }
     }
 
     private fun testForMinAcceptableRole(
@@ -132,12 +149,14 @@ class PermissionServiceTest {
         permissionScope: PermissionScope,
         method: (User, PermissionScope) -> Boolean
     ) {
-        withRoleScope(nonAdmin, permissionScope, minRole)
-        assertTrue{ method(nonAdmin, permissionScope) }
-        if (minRole == ScopeRole.getLowest()) return
-
-        withRoleScope(nonAdmin, permissionScope, minRole.getNextLowerRoleOrLowest())
-        assertFalse{ method(nonAdmin, permissionScope) }
+        ScopeRole.entries.forEach { role ->
+            withRoleScope(nonAdmin, permissionScope, role)
+            assertEquals(
+                role >= minRole,
+                method(nonAdmin, permissionScope),
+                "$role should ${if (role >= minRole) "pass" else "fail"} for minimum role $minRole"
+            )
+        }
     }
 
     /**
@@ -150,13 +169,14 @@ class PermissionServiceTest {
         target: T,
         method: (User, T) -> Boolean
     ) {
-        withRole(nonAdmin, role = minRole, useAny = true)
-        assertTrue { method(nonAdmin, target) }
-
-        if (minRole == ScopeRole.getLowest()) return
-
-        withRole(nonAdmin, role = minRole.getNextLowerRoleOrLowest(), useAny = true)
-        assertFalse { method(nonAdmin, target) }
+        ScopeRole.entries.forEach { role ->
+            withRoleForTarget(nonAdmin, target, role)
+            assertEquals(
+                role >= minRole,
+                method(nonAdmin, target),
+                "$role should ${if (role >= minRole) "pass" else "fail"} for minimum role $minRole"
+            )
+        }
     }
 
     @Nested
@@ -172,13 +192,11 @@ class PermissionServiceTest {
     @TestInstance(TestInstance.Lifecycle.PER_CLASS)
     inner class RoleComparisonTests {
 
-        fun higherLowerPairs(): List<Arguments> = listOf(
-            Arguments.of(ScopeRole.ORG_OWNER, ScopeRole.ORG_OWNER, true),
-            Arguments.of(ScopeRole.ORG_ADMIN, ScopeRole.ORG_OWNER, false),
-            Arguments.of(ScopeRole.ORG_ADMIN, ScopeRole.DDL_ASSIGNEE, true),
-            Arguments.of(ScopeRole.THR_ASSIGNEE, ScopeRole.DDL_ASSIGNEE, true),
-            Arguments.of(ScopeRole.ORG_MEMBER, ScopeRole.DDL_ASSIGNEE, false)
-        )
+        fun higherLowerPairs(): List<Arguments> = ScopeRole.entries.flatMap { currentRole ->
+            ScopeRole.entries.map { requiredRole ->
+                Arguments.of(currentRole, requiredRole, currentRole.ordinal >= requiredRole.ordinal)
+            }
+        }
 
         @ParameterizedTest
         @MethodSource("higherLowerPairs")

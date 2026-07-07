@@ -1,68 +1,161 @@
 package xyz.om3lette.deadlines_api
 
 import xyz.om3lette.deadlines_api.data.scopes.deadline.model.Deadline
+import xyz.om3lette.deadlines_api.data.scopes.organization.enums.InvitationStatus
 import xyz.om3lette.deadlines_api.data.scopes.organization.enums.OrganizationType
 import xyz.om3lette.deadlines_api.data.scopes.organization.model.Organization
+import xyz.om3lette.deadlines_api.data.scopes.organization.model.OrganizationInvitation
 import xyz.om3lette.deadlines_api.data.scopes.thread.model.Thread
+import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeRole
+import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType
+import xyz.om3lette.deadlines_api.data.scopes.userScope.model.UserScope
+import xyz.om3lette.deadlines_api.data.integration.bot.enums.Language
+import xyz.om3lette.deadlines_api.data.jwt.model.RefreshToken
 import xyz.om3lette.deadlines_api.data.user.enums.UserRole
 import xyz.om3lette.deadlines_api.data.user.model.User
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 
 object DomainObjectBuilder {
-    fun organization(type: OrganizationType = OrganizationType.PUBLIC): Organization =
+    fun organization(
+        id: Long = 42,
+        title: String = "test-org",
+        description: String? = "test-org-desc",
+        type: OrganizationType = OrganizationType.PUBLIC,
+        createdAt: Instant = Instant.now()
+    ): Organization =
         Organization(
-            id = (42 + type.ordinal).toLong(),
-            title = "test-org",
-            description = "test-org-desc",
+            id = id,
+            title = title,
+            description = description,
             type = type,
-            createdAt = Instant.now()
+            createdAt = createdAt
         )
 
-    fun thread(org: Organization): Thread =
+    fun thread(
+        org: Organization,
+        id: Long = 52,
+        title: String = "test-thread",
+        description: String? = "test-thread-desc",
+        createdAt: Instant = Instant.now()
+    ): Thread =
         Thread(
-            id = 52,
-            title = "test-thread",
-            description = "test-thread-desc",
-            createdAt = Instant.now(),
+            id = id,
+            title = title,
+            description = description,
+            createdAt = createdAt,
             organization = org
         )
 
-    fun deadline(thread: Thread): Deadline =
+    fun deadline(
+        thread: Thread,
+        id: Long = 62,
+        title: String = "test-deadline",
+        description: String? = "test-deadline-desc",
+        createdAt: Instant = Instant.now(),
+        due: Instant = Instant.now().plus(5, ChronoUnit.MINUTES),
+        isCompleted: Boolean = false
+    ): Deadline =
         Deadline(
-            id = 52,
+            id = id,
             thread = thread,
-            isCompleted = false,
-            title = "test-deadline",
-            description = "test-deadline-desc",
-            createdAt = Instant.now(),
-            due = Instant.now().plus(5, ChronoUnit.MINUTES),
+            isCompleted = isCompleted,
+            title = title,
+            description = description,
+            createdAt = createdAt,
+            due = due,
         )
 
-    fun admin(): User =
+    fun user(
+        id: Long = 1,
+        username: String = "test-user",
+        fullName: String = "Test User",
+        password: String? = null,
+        language: Language = Language.EN,
+        role: UserRole = UserRole.USER,
+        joinedAt: Instant = Instant.now(),
+        lastPasswordChange: Instant = Instant.EPOCH
+    ): User =
         User(
-            id = 0,
-            _username = "Admin",
-            joinedAt = Instant.now(),
-            fullName = "Administrator",
-            role = UserRole.ADMIN
+            id = id,
+            _username = username,
+            joinedAt = joinedAt,
+            fullName = fullName,
+            _password = password,
+            language = language,
+            lastPasswordChange = lastPasswordChange,
+            role = role
         )
 
-    fun userBob(): User =
-        User(
-            id = 1,
-            _username = "bob-the-tester",
-            joinedAt = Instant.now(),
-            fullName = "alice-the-tester",
-            role = UserRole.USER
+    fun admin(): User = user(
+        id = 0,
+        username = "Admin",
+        fullName = "Administrator",
+        role = UserRole.ADMIN
+    )
+
+    fun userBob(): User = user(
+        id = 1,
+        username = "bob-the-tester",
+        fullName = "Bob the tester"
+    )
+
+    fun userAlice(): User = user(
+        id = 2,
+        username = "alice-the-tester",
+        fullName = "Alice the tester"
+    )
+
+    fun userScope(
+        user: User,
+        scopeType: ScopeType,
+        scopeId: Long,
+        role: ScopeRole,
+        id: Long = 72,
+        assignedAt: Instant = Instant.now()
+    ): UserScope =
+        UserScope(
+            id = id,
+            user = user,
+            scopeType = scopeType,
+            scopeId = scopeId,
+            role = role,
+            assignedAt = assignedAt
         )
 
-    fun userAlice(): User =
-        User(
-            id = 2,
-            _username = "alice-the-tester",
-            joinedAt = Instant.now(),
-            fullName = "bob-the-tester",
-            role = UserRole.USER
+    fun organizationInvitation(
+        invitedBy: User,
+        invitedUser: User,
+        organization: Organization,
+        role: ScopeRole = ScopeRole.ORG_MEMBER,
+        status: InvitationStatus = InvitationStatus.PENDING,
+        id: Long = 82,
+        createdAt: Instant = Instant.now(),
+        answeredAt: Instant? = null
+    ): OrganizationInvitation =
+        OrganizationInvitation(
+            id = id,
+            invitedBy = invitedBy,
+            invitedUser = invitedUser,
+            organization = organization,
+            status = status,
+            role = role,
+            createdAt = createdAt,
+            answeredAt = answeredAt
+        )
+
+    fun refreshToken(
+        user: User,
+        id: Long = 92,
+        jti: String = "test-jti-$id",
+        expiry: Instant = Instant.now().plusSeconds(60),
+        revoked: Boolean = false
+    ): RefreshToken =
+        RefreshToken(
+            id = id,
+            jti = jti,
+            expiry = expiry,
+            revoked = revoked,
+            user = user
         )
 }

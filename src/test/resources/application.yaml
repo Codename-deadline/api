@@ -1,6 +1,9 @@
 spring:
   profiles:
     active: test
+  grpc:
+    server:
+      port: 9091
   security:
     jwt:
       secret: ${JWT_SECRET:amt2bWZrbXZta21wYXNwZHZtYVtwc2Rudmpkb2JuYjBhW3Nkdm5kZnVwWzxvaXNkdm5ib3c5ZXVwaXV2bmhiZnk4czk=}
