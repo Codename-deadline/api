@@ -26,7 +26,7 @@ class OtpController(
     )
     fun signInOtp(
         @Valid @RequestBody request: CreateOtpRequest
-    ) = otpService.createAndSendOtpForUser(
+    ) = otpService.sendSignInOtpRequest(
         request.identifier,
         request.channel,
         request.username
@@ -36,5 +36,5 @@ class OtpController(
     @Operation(summary = "Verifies otp")
     fun verify(
         @Valid @RequestBody request: VerifyOtpRequest
-    ) = otpService.signInOtp(request.id, request.code)
+    ) = otpService.verifyOtpAndFulfillRequest(request.id, request.code)
 }

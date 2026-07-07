@@ -16,7 +16,6 @@ import org.springframework.web.cors.CorsConfiguration
 import xyz.om3lette.deadlines_api.configs.properties.CorsProperties
 import xyz.om3lette.deadlines_api.entrypoints.RestAuthenticationEntryPoint
 import xyz.om3lette.deadlines_api.filters.JwtAuthFilter
-import xyz.om3lette.deadlines_api.services.auth.otp.OtpAuthProvider
 
 @Configuration
 @EnableWebSecurity
@@ -24,7 +23,6 @@ class SecurityConfig(
     private val userDetailsService: UserDetailsService,
     private val passwordEncoder: PasswordEncoder,
     private val jwtAuthFilter: JwtAuthFilter,
-    private val otpAuthProvider: OtpAuthProvider,
     private val restAuthenticationEntryPoint: RestAuthenticationEntryPoint,
     private val corsProperties: CorsProperties
 ) {
@@ -53,10 +51,9 @@ class SecurityConfig(
         }
 
     @Bean
-    fun authenticationManager(http: HttpSecurity): AuthenticationManager {
-        val providers = listOf(daoAuthProvider(), otpAuthProvider)
-        return ProviderManager(providers)
-    }
+    fun authenticationManager(): AuthenticationManager = ProviderManager(
+        listOf(daoAuthProvider())
+    )
 
     @Bean
     fun filterChain(http: HttpSecurity): SecurityFilterChain {

@@ -26,7 +26,7 @@ class AuthWithOtpController(
     )
     fun registerOtp(
         @Valid @RequestBody request: RegisterOtpRequest
-    ) = otpService.createRegisterRequest(
+    ) = otpService.sendRegisterOtpRequest(
         request.identifier,
         request.channel,
         request.username,

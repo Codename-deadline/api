@@ -11,13 +11,13 @@ import xyz.om3lette.deadlines_api.exceptions.enums.ErrorCode
 import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
 import xyz.om3lette.deadlines_api.redisData.otp.enums.OtpChannel
 import xyz.om3lette.deadlines_api.services.auth.AuthService
-import xyz.om3lette.deadlines_api.services.auth.otp.UserProvisioningService
+import xyz.om3lette.deadlines_api.services.auth.otp.UserRegistrationService
 
 // TODO: Test or remove. Currently unused and is yet to be tested.
 @Service
 class TmaAuthProvider(
     private val authService: AuthService,
-    private val userProvisioningService: UserProvisioningService,
+    private val userRegistrationService: UserRegistrationService,
     integrationProperties: IntegrationProperties
 ) {
     private val botToken = integrationProperties.telegram.botToken
@@ -42,7 +42,7 @@ class TmaAuthProvider(
             Language.EN
         }
 
-        val user = userProvisioningService.registerUserFromOtpRequest(
+        val user = userRegistrationService.registerExternalUser(
             userData.username!!,
             fullName,
             OtpChannel.TELEGRAM,
