@@ -5,10 +5,6 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import xyz.om3lette.deadlines_api.configs.properties.DeadlinesProperties
 import xyz.om3lette.deadlines_api.data.common.response.PaginationResponse
-import xyz.om3lette.deadlines_api.data.notifications.enums.NotificationStatus
-import xyz.om3lette.deadlines_api.data.notifications.enums.TimeRemaining
-import xyz.om3lette.deadlines_api.data.notifications.model.DeadlineNotification
-import xyz.om3lette.deadlines_api.data.notifications.repo.DeadlineNotificationRepository
 import xyz.om3lette.deadlines_api.data.permissions.dto.DeadlineScope
 import xyz.om3lette.deadlines_api.data.permissions.dto.ThreadScope
 import xyz.om3lette.deadlines_api.data.scopes.common.dto.UsernameRolePairList
@@ -24,14 +20,13 @@ import xyz.om3lette.deadlines_api.data.scopes.userScope.model.UserScope
 import xyz.om3lette.deadlines_api.data.scopes.userScope.repo.UserScopeRepository
 import xyz.om3lette.deadlines_api.data.scopes.userScope.response.UserScopeResponse
 import xyz.om3lette.deadlines_api.data.user.model.User
-import xyz.om3lette.deadlines_api.data.user.repo.UserRepository
 import xyz.om3lette.deadlines_api.exceptions.enums.ErrorCode
 import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
+import xyz.om3lette.deadlines_api.services.notifications.DeadlineNotificationPlannerService
 import xyz.om3lette.deadlines_api.services.permission.PermissionContext
 import xyz.om3lette.deadlines_api.services.permission.PermissionService
 import xyz.om3lette.deadlines_api.util.jpaRepository.findByIdOr404
 import xyz.om3lette.deadlines_api.util.requirePermission
-import java.time.Duration
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 
@@ -39,11 +34,10 @@ import java.time.temporal.ChronoUnit
 class DeadlineService(
     private val minDeadlineExpiryTimeMinutes: Long = 15,
     deadlinesProperties: DeadlinesProperties,
-    private val userRepository: UserRepository,
     private val userScopeRepository: UserScopeRepository,
     private val threadRepository: ThreadRepository,
     private val deadlineRepository: DeadlineRepository,
-    private val deadlineNotificationRepository: DeadlineNotificationRepository,
+    private val deadlineNotificationPlannerService: DeadlineNotificationPlannerService,
     private val permissionService: PermissionService
 ) {
     private val maxAssignees = deadlinesProperties.maxAssignees
@@ -115,27 +109,7 @@ class DeadlineService(
             }
 
         userScopeRepository.saveAll(deadlineAssigneeScopes)
-
-
-        fun createNotification(amount: Long, timeUnit: ChronoUnit, type: TimeRemaining): DeadlineNotification? {
-            val sendAt = when(timeUnit) {
-                ChronoUnit.WEEKS -> due.minus(Duration.ofDays(7 * amount))
-                ChronoUnit.MONTHS -> due.minus(Duration.ofSeconds(31556952L / 12))
-                else -> due.minus(amount, timeUnit)
-            }
-            return if (sendAt.isAfter(now)) DeadlineNotification(
-                0, deadline, sendAt, type, NotificationStatus.PENDING
-            ) else null
-        }
-
-        val notifications: List<DeadlineNotification> = mutableListOf(
-            createNotification(15, ChronoUnit.MINUTES, TimeRemaining.FIFTEEN_MINUTES),
-            createNotification(1, ChronoUnit.HOURS, TimeRemaining.ONE_HOUR),
-            createNotification(1, ChronoUnit.DAYS, TimeRemaining.ONE_DAY),
-            createNotification(1, ChronoUnit.WEEKS, TimeRemaining.ONE_WEEK),
-            createNotification(1, ChronoUnit.MONTHS, TimeRemaining.ONE_MONTH),
-        ).filterNotNull()
-        deadlineNotificationRepository.saveAll(notifications)
+        deadlineNotificationPlannerService.createNotifications(deadline, now)
 
         return DeadlineCreatedResponse(deadline.id, deadlineAssigneeScopes.size)
     }
@@ -316,17 +290,14 @@ class DeadlineService(
             if (due.isBefore(Instant.now())) {
                 throw StatusCodeException(400, ErrorCode.DDL_INVALID_TIMESTAMP)
             }
-            val timeShiftSeconds = Duration.between(deadline.due, due).toSeconds()
             deadline.due = due
-            deadlineNotificationRepository.updateSendAtAndResetStatusByDeadline(
-                deadline.id, timeShiftSeconds
-            )
+            deadlineNotificationPlannerService.reconcileNotifications(deadline)
         }
 
 
         if (title != null) deadline.title = title
         if (description != null) deadline.description = description
-        // TODO: Create/remove notifications
+        // TODO: Create/remove notifications?
         if (isCompleted != null) deadline.isCompleted = isCompleted
 
         deadlineRepository.save(deadline)
