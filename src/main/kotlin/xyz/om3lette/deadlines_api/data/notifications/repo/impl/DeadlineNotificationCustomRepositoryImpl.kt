@@ -2,8 +2,8 @@ package xyz.om3lette.deadlines_api.data.notifications.repo.impl
 
 import jakarta.persistence.EntityManager
 import jakarta.persistence.PersistenceContext
-import jakarta.transaction.Transactional
 import org.springframework.stereotype.Repository
+import org.springframework.transaction.annotation.Transactional
 import xyz.om3lette.deadlines_api.data.notifications.repo.DeadlineNotificationCustomRepository
 
 @Repository

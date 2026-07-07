@@ -1,8 +1,8 @@
 package xyz.om3lette.deadlines_api.services
 
-import jakarta.transaction.Transactional
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import xyz.om3lette.deadlines_api.configs.properties.DeadlinesProperties
 import xyz.om3lette.deadlines_api.data.common.response.PaginationResponse
 import xyz.om3lette.deadlines_api.data.notifications.enums.NotificationStatus
@@ -16,7 +16,6 @@ import xyz.om3lette.deadlines_api.data.scopes.deadline.dto.DeadlineStatsDTO
 import xyz.om3lette.deadlines_api.data.scopes.deadline.model.Deadline
 import xyz.om3lette.deadlines_api.data.scopes.deadline.repo.DeadlineRepository
 import xyz.om3lette.deadlines_api.data.scopes.deadline.response.DeadlineCreatedResponse
-import xyz.om3lette.deadlines_api.data.scopes.deadline.response.DeadlineResponse
 import xyz.om3lette.deadlines_api.data.scopes.deadline.response.DeadlineResponseWithRole
 import xyz.om3lette.deadlines_api.data.scopes.thread.repo.ThreadRepository
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeRole

@@ -1,10 +1,10 @@
 package xyz.om3lette.deadlines_api.services
 
-import jakarta.transaction.Transactional
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import xyz.om3lette.deadlines_api.data.common.response.PaginationResponse
 import xyz.om3lette.deadlines_api.data.permissions.dto.OrganizationScope
 import xyz.om3lette.deadlines_api.data.scopes.common.dto.UsernameRolePair

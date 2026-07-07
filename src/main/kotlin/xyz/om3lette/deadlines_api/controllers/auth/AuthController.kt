@@ -31,7 +31,6 @@ class AuthController(
         @AuthenticationPrincipal user: User
     ) = authService.signOut(user)
 
-//  TODO: Move to the user controller
     @PostMapping("/change-password")
     @Operation(
         summary = "Change password",

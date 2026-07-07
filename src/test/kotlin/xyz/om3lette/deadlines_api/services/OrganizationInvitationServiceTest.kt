@@ -93,12 +93,12 @@ class OrganizationInvitationServiceTest {
         every { dummyUserScopeBob.role } returns ScopeRole.ORG_OWNER
 
         every { organizationInvitationRepository.findById(0) } returns Optional.of(dummyInvitation)
-        every { userScopeRepository.findByUserAndScopeIdAndScopeType(
+        every { userScopeRepository.existsByUserAndScopeIdAndScopeType(
             dummyUserBob, dummyOrganization.id, ScopeType.ORGANIZATION)
-        } returns Optional.of(dummyUserScopeBob)
-        every { userScopeRepository.findByUserAndScopeIdAndScopeType(
+        } returns true
+        every { userScopeRepository.existsByUserAndScopeIdAndScopeType(
             dummyUserAlice, dummyOrganization.id, ScopeType.ORGANIZATION)
-        } returns Optional.empty()
+        } returns false
 
 
         every { permissionService.canSendOrganizationInvitation(any(), any()) } returns true

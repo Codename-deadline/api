@@ -1,9 +1,9 @@
 package xyz.om3lette.deadlines_api.services
 
-import jakarta.transaction.Transactional
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import xyz.om3lette.deadlines_api.data.common.response.PaginationResponse
 import xyz.om3lette.deadlines_api.data.permissions.dto.OrganizationScope
 import xyz.om3lette.deadlines_api.data.permissions.dto.ThreadScope
@@ -146,9 +146,9 @@ class ThreadService(
             permissionService.canRemoveAssignee(issuer, permissionScope, permissionDTO.role)
         )
 
-        // FIXME: RETHINK
-        // Deadline scopes for the user do not exist as he was a THREAD_ASSIGNEE which already grants access
-        // to all deadlines of the given thread
+        // Do not delete deadline entries. Semantically this operation removes extra privileges in thread scope
+        // If a user was an org member, which is the case as he is a thread assignee, and was assigned to a deadline,
+        // thread role change should not affect it
         userScopeRepository.deleteByUserIdAndScopeId(permissionDTO.userId, null, threadId, null)
     }
 
