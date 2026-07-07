@@ -11,6 +11,7 @@ import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.data.user.repo.UserRepository
 import xyz.om3lette.deadlines_api.exceptions.enums.ErrorCode
 import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
+import xyz.om3lette.deadlines_api.redisData.otp.enums.OtpChanelType
 import xyz.om3lette.deadlines_api.redisData.otp.enums.OtpChannel
 import xyz.om3lette.deadlines_api.redisData.otp.repo.OtpRegisterRequestRepository
 import java.time.Instant
@@ -68,8 +69,10 @@ class UserProvisioningService(
         } catch (_: DataIntegrityViolationException) {
             throw StatusCodeException(409, ErrorCode.USER_ALREADY_EXISTS)
         }
-        // TODO: Check for channel not being a messenger
-        val messenger = Messenger.valueOf(channel.name)
+
+        val messenger = when (channel.type) {
+            OtpChanelType.MESSENGER -> Messenger.valueOf(channel.name)
+        }
         try {
             userMessengerAccountRepository.save(
                 UserMessengerAccount(

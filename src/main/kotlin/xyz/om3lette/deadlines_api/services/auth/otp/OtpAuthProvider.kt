@@ -12,6 +12,7 @@ import org.springframework.security.core.userdetails.UserDetailsService
 import org.springframework.security.core.userdetails.UsernameNotFoundException
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Component
+import xyz.om3lette.deadlines_api.data.otp.enums.AppAuthority
 import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.exceptions.enums.ErrorCode
 import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
@@ -30,7 +31,7 @@ class OtpAuthProvider(
     private val maxOtpAttempts: Int = 3
 
     companion object {
-        val OTP_VERIFIED_AUTHORITY: GrantedAuthority = SimpleGrantedAuthority("OTP_VERIFIED")
+        val OTP_VERIFIED_AUTHORITY: GrantedAuthority = SimpleGrantedAuthority(AppAuthority.OTP_VERIFIED.name)
     }
 
     private fun cleanupOtp(otp: Otp) {
@@ -76,10 +77,10 @@ class OtpAuthProvider(
         }
 
         return if (userDetails.password.isNullOrBlank()) {
-//          Full auth (no password set for user -> otp is enough to sign in)
+            // Full auth (no password set for user -> otp is enough to sign in)
             UsernamePasswordAuthenticationToken(userDetails, null, userDetails.authorities)
         } else {
-//          Requires password verification
+            // Requires password verification
             UsernamePasswordAuthenticationToken(userDetails, null, listOf(OTP_VERIFIED_AUTHORITY))
         }
     }

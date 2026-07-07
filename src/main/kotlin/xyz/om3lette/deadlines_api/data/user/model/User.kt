@@ -8,6 +8,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.core.userdetails.UserDetails
 import xyz.om3lette.deadlines_api.data.integration.bot.enums.Language
 import xyz.om3lette.deadlines_api.data.integration.messengerAccount.model.UserMessengerAccount
+import xyz.om3lette.deadlines_api.data.otp.enums.AppAuthority
 import xyz.om3lette.deadlines_api.data.user.constraints.UserConstraints
 import xyz.om3lette.deadlines_api.data.user.enums.UserRole
 import xyz.om3lette.deadlines_api.data.user.response.MinimalUserResponse
@@ -53,7 +54,7 @@ data class User(
 
 ) : UserDetails {
     override fun getAuthorities(): MutableCollection<GrantedAuthority> =
-        mutableListOf(SimpleGrantedAuthority(role.name))
+        mutableListOf(SimpleGrantedAuthority(AppAuthority.fromUserRole(role).name))
 
     override fun getPassword() = _password
 

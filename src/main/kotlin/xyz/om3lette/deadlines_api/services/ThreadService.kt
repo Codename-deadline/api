@@ -197,9 +197,8 @@ class ThreadService(
                     PermissionContext.PermissionKey(ScopeType.ORGANIZATION, thread.organization.id)
                 )
             ).takeIf {
-                // TODO: PermissionService might be useful
                 // The goal is to not return a "read only" role
-                    maxRole -> maxRole > ScopeRole.THR_ASSIGNEE
+                maxRole -> maxRole > ScopeRole.THR_ASSIGNEE
             }
         )
 

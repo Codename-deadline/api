@@ -23,7 +23,7 @@ class TelegramOtpSender(
             identifier?.toLong()
         } catch (_: NumberFormatException) {
            null
-        } ?: throw StatusCodeException(400, ErrorCode.INTEGRATION_INVALID_IDENTIFIER_FORMAT)
+        } ?: throw StatusCodeException(422, ErrorCode.INTEGRATION_INVALID_IDENTIFIER_FORMAT)
         otpProducer.sendToMessenger(Messenger.TELEGRAM, OtpEvent(code, accountId, language))
     }
 }

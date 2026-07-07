@@ -10,11 +10,14 @@ import xyz.om3lette.deadlines_api.data.integration.bot.enums.Language
 import xyz.om3lette.deadlines_api.data.integration.bot.enums.Messenger
 import xyz.om3lette.deadlines_api.data.integration.messengerAccount.repo.UserMessengerAccountRepository
 import xyz.om3lette.deadlines_api.data.jwt.dto.TokenPair
+import xyz.om3lette.deadlines_api.data.otp.constraints.OtpConstraints
+import xyz.om3lette.deadlines_api.data.otp.enums.AppAuthority
 import xyz.om3lette.deadlines_api.data.otp.response.OtpResponse
 import xyz.om3lette.deadlines_api.data.otp.response.OtpSignInResponse
 import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.exceptions.enums.ErrorCode
 import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
+import xyz.om3lette.deadlines_api.redisData.otp.enums.OtpChanelType
 import xyz.om3lette.deadlines_api.redisData.otp.enums.OtpChannel
 import xyz.om3lette.deadlines_api.redisData.otp.model.Otp
 import xyz.om3lette.deadlines_api.redisData.otp.model.OtpPasswordCheck
@@ -84,9 +87,15 @@ class OtpService(
         channel: OtpChannel,
         username: String
     ): OtpResponse {
-//      TODO: Check for channel not being a messenger
-        val accountId: Long = identifier.toLong()
-        val messenger = Messenger.valueOf(channel.name)
+        val accountId: Long = try {
+            identifier.toLong()
+        } catch (_: NumberFormatException) {
+            throw StatusCodeException(422, ErrorCode.INTEGRATION_INVALID_IDENTIFIER_FORMAT)
+        }
+
+        val messenger = when(channel.type) {
+            OtpChanelType.MESSENGER -> Messenger.valueOf(channel.name)
+        }
 
         val linkedAccount = userMessengerAccountRepository.findAccountByUsernameAndMessengerAndAccountId(
             username, messenger, accountId
@@ -105,7 +114,7 @@ class OtpService(
         registerRequestId: UUID? = null,
         username: String? = null
     ): UUID {
-        val code = generateNumericCode(6)
+        val code = generateNumericCode(OtpConstraints.CODE_LENGTH)
         val hashedCode: String = passwordEncoder.encode(code)!!
 
         val otp = otpRepository.save(
@@ -123,8 +132,8 @@ class OtpService(
     fun signInOtp(otpId: UUID, code: String): OtpSignInResponse {
         val auth = authenticationManager.authenticate(OtpAuthenticationToken(otpId, code))
         val user = auth.principal as User
-//      TODO: Consider creating enum for authority
-        if (auth.authorities.all { it.authority != "OTP_VERIFIED" }) {
+
+        if (auth.authorities.all { it.authority != AppAuthority.OTP_VERIFIED.name }) {
             return OtpSignInResponse.OK(authService.signInNoPasswordCheck(user))
         }
         val requestId = otpPasswordCheckRepository.save(
@@ -135,7 +144,7 @@ class OtpService(
 
     fun completePassword(requestId: UUID, password: String): TokenPair {
         val request: OtpPasswordCheck = otpPasswordCheckRepository.findById(requestId).orElseThrow {
-//          Imitate authenticationManager error
+            // Imitate authenticationManager error
             BadCredentialsException("")
         }
 
