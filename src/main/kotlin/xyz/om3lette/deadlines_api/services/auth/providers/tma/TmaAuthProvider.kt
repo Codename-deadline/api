@@ -10,13 +10,13 @@ import xyz.om3lette.deadlines_api.data.jwt.dto.TokenPair
 import xyz.om3lette.deadlines_api.exceptions.enums.ErrorCode
 import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
 import xyz.om3lette.deadlines_api.redisData.otp.enums.OtpChannel
-import xyz.om3lette.deadlines_api.services.auth.AuthService
+import xyz.om3lette.deadlines_api.services.auth.AuthSessionService
 import xyz.om3lette.deadlines_api.services.auth.otp.UserRegistrationService
 
 // TODO: Test or remove. Currently unused and is yet to be tested.
 @Service
 class TmaAuthProvider(
-    private val authService: AuthService,
+    private val authSessionService: AuthSessionService,
     private val userRegistrationService: UserRegistrationService,
     integrationProperties: IntegrationProperties
 ) {
@@ -49,6 +49,6 @@ class TmaAuthProvider(
             language,
             userData.id.toString()
         )
-        return authService.signInNoPasswordCheck(user)
+        return authSessionService.issueSession(user)
     }
 }

@@ -10,26 +10,30 @@ import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.*
 import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.data.user.request.ChangePasswordRequest
-import xyz.om3lette.deadlines_api.services.auth.AuthService
+import xyz.om3lette.deadlines_api.exceptions.enums.ErrorCode
+import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
+import xyz.om3lette.deadlines_api.services.auth.AccountSecurityService
+import xyz.om3lette.deadlines_api.services.auth.AuthSessionService
 
 @RestController
 @Validated
 @RequestMapping("/auth")
 @Tag(name = "Authentication")
 class AuthController(
-    val authService: AuthService
+    private val authSessionService: AuthSessionService,
+    private val accountSecurityService: AccountSecurityService
 ) {
     @PostMapping("/refresh-token")
     @Operation(summary = "Refresh access token")
     fun refreshToken(
         request: HttpServletRequest
-    ) = authService.refreshToken(request)
+    ) = authSessionService.refreshSession(extractBearerToken(request))
 
     @GetMapping("/sign-out")
     @Operation(summary = "Invalidate all user's refresh tokens")
     fun signOut(
         @AuthenticationPrincipal user: User
-    ) = authService.signOut(user)
+    ) = authSessionService.revokeAllSessions(user)
 
     @PostMapping("/change-password")
     @Operation(
@@ -40,5 +44,13 @@ class AuthController(
     fun changePassword(
         @RequestBody @Valid request: ChangePasswordRequest,
         @AuthenticationPrincipal user: User
-    ) = authService.changePassword(user, request.oldPassword, request.newPassword)
+    ) = accountSecurityService.changePassword(user, request.oldPassword, request.newPassword)
+
+    private fun extractBearerToken(request: HttpServletRequest): String {
+        val authHeader = request.getHeader("Authorization")
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw StatusCodeException(401, ErrorCode.AUTH_INVALID_CREDENTIALS)
+        }
+        return authHeader.substring(7)
+    }
 }

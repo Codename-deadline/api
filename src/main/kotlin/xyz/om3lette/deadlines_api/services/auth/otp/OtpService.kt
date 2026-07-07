@@ -24,14 +24,16 @@ import xyz.om3lette.deadlines_api.redisData.otp.model.OtpRegisterRequest
 import xyz.om3lette.deadlines_api.redisData.otp.repo.OtpPasswordCheckRepository
 import xyz.om3lette.deadlines_api.redisData.otp.repo.OtpRegisterRequestRepository
 import xyz.om3lette.deadlines_api.redisData.otp.repo.OtpRepository
-import xyz.om3lette.deadlines_api.services.auth.AuthService
+import xyz.om3lette.deadlines_api.services.auth.AuthSessionService
+import xyz.om3lette.deadlines_api.services.auth.PasswordAuthService
 import xyz.om3lette.deadlines_api.services.auth.otp.otpSendHandlers.OtpSender
 import xyz.om3lette.deadlines_api.util.generateNumericCode
 import java.util.*
 
 @Service
 class OtpService(
-    private val authService: AuthService,
+    private val authSessionService: AuthSessionService,
+    private val passwordAuthService: PasswordAuthService,
     private val userMessengerAccountRepository: UserMessengerAccountRepository,
     private val otpCodeHasher: OtpCodeHasher,
     private val otpVerificationService: OtpVerificationService,
@@ -164,7 +166,7 @@ class OtpService(
                 registerRequest.language,
                 registerRequest.identifier
             )
-            OtpSignInResponse.OK(authService.signInNoPasswordCheck(user))
+            OtpSignInResponse.OK(authSessionService.issueSession(user))
         } finally {
             otpRegisterRequestRepository.deleteById(registerRequestId)
         }
@@ -176,7 +178,7 @@ class OtpService(
         }
 
         if (user.password.isNullOrBlank()) {
-            return OtpSignInResponse.OK(authService.signInNoPasswordCheck(user))
+            return OtpSignInResponse.OK(authSessionService.issueSession(user))
         }
         val requestId = otpPasswordCheckRepository.save(
             OtpPasswordCheck(username = user.username)
@@ -191,7 +193,7 @@ class OtpService(
         }
 
         return try {
-            authService.signInPassword(request.username, password)
+            passwordAuthService.signIn(request.username, password)
         } catch (e: Exception) {
             request.attempts++
             if (request.attempts >= otpProperties.maxAttempts) {

@@ -21,14 +21,16 @@ import xyz.om3lette.deadlines_api.redisData.otp.model.OtpRegisterRequest
 import xyz.om3lette.deadlines_api.redisData.otp.repo.OtpPasswordCheckRepository
 import xyz.om3lette.deadlines_api.redisData.otp.repo.OtpRegisterRequestRepository
 import xyz.om3lette.deadlines_api.redisData.otp.repo.OtpRepository
-import xyz.om3lette.deadlines_api.services.auth.AuthService
+import xyz.om3lette.deadlines_api.services.auth.AuthSessionService
+import xyz.om3lette.deadlines_api.services.auth.PasswordAuthService
 import java.util.Optional
 import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 
 class OtpServiceTest {
-    private val authService: AuthService = mockk()
+    private val authSessionService: AuthSessionService = mockk()
+    private val passwordAuthService: PasswordAuthService = mockk()
     private val userMessengerAccountRepository: UserMessengerAccountRepository = mockk()
     private val otpCodeHasher: OtpCodeHasher = mockk()
     private val otpVerificationService: OtpVerificationService = mockk()
@@ -38,7 +40,8 @@ class OtpServiceTest {
     private val otpRegisterRequestRepository: OtpRegisterRequestRepository = mockk()
     private val otpPasswordCheckRepository: OtpPasswordCheckRepository = mockk()
     private val otpService = OtpService(
-        authService,
+        authSessionService,
+        passwordAuthService,
         userMessengerAccountRepository,
         otpCodeHasher,
         otpVerificationService,
@@ -67,7 +70,7 @@ class OtpServiceTest {
             user.username
         )
         every { userRepository.findByUsernameIgnoreCase(user.username) } returns Optional.of(user)
-        every { authService.signInNoPasswordCheck(user) } returns tokenPair
+        every { authSessionService.issueSession(user) } returns tokenPair
 
         val result = assertIs<OtpSignInResponse.OK>(otpService.verifyOtpAndFulfillRequest(otpId, "123456"))
 
@@ -115,7 +118,7 @@ class OtpServiceTest {
                 registerRequest.identifier
             )
         } returns user
-        every { authService.signInNoPasswordCheck(user) } returns tokenPair
+        every { authSessionService.issueSession(user) } returns tokenPair
         every { otpRegisterRequestRepository.deleteById(registerRequest.id) } returns Unit
 
         val result = assertIs<OtpSignInResponse.OK>(otpService.verifyOtpAndFulfillRequest(otpId, "123456"))
