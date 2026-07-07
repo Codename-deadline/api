@@ -1,12 +1,14 @@
 package xyz.om3lette.deadlines_api.data.user.model
 
 import jakarta.persistence.*
+import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Size
 import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.core.userdetails.UserDetails
 import xyz.om3lette.deadlines_api.data.integration.bot.enums.Language
 import xyz.om3lette.deadlines_api.data.integration.messengerAccount.model.UserMessengerAccount
+import xyz.om3lette.deadlines_api.data.user.constraints.UserConstraints
 import xyz.om3lette.deadlines_api.data.user.enums.UserRole
 import xyz.om3lette.deadlines_api.data.user.response.MinimalUserResponse
 import xyz.om3lette.deadlines_api.data.user.response.UserResponse
@@ -20,13 +22,17 @@ data class User(
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "user_seq")
     val id: Long = 0,
 
-    @Column(unique = true, name = "username")
+    @field:NotBlank
+    @field:Size(min = UserConstraints.USERNAME_MIN, max = UserConstraints.USERNAME_MAX)
+    @Column(unique = true, name = "username", length = UserConstraints.USERNAME_MAX, nullable = false)
     val _username: String,
 
     @Column(columnDefinition = "TIMESTAMP WITH TIME ZONE")
     val joinedAt: Instant,
 
-    @field:Size(min = 2, max = 128, message = "FullName must be between 2 and 128 characters")
+    @field:NotBlank
+    @field:Size(min = UserConstraints.FULL_NAME_MIN, max = UserConstraints.FULL_NAME_MAX)
+    @Column(length = UserConstraints.FULL_NAME_MAX, nullable = false)
     var fullName: String,
 
     @Column(name = "password")

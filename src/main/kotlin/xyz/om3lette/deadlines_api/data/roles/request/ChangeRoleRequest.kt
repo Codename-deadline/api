@@ -1,11 +1,16 @@
 package xyz.om3lette.deadlines_api.data.roles.request
 
 import jakarta.validation.constraints.NotBlank
+import jakarta.validation.constraints.NotNull
+import jakarta.validation.constraints.Size
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeRole
+import xyz.om3lette.deadlines_api.data.user.constraints.UserConstraints
 
 data class ChangeRoleRequest(
     @field:NotBlank
+    @field:Size(min = UserConstraints.USERNAME_MIN, max = UserConstraints.USERNAME_MAX)
     val subjectUsername: String,
 
+    @field:NotNull
     val newRole: ScopeRole
 )

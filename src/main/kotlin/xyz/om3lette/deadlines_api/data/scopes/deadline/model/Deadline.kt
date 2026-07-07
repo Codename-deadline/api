@@ -16,9 +16,11 @@ import jakarta.persistence.ManyToOne
 import jakarta.persistence.OneToMany
 import jakarta.persistence.SequenceGenerator
 import jakarta.persistence.Table
+import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Size
 import org.hibernate.annotations.SQLRestriction
 import xyz.om3lette.deadlines_api.data.notifications.model.DeadlineNotification
+import xyz.om3lette.deadlines_api.data.scopes.common.constraints.ScopeTextConstraints
 import xyz.om3lette.deadlines_api.data.scopes.deadline.dto.DeadlineDTO
 import xyz.om3lette.deadlines_api.data.scopes.deadline.dto.DeadlinePermissions
 import xyz.om3lette.deadlines_api.data.scopes.deadline.dto.DeadlineStatsDTO
@@ -45,10 +47,13 @@ data class Deadline(
     @JoinColumn(name = "thread_id")
     val thread: Thread,
 
-    @field:Size(min = 2, max = 128)
+    @field:NotBlank
+    @field:Size(min = ScopeTextConstraints.TITLE_MIN, max = ScopeTextConstraints.TITLE_MAX)
+    @Column(length = ScopeTextConstraints.TITLE_MAX, nullable = false)
     var title: String,
 
-    @field:Size(max = 2048)
+    @field:Size(max = ScopeTextConstraints.DESCRIPTION_MAX)
+    @Column(length = ScopeTextConstraints.DESCRIPTION_MAX)
     var description: String?,
 
     @Column(columnDefinition = "TIMESTAMP WITH TIME ZONE")

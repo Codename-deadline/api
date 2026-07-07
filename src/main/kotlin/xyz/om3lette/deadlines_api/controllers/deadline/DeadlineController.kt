@@ -4,7 +4,9 @@ import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
+import jakarta.validation.constraints.Positive
 import org.springframework.security.core.annotation.AuthenticationPrincipal
+import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PatchMapping
@@ -20,6 +22,7 @@ import xyz.om3lette.deadlines_api.services.DeadlineService
 
 
 @SecurityRequirement(name = "bearerAuth")
+@Validated
 @RestController
 @RequestMapping("/deadlines/{deadlineId}")
 @Tag(name = "Deadlines")
@@ -30,22 +33,22 @@ class DeadlineController(
     @Operation(summary = "Delete deadline")
     fun deleteDeadline(
         @AuthenticationPrincipal user: User,
-        @PathVariable deadlineId: Long
+        @PathVariable @Positive deadlineId: Long
     ) = deadlineService.deleteDeadline(user, deadlineId)
 
     @GetMapping
     @Operation(summary = "Get deadline data")
     fun getDeadline(
         @AuthenticationPrincipal user: User,
-        @PathVariable deadlineId: Long
+        @PathVariable @Positive deadlineId: Long
     ) = deadlineService.getDeadline(user, deadlineId)
 
     @PatchMapping
     @Operation(summary = "Update deadline data")
     fun patchDeadline(
         @AuthenticationPrincipal user: User,
-        @PathVariable deadlineId: Long,
-        @RequestBody request: PatchDeadlineRequest
+        @PathVariable @Positive deadlineId: Long,
+        @Valid @RequestBody request: PatchDeadlineRequest
     ) = deadlineService.patchDeadline(
         user,
         deadlineId,
@@ -59,7 +62,7 @@ class DeadlineController(
     @Operation(summary = "Add deadline assignees")
     fun addAssignees(
         @AuthenticationPrincipal user: User,
-        @PathVariable deadlineId: Long,
+        @PathVariable @Positive deadlineId: Long,
         @Valid @RequestBody request: AddDeadlineAssigneeRequest
     ) = deadlineService.addAssignee(user, deadlineId, request.username, request.role)
 
@@ -71,14 +74,14 @@ class DeadlineController(
     )
     fun getAssignees(
         @AuthenticationPrincipal user: User,
-        @PathVariable deadlineId: Long
+        @PathVariable @Positive deadlineId: Long
     ) = deadlineService.getDeadlineAssignees(user, deadlineId)
 
     @DeleteMapping("/assignees/{assigneeUsername}")
     @Operation(summary = "Remove an assignee")
     fun removeAssignee(
         @AuthenticationPrincipal user: User,
-        @PathVariable deadlineId: Long,
+        @PathVariable @Positive deadlineId: Long,
         @PathVariable assigneeUsername: String
     ) = deadlineService.removeAssignee(user, deadlineId, assigneeUsername)
 

@@ -1,9 +1,11 @@
 package xyz.om3lette.deadlines_api.data.attachments.model
 
 import jakarta.persistence.*
+import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Size
 import org.hibernate.annotations.OnDelete
 import org.hibernate.annotations.OnDeleteAction
+import xyz.om3lette.deadlines_api.data.attachments.constraints.AttachmentConstraints
 import xyz.om3lette.deadlines_api.data.attachments.enums.AttachmentCategory
 import xyz.om3lette.deadlines_api.data.attachments.reponse.AttachmentPermissions
 import xyz.om3lette.deadlines_api.data.attachments.reponse.AttachmentResponse
@@ -21,7 +23,9 @@ data class Attachment(
 
     val objectKey: String,
 
-    @field:Size(min = 1, max = 64)
+    @field:NotBlank
+    @field:Size(min = AttachmentConstraints.FILENAME_MIN, max = AttachmentConstraints.FILENAME_MAX)
+    @Column(length = AttachmentConstraints.FILENAME_MAX, nullable = false)
     var filename: String,
 
     @Enumerated(value = EnumType.STRING)

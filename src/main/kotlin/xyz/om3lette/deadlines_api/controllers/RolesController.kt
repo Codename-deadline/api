@@ -4,7 +4,9 @@ import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
+import jakarta.validation.constraints.Positive
 import org.springframework.security.core.annotation.AuthenticationPrincipal
+import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
@@ -18,6 +20,7 @@ import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.services.RolesService
 
 @RestController
+@Validated
 @RequestMapping("/roles")
 @Tag(name = "Roles", description = "Role management in organization / thread / deadline")
 class RolesController(
@@ -28,7 +31,7 @@ class RolesController(
     @Operation(summary = "Assign an organization role to user")
     fun changeOrganizationRole(
         @AuthenticationPrincipal issuer: User,
-        @PathVariable organizationId: Long,
+        @PathVariable @Positive organizationId: Long,
         @Valid @RequestBody request: ChangeRoleRequest
     ) = rolesService.changeRole(
         issuer, organizationId, request.subjectUsername, request.newRole, ScopeType.ORGANIZATION
@@ -39,7 +42,7 @@ class RolesController(
     @Operation(summary = "Assign a thread role to user")
     fun changeThreadRole(
         @AuthenticationPrincipal issuer: User,
-        @PathVariable threadId: Long,
+        @PathVariable @Positive threadId: Long,
         @Valid @RequestBody request: ChangeRoleRequest
     ) = rolesService.changeRole(
         issuer, threadId, request.subjectUsername, request.newRole, ScopeType.THREAD
@@ -50,7 +53,7 @@ class RolesController(
     @Operation(summary = "Assign a deadline role to user")
     fun changeDeadlineRole(
         @AuthenticationPrincipal issuer: User,
-        @PathVariable deadlineId: Long,
+        @PathVariable @Positive deadlineId: Long,
         @Valid @RequestBody request: ChangeRoleRequest
     ) = rolesService.changeRole(
         issuer, deadlineId, request.subjectUsername, request.newRole, ScopeType.DEADLINE

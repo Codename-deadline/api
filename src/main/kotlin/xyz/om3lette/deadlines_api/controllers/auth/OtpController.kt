@@ -2,6 +2,8 @@ package xyz.om3lette.deadlines_api.controllers.auth
 
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
+import jakarta.validation.Valid
+import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
@@ -11,6 +13,7 @@ import xyz.om3lette.deadlines_api.data.otp.request.VerifyOtpRequest
 import xyz.om3lette.deadlines_api.services.auth.otp.OtpService
 
 @RestController
+@Validated
 @RequestMapping("/auth/otp")
 @Tag(name = "Authentication")
 class OtpController(
@@ -22,7 +25,7 @@ class OtpController(
         description = "Sends otp to the user using the channel and identifier provided."
     )
     fun signInOtp(
-        @RequestBody request: CreateOtpRequest
+        @Valid @RequestBody request: CreateOtpRequest
     ) = otpService.createAndSendOtpForUser(
         request.identifier,
         request.channel,
@@ -32,6 +35,6 @@ class OtpController(
     @PostMapping("/verify")
     @Operation(summary = "Verifies otp")
     fun verify(
-        @RequestBody request: VerifyOtpRequest
+        @Valid @RequestBody request: VerifyOtpRequest
     ) = otpService.signInOtp(request.id, request.code)
 }
