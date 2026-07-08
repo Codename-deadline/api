@@ -13,9 +13,9 @@ import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter
 import org.springframework.web.cors.CorsConfiguration
+import xyz.om3lette.deadlines_api.configs.properties.CorsProperties
 import xyz.om3lette.deadlines_api.entrypoints.RestAuthenticationEntryPoint
 import xyz.om3lette.deadlines_api.filters.JwtAuthFilter
-import xyz.om3lette.deadlines_api.services.auth.otp.OtpAuthProvider
 
 @Configuration
 @EnableWebSecurity
@@ -23,8 +23,8 @@ class SecurityConfig(
     private val userDetailsService: UserDetailsService,
     private val passwordEncoder: PasswordEncoder,
     private val jwtAuthFilter: JwtAuthFilter,
-    private val otpAuthProvider: OtpAuthProvider,
-    private val restAuthenticationEntryPoint: RestAuthenticationEntryPoint
+    private val restAuthenticationEntryPoint: RestAuthenticationEntryPoint,
+    private val corsProperties: CorsProperties
 ) {
     companion object {
         private fun api(path: String) = ApiPathPrefixConfig.API_PREFIX + path
@@ -51,22 +51,20 @@ class SecurityConfig(
         }
 
     @Bean
-    fun authenticationManager(http: HttpSecurity): AuthenticationManager {
-        val providers = listOf(daoAuthProvider(), otpAuthProvider)
-        return ProviderManager(providers)
-    }
+    fun authenticationManager(): AuthenticationManager = ProviderManager(
+        listOf(daoAuthProvider())
+    )
 
     @Bean
     fun filterChain(http: HttpSecurity): SecurityFilterChain {
-//      TODO: Enable cors
         http
             .csrf { it.disable() }
             .cors {
-                it.configurationSource { request ->
-                    CorsConfiguration().applyPermitDefaultValues().apply {
-                        allowedHeaders = listOf("*")
-                        allowedMethods = listOf("*")
-                        allowedOrigins = listOf("*")
+                it.configurationSource {
+                    CorsConfiguration().apply {
+                        allowedHeaders = corsProperties.allowedHeaders
+                        allowedMethods = corsProperties.allowedMethods
+                        allowedOrigins = corsProperties.allowedOrigins
                     }
                 }
             }

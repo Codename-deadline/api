@@ -1,29 +1,15 @@
 package xyz.om3lette.deadlines_api.data.scopes.deadline.model
 
-import jakarta.persistence.CascadeType
-import jakarta.persistence.Column
-import jakarta.persistence.ConstraintMode
-import jakarta.persistence.Entity
-import jakarta.persistence.EnumType
-import jakarta.persistence.Enumerated
-import jakarta.persistence.FetchType
-import jakarta.persistence.ForeignKey
-import jakarta.persistence.GeneratedValue
-import jakarta.persistence.GenerationType
-import jakarta.persistence.Id
-import jakarta.persistence.JoinColumn
-import jakarta.persistence.ManyToOne
-import jakarta.persistence.OneToMany
-import jakarta.persistence.SequenceGenerator
-import jakarta.persistence.Table
+import jakarta.persistence.*
+import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Size
 import org.hibernate.annotations.SQLRestriction
 import xyz.om3lette.deadlines_api.data.notifications.model.DeadlineNotification
+import xyz.om3lette.deadlines_api.data.scopes.common.constraints.ScopeTextConstraints
 import xyz.om3lette.deadlines_api.data.scopes.deadline.dto.DeadlineDTO
 import xyz.om3lette.deadlines_api.data.scopes.deadline.dto.DeadlinePermissions
 import xyz.om3lette.deadlines_api.data.scopes.deadline.dto.DeadlineStatsDTO
 import xyz.om3lette.deadlines_api.data.scopes.deadline.response.DeadlineResponse
-import xyz.om3lette.deadlines_api.data.scopes.organization.model.Organization
 import xyz.om3lette.deadlines_api.data.scopes.thread.model.Thread
 import xyz.om3lette.deadlines_api.data.scopes.userScope.model.UserScope
 import java.time.Instant
@@ -36,19 +22,18 @@ data class Deadline(
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "deadline_seq")
     val id: Long = 0,
 
-    @ManyToOne(fetch = FetchType.EAGER) // Used for deadline access permission check
-    @JoinColumn(name = "organization_id")
-    val organization: Organization,
-
-    // TODO: This likely fetches the organization in a chain. Verify that and remove organization from deadline if true
-    @ManyToOne(fetch = FetchType.EAGER) // Thread id is needed for global role lookup
+    // Thread id is needed for global role lookup
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "thread_id")
     val thread: Thread,
 
-    @field:Size(min = 2, max = 128)
+    @field:NotBlank
+    @field:Size(min = ScopeTextConstraints.TITLE_MIN, max = ScopeTextConstraints.TITLE_MAX)
+    @Column(length = ScopeTextConstraints.TITLE_MAX, nullable = false)
     var title: String,
 
-    @field:Size(max = 2048)
+    @field:Size(max = ScopeTextConstraints.DESCRIPTION_MAX)
+    @Column(length = ScopeTextConstraints.DESCRIPTION_MAX)
     var description: String?,
 
     @Column(columnDefinition = "TIMESTAMP WITH TIME ZONE")

@@ -5,6 +5,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.http.ResponseEntity.status
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.multipart.MultipartFile
 import software.amazon.awssdk.core.sync.RequestBody
 import software.amazon.awssdk.services.s3.S3Client
@@ -126,6 +127,7 @@ class AttachmentsService (
         attachmentRepository.save(attachment)
     }
 
+    @Transactional
     fun deleteAttachment(issuer: User, attachmentId: Long) {
         val attachment = attachmentRepository.findByIdOr404(attachmentId, ErrorCode.ATTACHMENT_NOT_FOUND)
 
@@ -134,9 +136,9 @@ class AttachmentsService (
         )
 
         try {
-            deleteObject(attachment.objectKey)
-            // FIXME: Potential orphan db entries if `delete` fails
             attachmentRepository.delete(attachment)
+            // TODO: Requires a scheduled job of sorts to ensure that deleteObject does not fail
+            deleteObject(attachment.objectKey)
         } catch (_: Exception) {
             throw StatusCodeException(500, ErrorCode.ATTACHMENT_UPLOAD_FAILED)
         }

@@ -2,8 +2,8 @@ package xyz.om3lette.deadlines_api.data.notifications.repo.impl
 
 import jakarta.persistence.EntityManager
 import jakarta.persistence.PersistenceContext
-import jakarta.transaction.Transactional
 import org.springframework.stereotype.Repository
+import org.springframework.transaction.annotation.Transactional
 import xyz.om3lette.deadlines_api.data.notifications.repo.DeadlineNotificationCustomRepository
 
 @Repository
@@ -56,7 +56,8 @@ class DeadlineNotificationCustomRepositoryImpl(
                        3 AS precedence
                 FROM moved m
                 JOIN deadlines d ON d.id = m.deadline_id
-                JOIN chat_subscriptions cs ON cs.scope_type = 'ORG' AND cs.scope_id = d.organization_id
+                JOIN threads t ON t.id = d.thread_id
+                JOIN chat_subscriptions cs ON cs.scope_type = 'ORG' AND cs.scope_id = t.organization_id
             ),
             selected AS (
                 SELECT

@@ -5,7 +5,6 @@ import io.mockk.every
 import io.mockk.junit5.MockKExtension
 import io.mockk.mockk
 import io.mockk.slot
-import io.mockk.spyk
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
@@ -15,8 +14,8 @@ import org.junit.jupiter.api.assertNotNull
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
 import org.junit.jupiter.params.ParameterizedTest
-import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
+import xyz.om3lette.deadlines_api.DomainObjectBuilder
 import xyz.om3lette.deadlines_api.data.scopes.organization.enums.InvitationStatus
 import xyz.om3lette.deadlines_api.data.scopes.organization.enums.OrganizationType
 import xyz.om3lette.deadlines_api.data.scopes.organization.model.Organization
@@ -27,15 +26,11 @@ import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeRole
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType
 import xyz.om3lette.deadlines_api.data.scopes.userScope.model.UserScope
 import xyz.om3lette.deadlines_api.data.scopes.userScope.repo.UserScopeRepository
-import xyz.om3lette.deadlines_api.data.scopes.userScope.roleIsEqualOrHigherThan
-import xyz.om3lette.deadlines_api.data.user.enums.UserRole
 import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.data.user.repo.UserRepository
 import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
 import xyz.om3lette.deadlines_api.services.permission.PermissionService
-import java.time.Instant
 import java.util.Optional
-import kotlin.jvm.optionals.getOrNull
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -55,55 +50,47 @@ class OrganizationInvitationServiceTest {
         permissionService
     )
 
-    private val dummyUserBob: User = mockk()
-    private val dummyUserScopeBob: UserScope = mockk()
-
-    private val dummyUserAlice: User = mockk()
-
-    private val dummyOrganization: Organization = spyk(Organization(
-        42,
-        "org",
-        null,
-        OrganizationType.PUBLIC,
-        Instant.now().minusSeconds(120),
-        members = mutableListOf(dummyUserScopeBob)
-    ))
+    private lateinit var dummyUserBob: User
+    private lateinit var dummyUserScopeBob: UserScope
+    private lateinit var dummyUserAlice: User
+    private lateinit var dummyOrganization: Organization
     private lateinit var dummyInvitation: OrganizationInvitation
 
     @BeforeEach
     fun commonMock() {
-        dummyInvitation = spyk(OrganizationInvitation(
-            0,
-            dummyUserBob,
-            dummyUserAlice,
-            dummyOrganization,
-            InvitationStatus.PENDING,
-            ScopeRole.ORG_ADMIN,
-            Instant.now().minusSeconds(60)
-        ))
+        dummyOrganization = DomainObjectBuilder.organization(id = 42, title = "org", description = null)
 
-        every { dummyUserBob.username } returns "bob-the-tester"
-        every { dummyUserBob.id } returns 0
+        dummyUserBob = DomainObjectBuilder.userBob()
+        dummyUserScopeBob = DomainObjectBuilder.userScope(
+            user = dummyUserBob,
+            scopeType = ScopeType.ORGANIZATION,
+            scopeId = dummyOrganization.id,
+            role = ScopeRole.ORG_OWNER
+        )
+        dummyUserAlice = DomainObjectBuilder.userAlice()
 
-        every { dummyUserScopeBob.user } returns dummyUserBob
-        every { dummyUserScopeBob.role } returns ScopeRole.ORG_OWNER
-
-        every { dummyUserAlice.username } returns "alice-the-tester"
-        every { dummyUserAlice.id } returns 1
-        every { dummyUserScopeBob.role } returns ScopeRole.ORG_OWNER
+        dummyInvitation = DomainObjectBuilder.organizationInvitation(
+            invitedBy = dummyUserBob,
+            invitedUser = dummyUserAlice,
+            organization = dummyOrganization,
+            status = InvitationStatus.PENDING,
+            role = ScopeRole.ORG_ADMIN,
+            id = 0
+        )
+        dummyOrganization.members.add(dummyUserScopeBob)
 
         every { organizationInvitationRepository.findById(0) } returns Optional.of(dummyInvitation)
-        every { userScopeRepository.findByUserAndScopeIdAndScopeType(
+        every { userScopeRepository.existsByUserAndScopeIdAndScopeType(
             dummyUserBob, dummyOrganization.id, ScopeType.ORGANIZATION)
-        } returns Optional.of(dummyUserScopeBob)
-        every { userScopeRepository.findByUserAndScopeIdAndScopeType(
+        } returns true
+        every { userScopeRepository.existsByUserAndScopeIdAndScopeType(
             dummyUserAlice, dummyOrganization.id, ScopeType.ORGANIZATION)
-        } returns Optional.empty()
+        } returns false
 
 
         every { permissionService.canSendOrganizationInvitation(any(), any()) } returns true
 
-        every { organizationRepository.findById(0) } returns Optional.of(dummyOrganization)
+        every { organizationRepository.findById(dummyOrganization.id) } returns Optional.of(dummyOrganization)
 
         val bobUsername = dummyUserBob.username
         val aliceUsername = dummyUserAlice.username
@@ -128,7 +115,7 @@ class OrganizationInvitationServiceTest {
 
             val res = assertThrows<StatusCodeException> {
                 organizationInvitationService.createInvitation(
-                    dummyUserBob, 0, dummyUserAlice.username, ScopeRole.ORG_MEMBER
+                    dummyUserBob, dummyOrganization.id, dummyUserAlice.username, ScopeRole.ORG_MEMBER
                 )
             }
 
@@ -140,11 +127,11 @@ class OrganizationInvitationServiceTest {
 
         @Test
         fun `inviting to a personal organization throws StatusCodeException 400`() {
-            every { dummyOrganization.type } returns OrganizationType.PERSONAL
+            dummyOrganization.type = OrganizationType.PERSONAL
 
             val res = assertThrows<StatusCodeException> {
                 organizationInvitationService.createInvitation(
-                    dummyUserBob, 0, dummyUserAlice.username, ScopeRole.ORG_MEMBER
+                    dummyUserBob, dummyOrganization.id, dummyUserAlice.username, ScopeRole.ORG_MEMBER
                 )
             }
 
@@ -175,7 +162,7 @@ class OrganizationInvitationServiceTest {
             every { userRepository.findByUsernameIgnoreCase("Unknown_user") } returns Optional.empty()
             val res = assertThrows<StatusCodeException> {
                 organizationInvitationService.createInvitation(
-                    dummyUserBob, 0, "Unknown_user", ScopeRole.ORG_MEMBER
+                    dummyUserBob, dummyOrganization.id, "Unknown_user", ScopeRole.ORG_MEMBER
                 )
             }
 
@@ -189,7 +176,7 @@ class OrganizationInvitationServiceTest {
         fun `inviting with role ORG_OWNER throws StatusCodeException 400`() {
             val res = assertThrows<StatusCodeException> {
                 organizationInvitationService.createInvitation(
-                    dummyUserBob, 0, dummyUserAlice.username, ScopeRole.ORG_OWNER
+                    dummyUserBob, dummyOrganization.id, dummyUserAlice.username, ScopeRole.ORG_OWNER
                 )
             }
 
@@ -203,7 +190,7 @@ class OrganizationInvitationServiceTest {
         fun `inviting organization member throws StatusCodeException 400`() {
             val res = assertThrows<StatusCodeException> {
                 organizationInvitationService.createInvitation(
-                    dummyUserBob, 0, dummyUserBob.username, ScopeRole.ORG_MEMBER
+                    dummyUserBob, dummyOrganization.id, dummyUserBob.username, ScopeRole.ORG_MEMBER
                 )
             }
 
@@ -216,16 +203,16 @@ class OrganizationInvitationServiceTest {
         @Test
         fun `happy path creates an organizationInvitation`() {
             organizationInvitationService.createInvitation(
-                dummyUserBob, 0, dummyUserAlice.username, ScopeRole.ORG_MEMBER
+                dummyUserBob, dummyOrganization.id, dummyUserAlice.username, ScopeRole.ORG_MEMBER
             )
 
             assertTrue(savedInvitationSlot.isCaptured)
             val savedInvitation = savedInvitationSlot.captured
 
             assertAll(
-                { assertEquals(0, savedInvitation.invitedBy.id) },
-                { assertEquals(1, savedInvitation.invitedUser.id) },
-                { assertEquals(42, savedInvitation.organization.id) },
+                { assertEquals(dummyUserBob.id, savedInvitation.invitedBy.id) },
+                { assertEquals(dummyUserAlice.id, savedInvitation.invitedUser.id) },
+                { assertEquals(dummyOrganization.id, savedInvitation.organization.id) },
                 { assertEquals(ScopeRole.ORG_MEMBER, savedInvitation.role) }
             )
         }
@@ -289,7 +276,7 @@ class OrganizationInvitationServiceTest {
         @ParameterizedTest
         @MethodSource("badInvitationStatusesProvider")
         fun `resolving answered invitation throws StatusCodeException 400`(currentInvitationStatus: InvitationStatus) {
-            every { dummyInvitation.status } returns currentInvitationStatus
+            dummyInvitation.status = currentInvitationStatus
 
             val res = assertThrows<StatusCodeException> {
                 organizationInvitationService.resolveInvitation(

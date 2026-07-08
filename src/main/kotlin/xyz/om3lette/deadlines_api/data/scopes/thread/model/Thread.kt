@@ -14,8 +14,10 @@ import jakarta.persistence.ManyToOne
 import jakarta.persistence.OneToMany
 import jakarta.persistence.SequenceGenerator
 import jakarta.persistence.Table
+import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Size
 import org.hibernate.annotations.SQLRestriction
+import xyz.om3lette.deadlines_api.data.scopes.common.constraints.ScopeTextConstraints
 import xyz.om3lette.deadlines_api.data.scopes.deadline.model.Deadline
 import xyz.om3lette.deadlines_api.data.scopes.organization.model.Organization
 import xyz.om3lette.deadlines_api.data.scopes.thread.dto.ThreadDTO
@@ -33,10 +35,13 @@ data class Thread(
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "thread_seq")
     val id: Long = 0,
 
-    @field:Size(min = 2, max = 128)
+    @field:NotBlank
+    @field:Size(min = ScopeTextConstraints.TITLE_MIN, max = ScopeTextConstraints.TITLE_MAX)
+    @Column(length = ScopeTextConstraints.TITLE_MAX, nullable = false)
     var title: String,
 
-    @field:Size(max = 2048)
+    @field:Size(max = ScopeTextConstraints.DESCRIPTION_MAX)
+    @Column(length = ScopeTextConstraints.DESCRIPTION_MAX)
     var description: String?,
 
     @ManyToOne(fetch = FetchType.EAGER)

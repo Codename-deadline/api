@@ -1,15 +1,27 @@
 package xyz.om3lette.deadlines_api.data.otp.request
 
+import jakarta.validation.constraints.NotBlank
+import jakarta.validation.constraints.Pattern
+import jakarta.validation.constraints.Size
 import xyz.om3lette.deadlines_api.data.integration.bot.enums.Language
+import xyz.om3lette.deadlines_api.data.otp.constraints.OtpConstraints
+import xyz.om3lette.deadlines_api.data.user.constraints.UserConstraints
 import xyz.om3lette.deadlines_api.redisData.otp.enums.OtpChannel
 
 data class RegisterOtpRequest(
+    @field:NotBlank
+    @field:Pattern(regexp = OtpConstraints.NUMERIC_IDENTIFIER_PATTERN)
+    @field:Size(max = OtpConstraints.IDENTIFIER_MAX)
     val identifier: String,
 
     val channel: OtpChannel,
 
+    @field:NotBlank
+    @field:Size(min = UserConstraints.USERNAME_MIN, max = UserConstraints.USERNAME_MAX)
     val username: String,
 
+    @field:NotBlank
+    @field:Size(min = UserConstraints.FULL_NAME_MIN, max = UserConstraints.FULL_NAME_MAX)
     val fullName: String,
 
     val language: Language?

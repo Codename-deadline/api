@@ -54,7 +54,7 @@ class PermissionService(
         {
             permissionContext.getOrLoadBatch(DeadlineScope(deadline)) {
                 userScopeRepository.findUserRolesInScope(
-                    userId = user.id, orgId = deadline.organization.id, deadline.thread.id, deadline.id
+                    userId = user.id, orgId = deadline.thread.organization.id, deadline.thread.id, deadline.id
                 )
             }
         }
@@ -171,7 +171,7 @@ class PermissionService(
         Deadline permissions:
      */
     private fun hasDeadlineAccess(issuer: User, deadline: Deadline): Boolean {
-        if (deadline.organization.type == OrganizationType.PUBLIC) return true
+        if (deadline.thread.organization.type == OrganizationType.PUBLIC) return true
         return issuer.isAdminOrHasRoleAnd(roleForDeadlineLazy(issuer, deadline)) { role ->
             role >= ScopeRole.DDL_ASSIGNEE
         }
@@ -288,7 +288,8 @@ class PermissionService(
             accountsLinkedForMessenger < usersProperties.maxLinkedAccountsPerMessenger
         }
     
-    fun canRegisterChat(user: User?) = user != null
+    fun canManageIntegrationChat(issuer: User, issuerHasMessengerChatAdminRights: Boolean) =
+        issuer.isAdminOr { issuerHasMessengerChatAdminRights }
 
     /*
         Roles permissions

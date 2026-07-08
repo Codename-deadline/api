@@ -1,15 +1,14 @@
 package xyz.om3lette.deadlines_api.services
 
-import jakarta.transaction.Transactional
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import xyz.om3lette.deadlines_api.data.common.response.PaginationResponse
 import xyz.om3lette.deadlines_api.data.permissions.dto.OrganizationScope
 import xyz.om3lette.deadlines_api.data.scopes.common.dto.UsernameRolePair
 import xyz.om3lette.deadlines_api.data.scopes.common.dto.UsernameRolePairList
-import xyz.om3lette.deadlines_api.data.scopes.deadline.repo.DeadlineRepository
 import xyz.om3lette.deadlines_api.data.scopes.organization.enums.OrganizationType
 import xyz.om3lette.deadlines_api.data.scopes.organization.model.Organization
 import xyz.om3lette.deadlines_api.data.scopes.organization.model.OrganizationInvitation
@@ -18,7 +17,6 @@ import xyz.om3lette.deadlines_api.data.scopes.organization.repo.OrganizationRepo
 import xyz.om3lette.deadlines_api.data.scopes.organization.response.OrganizationCreatedResponse
 import xyz.om3lette.deadlines_api.data.scopes.organization.response.OrganizationResponse
 import xyz.om3lette.deadlines_api.data.scopes.organization.response.OrganizationResponseWithRole
-import xyz.om3lette.deadlines_api.data.scopes.thread.repo.ThreadRepository
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeRole
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType
 import xyz.om3lette.deadlines_api.data.scopes.userScope.model.UserScope
@@ -38,8 +36,6 @@ import java.time.Instant
 class OrganizationService(
     private val userRepository: UserRepository,
     private val userScopeRepository: UserScopeRepository,
-    private val threadRepository: ThreadRepository,
-    private val deadlineRepository: DeadlineRepository,
     private val organizationRepository: OrganizationRepository,
     private val organizationInvitationRepository: OrganizationInvitationRepository,
     private val permissionService: PermissionService,
@@ -115,22 +111,7 @@ class OrganizationService(
             )
         )
 
-        userScopeRepository.deleteByUserIdAndScopeId(permissionDTO.userId, orgId, null, null)
-
-        // TODO: Minimize number of queries
-        val threadIds = threadRepository.findAllIdsByOrganizationId(orgId)
-        if (threadIds.isNotEmpty()) {
-            userScopeRepository.deleteByUserIdAndScopeTypeAndScopeIdIn(
-                permissionDTO.userId, ScopeType.THREAD, threadIds
-            )
-        }
-
-        val deadlinesIds = deadlineRepository.findAllIdsByOrganizationId(orgId)
-        if (deadlinesIds.isNotEmpty()) {
-            userScopeRepository.deleteByUserIdAndScopeTypeAndScopeIdIn(
-                permissionDTO.userId, ScopeType.DEADLINE,deadlinesIds
-            )
-        }
+        userScopeRepository.deleteByUserIdAndOrganizationId(permissionDTO.userId, orgId)
     }
 
     fun getOrganizationsByUser(user: User, pageNumber: Int, pageSize: Int): PaginationResponse<OrganizationResponseWithRole> {

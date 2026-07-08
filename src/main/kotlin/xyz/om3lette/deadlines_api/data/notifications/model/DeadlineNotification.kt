@@ -31,11 +31,11 @@ data class DeadlineNotification(
     val deadline: Deadline,
 
     @Column(columnDefinition = "TIMESTAMP WITH TIME ZONE")
-    val sendAt: Instant,
+    var sendAt: Instant,
 
     @Enumerated
     val type: TimeRemaining,
 
     @Convert(converter = NotificationStatusConverter::class)
-    val status: NotificationStatus
+    var status: NotificationStatus
 )

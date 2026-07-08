@@ -1,9 +1,9 @@
 package xyz.om3lette.deadlines_api.services
 
-import jakarta.transaction.Transactional
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import xyz.om3lette.deadlines_api.data.common.response.PaginationResponse
 import xyz.om3lette.deadlines_api.data.scopes.organization.enums.InvitationStatus
 import xyz.om3lette.deadlines_api.data.scopes.organization.enums.OrganizationType
@@ -47,10 +47,9 @@ class OrganizationInvitationService(
         }
 
         val userToInvite = userRepository.findByUsernameIgnoreCaseOr404(usernameToInvite)
-        // FIXME: Replace by exists
-        userScopeRepository.findByUserAndScopeIdAndScopeType(
+        if (userScopeRepository.existsByUserAndScopeIdAndScopeType(
             userToInvite, organizationId, ScopeType.ORGANIZATION
-        ).ifPresent {
+        )) {
             throw StatusCodeException(400, ErrorCode.INVITATION_ALREADY_ORG_MEMBER)
         }
 

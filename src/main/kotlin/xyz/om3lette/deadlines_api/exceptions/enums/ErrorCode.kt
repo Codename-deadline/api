@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonValue
 enum class ErrorCode(val code: String) {
     UNKNOWN_ERROR("unknown-error"),
     DESERIALIZATION_ERROR("deserialization-error"),
+    VALIDATION_FAILED("validation.failed"),
 
     AUTH_INSUFFICIENT_PERMISSIONS("auth.insufficient-permissions"),
     AUTH_INVALID_CREDENTIALS("auth.invalid-credentials"),

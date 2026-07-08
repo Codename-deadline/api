@@ -1,12 +1,12 @@
 package xyz.om3lette.deadlines_api.data.scopes.userScope.repo
 
-import jakarta.transaction.Transactional
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
+import org.springframework.transaction.annotation.Transactional
 import xyz.om3lette.deadlines_api.data.permissions.dto.PermissionRoleDTO
 import xyz.om3lette.deadlines_api.data.scopes.userScope.dto.ScopeRoleDTO
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType
@@ -33,6 +33,12 @@ interface UserScopeRepository : JpaRepository<UserScope, Long> {
         scopeId: Long,
         scopeType: ScopeType
     ): Optional<UserScope>
+
+    fun existsByUserAndScopeIdAndScopeType(
+        user: User,
+        scopeId: Long,
+        scopeType: ScopeType
+    ): Boolean
 
     @Query("""
         SELECT us FROM UserScope us
@@ -115,6 +121,25 @@ interface UserScopeRepository : JpaRepository<UserScope, Long> {
         scopeType: ScopeType,
         scopeId: Collection<Long>
     ): Int
+
+    @Modifying
+    @Transactional
+    @Query(
+        """
+            DELETE FROM UserScope us
+            WHERE us.user.id = :userId
+                AND (
+                    (us.scopeType = 'ORG' AND us.scopeId = :orgId)
+                    OR (us.scopeType = 'THR' AND us.scopeId IN (
+                        SELECT t.id FROM Thread t WHERE t.organization.id = :orgId
+                    ))
+                    OR (us.scopeType = 'DDL' AND us.scopeId IN (
+                        SELECT d.id FROM Deadline d WHERE d.thread.organization.id = :orgId
+                    ))
+                )
+        """
+    )
+    fun deleteByUserIdAndOrganizationId(userId: Long, orgId: Long): Int
 
     @Query(
         """

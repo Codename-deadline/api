@@ -183,7 +183,7 @@ class ThreadServiceTest {
             assertEquals(savedThreadSlot.captured.id, res.threadId)
             assertAll(
                 { assertEquals(2, savedUserScopesSlot.captured.size) },
-                { countThreadCreatorRoles(savedUserScopesSlot.captured) },
+                { assertEquals(1, countThreadCreatorRoles(savedUserScopesSlot.captured)) },
                 { assertEquals(dummyUserAlice.username, savedUserScopesSlot.captured[1].user.username) },
                 { assertEquals(ScopeRole.THR_ASSIGNEE, savedUserScopesSlot.captured[1].role) }
             )
@@ -339,7 +339,7 @@ class ThreadServiceTest {
     }
 
     @Nested
-    inner class PathThread() {
+    inner class PatchThread {
         private val savedThreadSlot: CapturingSlot<Thread> = slot()
 
         @BeforeEach

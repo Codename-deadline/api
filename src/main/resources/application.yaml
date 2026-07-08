@@ -54,6 +54,15 @@ users:
   max-sessions: ${USERS_MAX_SESSIONS:50}
   max-linked-accounts-per-messenger: ${USERS_MAX_LINKED_ACCOUNTS_PER_MESSENGER:2}
 
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
+  allowed-methods: ${CORS_ALLOWED_METHODS:GET,POST,PUT,PATCH,DELETE,OPTIONS}
+  allowed-headers: ${CORS_ALLOWED_HEADERS:*}
+
+otp:
+  hash-secret: ${OTP_HASH_SECRET:dev-otp-hash-secret-change-me}
+  max-attempts: ${OTP_MAX_ATTEMPTS:3}
+
 outbox:
   batch-size: ${OUTBOX_BATCH_SIZE:200}
   max-retries: ${OUTBOX_MAX_RETRIES:5}
@@ -76,6 +85,7 @@ storage:
     presigned-url-expiration: ${S3_PRESIGNED_URL_EXPIRATION:5m}
 
 integration:
+  fallback-language: ${INTEGRATION_FALLBACK_LANGUAGE:EN}
   telegram:
     bot-token: ${TELEGRAM_BOT_TOKEN:}
 

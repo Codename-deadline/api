@@ -21,7 +21,7 @@ import java.time.Instant
 @Table(
     name = "chat_subscriptions",
     uniqueConstraints = [
-        UniqueConstraint(columnNames = ["chat_id", "scope_id"])
+        UniqueConstraint(columnNames = ["chat_id", "scope_id", "scope_type"])
     ]
 )
 data class ChatSubscription(

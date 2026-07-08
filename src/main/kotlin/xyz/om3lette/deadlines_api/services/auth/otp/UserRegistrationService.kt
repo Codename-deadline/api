@@ -11,45 +11,17 @@ import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.data.user.repo.UserRepository
 import xyz.om3lette.deadlines_api.exceptions.enums.ErrorCode
 import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
+import xyz.om3lette.deadlines_api.redisData.otp.enums.OtpChanelType
 import xyz.om3lette.deadlines_api.redisData.otp.enums.OtpChannel
-import xyz.om3lette.deadlines_api.redisData.otp.repo.OtpRegisterRequestRepository
 import java.time.Instant
-import java.util.UUID
-
-// Separating concern of creating a user from OtpRegistrationRequest and
-// Avoiding circular dependency
-// ┌─────┐
-// |  securityConfig
-// ↑     ↓
-// |  otpAuthProvider
-// ↑     ↓
-// |  otpService
-// ↑     ↓
-// |  authService
-// └─────┘
 
 @Service
-class UserProvisioningService(
+class UserRegistrationService(
     private val userRepository: UserRepository,
-    private val userMessengerAccountRepository: UserMessengerAccountRepository,
-    private val otpRegisterRequestRepository: OtpRegisterRequestRepository
+    private val userMessengerAccountRepository: UserMessengerAccountRepository
 ) {
     @Transactional
-    fun registerUserFromPending(pendingId: UUID): String {
-        val userData = otpRegisterRequestRepository.findById(pendingId).orElseThrow {
-            StatusCodeException(404, ErrorCode.SIGN_UP_REGISTRATION_REQUEST_NOT_FOUND)
-        }
-        return registerUserFromOtpRequest(
-            userData.username,
-            userData.fullName,
-            userData.channel,
-            userData.language,
-            userData.identifier
-        ).username
-    }
-
-    @Transactional
-    fun registerUserFromOtpRequest(
+    fun registerExternalUser(
         username: String,
         fullName: String,
         channel: OtpChannel,
@@ -68,8 +40,10 @@ class UserProvisioningService(
         } catch (_: DataIntegrityViolationException) {
             throw StatusCodeException(409, ErrorCode.USER_ALREADY_EXISTS)
         }
-        // TODO: Check for channel not being a messenger
-        val messenger = Messenger.valueOf(channel.name)
+
+        val messenger = when (channel.type) {
+            OtpChanelType.MESSENGER -> Messenger.valueOf(channel.name)
+        }
         try {
             userMessengerAccountRepository.save(
                 UserMessengerAccount(

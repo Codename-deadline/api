@@ -6,7 +6,6 @@ import io.mockk.every
 import io.mockk.junit5.MockKExtension
 import io.mockk.mockk
 import io.mockk.slot
-import io.mockk.spyk
 import io.mockk.verify
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
@@ -19,35 +18,28 @@ import xyz.om3lette.deadlines_api.DomainObjectBuilder
 import xyz.om3lette.deadlines_api.data.permissions.dto.PermissionRoleDTO
 import xyz.om3lette.deadlines_api.data.scopes.common.dto.UsernameRolePair
 import xyz.om3lette.deadlines_api.data.scopes.common.dto.UsernameRolePairList
-import xyz.om3lette.deadlines_api.data.scopes.deadline.repo.DeadlineRepository
-import xyz.om3lette.deadlines_api.data.scopes.organization.enums.InvitationStatus
 import xyz.om3lette.deadlines_api.data.scopes.organization.enums.OrganizationType
 import xyz.om3lette.deadlines_api.data.scopes.organization.model.Organization
 import xyz.om3lette.deadlines_api.data.scopes.organization.model.OrganizationInvitation
 import xyz.om3lette.deadlines_api.data.scopes.organization.repo.OrganizationInvitationRepository
 import xyz.om3lette.deadlines_api.data.scopes.organization.repo.OrganizationRepository
-import xyz.om3lette.deadlines_api.data.scopes.thread.repo.ThreadRepository
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeRole
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType
 import xyz.om3lette.deadlines_api.data.scopes.userScope.model.UserScope
 import xyz.om3lette.deadlines_api.data.scopes.userScope.repo.UserScopeRepository
+import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.data.user.repo.UserRepository
 import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
 import xyz.om3lette.deadlines_api.services.permission.PermissionService
-import java.time.Instant
 import java.util.Optional
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-// TODO: Rewrite
-
 @ExtendWith(MockKExtension::class)
 class OrganizationServiceTest {
     private val userRepository: UserRepository = mockk()
     private val userScopeRepository: UserScopeRepository = mockk()
-    private val threadRepository: ThreadRepository = mockk()
-    private val deadlineRepository: DeadlineRepository = mockk()
     private val organizationRepository: OrganizationRepository = mockk()
     private val organizationInvitationRepository: OrganizationInvitationRepository = mockk()
     private val permissionService: PermissionService = mockk()
@@ -55,55 +47,53 @@ class OrganizationServiceTest {
     private val organizationService: OrganizationService = OrganizationService(
         userRepository,
         userScopeRepository,
-        threadRepository,
-        deadlineRepository,
         organizationRepository,
         organizationInvitationRepository,
         permissionService,
         organizationInvitationService
     )
 
-    private val dummyUserBob = DomainObjectBuilder.userBob()
-    private val dummyUserAlice = DomainObjectBuilder.userAlice()
-
-    private val dummyOrganization = Organization(
-        256,
-        "My first org",
-        null,
-        OrganizationType.PUBLIC,
-        Instant.now(),
-    )
-
-    private val dummyInvitation = spyk(OrganizationInvitation(
-        0,
-        dummyUserBob,
-        dummyUserAlice,
-        dummyOrganization,
-        InvitationStatus.PENDING,
-        ScopeRole.ORG_ADMIN,
-        Instant.now()
-    ))
-
-    private val dummyUserScopeBob = spyk(UserScope(
-        512,
-        dummyUserBob,
-        ScopeType.ORGANIZATION,
-        dummyOrganization.id,
-        ScopeRole.ORG_OWNER,
-        Instant.now()
-    ))
-    private val dummyUserScopeAlice = spyk(UserScope(
-        128,
-        dummyUserAlice,
-        ScopeType.ORGANIZATION,
-        dummyOrganization.id,
-        ScopeRole.ORG_MEMBER,
-        Instant.now()
-    ))
+    private lateinit var dummyUserBob: User
+    private lateinit var dummyUserAlice: User
+    private lateinit var dummyOrganization: Organization
+    private lateinit var dummyInvitation: OrganizationInvitation
+    private lateinit var dummyUserScopeBob: UserScope
+    private lateinit var dummyUserScopeAlice: UserScope
 
     @BeforeEach
     fun commonHappyStubs() {
         clearMocks(userScopeRepository, recordedCalls = true)
+
+        dummyOrganization = DomainObjectBuilder.organization(
+            id = 256,
+            title = "My first org",
+            description = null,
+            type = OrganizationType.PUBLIC
+        )
+
+        dummyUserBob = DomainObjectBuilder.userBob()
+        dummyUserScopeBob = DomainObjectBuilder.userScope(
+            user = dummyUserBob,
+            scopeType = ScopeType.ORGANIZATION,
+            scopeId = dummyOrganization.id,
+            role = ScopeRole.ORG_OWNER,
+            id = 512
+        )
+        dummyUserAlice = DomainObjectBuilder.userAlice()
+        dummyUserScopeAlice = DomainObjectBuilder.userScope(
+            user = dummyUserAlice,
+            scopeType = ScopeType.ORGANIZATION,
+            scopeId = dummyOrganization.id,
+            role = ScopeRole.ORG_MEMBER,
+            id = 128
+        )
+
+        dummyInvitation = DomainObjectBuilder.organizationInvitation(
+            invitedBy = dummyUserBob,
+            invitedUser = dummyUserAlice,
+            organization = dummyOrganization,
+            role = ScopeRole.ORG_ADMIN
+        )
 
         every { userScopeRepository.findByUserAndScopeIdAndScopeType(
             dummyUserBob, dummyOrganization.id, ScopeType.ORGANIZATION
@@ -113,19 +103,14 @@ class OrganizationServiceTest {
 
         every { organizationRepository.findById(dummyOrganization.id) } returns Optional.of(dummyOrganization)
 
-        every { userScopeRepository.deleteByUserIdAndScopeId(dummyUserAlice.id, dummyOrganization.id, null, null) } returns 1
-        every { userScopeRepository.deleteByUserIdAndScopeTypeAndScopeIdIn(dummyUserAlice.id, any(), any()) } returns 1
-        every { threadRepository.findAllIdsByOrganizationId(any()) } returns listOf()
-        every { deadlineRepository.findAllIdsByOrganizationId(any()) } returns listOf()
-
-        every { dummyUserScopeBob.role } returns ScopeRole.ORG_OWNER
+        every { userScopeRepository.deleteByUserIdAndOrganizationId(dummyUserAlice.id, dummyOrganization.id) } returns 1
 
         dummyOrganization.members.clear()
         dummyOrganization.members.add(dummyUserScopeBob)
     }
 
     @Nested
-    inner class CreateOrganization() {
+    inner class CreateOrganization {
         private val savedInvitationsSlot: CapturingSlot<List<OrganizationInvitation>> = slot()
         private val savedOrganizationSlot: CapturingSlot<Organization> = slot()
         private val savedUserScopeSlot: CapturingSlot<UserScope> = slot()
@@ -251,7 +236,7 @@ class OrganizationServiceTest {
 
         @Test
         fun `happy path deletes the organization`() {
-            val res = organizationService.deleteOrganization(dummyUserBob, dummyOrganization.id)
+            organizationService.deleteOrganization(dummyUserBob, dummyOrganization.id)
 
             verify {
                 organizationRepository.delete(
@@ -284,7 +269,7 @@ class OrganizationServiceTest {
             }
 
             assertAll(
-                { verify(exactly = 0) {userScopeRepository.deleteByUserIdAndScopeTypeAndScopeIdIn(any(), any(), any()) } },
+                { verify(exactly = 0) { userScopeRepository.deleteByUserIdAndOrganizationId(any(), any()) } },
                 { assertEquals(404, res.statusCode) }
             )
         }
@@ -301,7 +286,7 @@ class OrganizationServiceTest {
             }
 
             assertAll(
-                { verify(exactly = 0) {userScopeRepository.deleteByUserIdAndScopeTypeAndScopeIdIn(any(), any(), any()) } },
+                { verify(exactly = 0) { userScopeRepository.deleteByUserIdAndOrganizationId(any(), any()) } },
                 { assertEquals(403, res.statusCode) }
             )
         }
@@ -313,7 +298,7 @@ class OrganizationServiceTest {
             }
 
             assertAll(
-                { verify(exactly = 0) { userScopeRepository.deleteByUserIdAndScopeTypeAndScopeIdIn(any(), any(), any()) } },
+                { verify(exactly = 0) { userScopeRepository.deleteByUserIdAndOrganizationId(any(), any()) } },
                 { assertEquals(400, res.statusCode) }
             )
         }
@@ -327,7 +312,7 @@ class OrganizationServiceTest {
             dummyOrganization.members.add(dummyUserScopeAlice)
             organizationService.removeMember(dummyUserBob, dummyOrganization.id, dummyUserAlice.username)
 
-            verify(exactly = 1) { userScopeRepository.deleteByUserIdAndScopeId(dummyUserAlice.id, dummyOrganization.id, null, null) }
+            verify(exactly = 1) { userScopeRepository.deleteByUserIdAndOrganizationId(dummyUserAlice.id, dummyOrganization.id) }
         }
     }
 }

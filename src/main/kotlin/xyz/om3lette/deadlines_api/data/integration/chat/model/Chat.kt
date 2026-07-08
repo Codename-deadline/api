@@ -13,6 +13,7 @@ import jakarta.persistence.OneToMany
 import jakarta.persistence.Table
 import jakarta.persistence.UniqueConstraint
 import jakarta.validation.constraints.Size
+import xyz.om3lette.deadlines_api.data.integration.constraints.IntegrationConstraints
 import xyz.om3lette.deadlines_api.data.integration.bot.enums.Language
 import xyz.om3lette.deadlines_api.data.integration.bot.enums.Messenger
 import xyz.om3lette.deadlines_api.data.integration.bot.model.Bot
@@ -35,7 +36,8 @@ data class Chat(
     @Enumerated(EnumType.STRING)
     val messenger: Messenger,
 
-    @field:Size(max = 256)
+    @field:Size(max = IntegrationConstraints.CHAT_TITLE_MAX)
+    @Column(length = IntegrationConstraints.CHAT_TITLE_MAX, nullable = false)
     var title: String,
 
     @ManyToOne(fetch = FetchType.EAGER)
