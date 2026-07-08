@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import xyz.om3lette.deadlines_api.data.integration.request.LinkMessengerAccountRequest
 import xyz.om3lette.deadlines_api.data.user.model.User
-import xyz.om3lette.deadlines_api.services.integration.IntegrationService
+import xyz.om3lette.deadlines_api.services.integration.MessengerAccountLinkingService
 
 @SecurityRequirement(name = "bearerAuth")
 @Validated
@@ -20,12 +20,12 @@ import xyz.om3lette.deadlines_api.services.integration.IntegrationService
 @RequestMapping("/integration")
 @Tag(name = "Integrations", description = "Endpoints for linking/managing other platforms integration")
 class IntegrationController(
-    private val integrationService: IntegrationService
+    private val messengerAccountLinkingService: MessengerAccountLinkingService
 ) {
-    @PostMapping("/account")
+    @PostMapping("/link-account")
     @Operation(summary = "Link the external platform account to user")
     fun linkAccount(
         @AuthenticationPrincipal user: User,
         @Valid @RequestBody request: LinkMessengerAccountRequest
-    ) = integrationService.handleLinkMessengerAccountRequest(user, request.accountId, request.messenger)
+    ) = messengerAccountLinkingService.sendConfirmationForAccountLinkage(user, request.accountId, request.messenger)
 }

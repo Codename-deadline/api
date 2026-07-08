@@ -26,7 +26,7 @@ enum class IntegrationResultKey(private val template: String) {
     // ==========================================
     LINKED_ACCOUNT_NOT_FOUND("errors.linked_account_not_found"),
     USER_NOT_FOUND("errors.user_not_found"),
-    CHAT_REGISTRATION_DENIED("errors.chat_registration_denied"),
+    CHAT_MANAGEMENT_DENIED("errors.chat_management_denied"),
 
     CHAT_ALREADY_REGISTERED("errors.chat_already_registered"),
     CHAT_NOT_FOUND("errors.chat_not_found"),

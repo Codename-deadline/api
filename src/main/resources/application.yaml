@@ -85,6 +85,7 @@ storage:
     presigned-url-expiration: ${S3_PRESIGNED_URL_EXPIRATION:5m}
 
 integration:
+  fallback-language: ${INTEGRATION_FALLBACK_LANGUAGE:EN}
   telegram:
     bot-token: ${TELEGRAM_BOT_TOKEN:}
 

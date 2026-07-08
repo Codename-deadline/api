@@ -288,7 +288,8 @@ class PermissionService(
             accountsLinkedForMessenger < usersProperties.maxLinkedAccountsPerMessenger
         }
     
-    fun canRegisterChat(user: User?) = user != null
+    fun canManageIntegrationChat(issuer: User, issuerHasMessengerChatAdminRights: Boolean) =
+        issuer.isAdminOr { issuerHasMessengerChatAdminRights }
 
     /*
         Roles permissions
