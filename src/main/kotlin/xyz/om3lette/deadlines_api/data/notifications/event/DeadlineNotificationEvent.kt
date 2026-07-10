@@ -10,9 +10,21 @@ data class RawDeadline(
     val title: String
 )
 
+data class RawOrganization(
+    val id: Long,
+    val title: String
+)
+
+data class RawThread(
+    val id: Long,
+    val title: String
+)
+
 data class DeadlineNotificationEvent(
     val chatId: Long,
     val language: Language,
     val deadline: RawDeadline,
-    val timeRemaining: TimeRemaining
+    val timeRemaining: TimeRemaining,
+    val organization: RawOrganization,
+    val thread: RawThread
 )
