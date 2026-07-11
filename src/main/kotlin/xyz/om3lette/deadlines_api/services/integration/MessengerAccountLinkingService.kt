@@ -54,7 +54,12 @@ class MessengerAccountLinkingService(
         accountLinkageProducer.sendToMessenger(messenger, UserMessengerAccountLinkageEvent(requestId, accountId))
     }
 
-    fun linkMessengerAccount(requestId: String, isAccepted: Boolean): IntegrationResult {
+    fun linkMessengerAccount(
+        requestId: String,
+        isAccepted: Boolean,
+        messengerAccountId: Long,
+        messenger: Messenger,
+    ): IntegrationResult {
         val linkAccountRequest = accountLinkageRepository.findById(requestId).orElseThrow {
             grpcException(
                 Status.NOT_FOUND,
@@ -63,9 +68,19 @@ class MessengerAccountLinkingService(
             )
         }
 
-        accountLinkageRepository.delete(linkAccountRequest)
+        if (
+            linkAccountRequest.accountId != messengerAccountId ||
+            linkAccountRequest.messenger != messenger
+        ) {
+            throw grpcException(
+                Status.PERMISSION_DENIED,
+                IntegrationResultKey.REQUEST_NOT_FOUND,
+                languageResolver.fallbackLanguage
+            )
+        }
 
         if (!isAccepted) {
+            accountLinkageRepository.delete(linkAccountRequest)
             logger.info("Account linkage request $requestId declined")
             val language = userRepository.findById(linkAccountRequest.userId)
                 .map { it.language }
@@ -88,6 +103,7 @@ class MessengerAccountLinkingService(
                 linkAccountRequest.messenger
             )
         )
+        accountLinkageRepository.delete(linkAccountRequest)
         logger.info("Account linkage request $requestId accepted")
 
         return integrationResult(IntegrationResultKey.ACCOUNT_LINKAGE_SUCCESS, user.language)

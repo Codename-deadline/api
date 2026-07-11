@@ -10,6 +10,7 @@ import xyz.om3lette.deadlines_api.data.notifications.event.DeadlineNotificationE
 import xyz.om3lette.deadlines_api.data.outbox.enums.ProcessResult
 import xyz.om3lette.deadlines_api.services.integration.kafka.NotificationProducer
 import xyz.om3lette.deadlines_api.services.integration.outboxHandler.OutboxHandler
+import java.util.concurrent.TimeUnit
 
 
 @Component
@@ -29,7 +30,7 @@ class DeadlineNotificationHandler(
             notificationProducer.sendToMessenger(
                 messenger,
                 mapper.treeToValue(payload, DeadlineNotificationEvent::class.java)
-            )
+            ).get(10, TimeUnit.SECONDS)
             ProcessResult.SUCCESS
         } catch (e: Exception) {
             logger.error("Failed to send deadline notification: $e")

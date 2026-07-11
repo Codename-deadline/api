@@ -30,6 +30,10 @@ import kotlin.test.assertFailsWith
 class IntegrationSubscriptionServiceTest {
     private val userMessengerAccountRepository: UserMessengerAccountRepository = mockk()
     private val permissionService: PermissionService = mockk()
+    // Serves as an extraction of common require clauses and maps directly to permission service
+    private val integrationPermissionValidator: IntegrationPermissionValidator = IntegrationPermissionValidator(
+        permissionService
+    )
     private val organizationRepository: OrganizationRepository = mockk()
     private val chatRepository: ChatRepository = mockk()
     private val chatSubscriptionRepository: ChatSubscriptionRepository = mockk()
@@ -42,6 +46,7 @@ class IntegrationSubscriptionServiceTest {
     private val service = IntegrationSubscriptionService(
         userMessengerAccountRepository,
         permissionService,
+        integrationPermissionValidator,
         organizationRepository,
         chatRepository,
         chatSubscriptionRepository,
@@ -139,6 +144,24 @@ class IntegrationSubscriptionServiceTest {
         assertEquals(Status.NOT_FOUND, exception.status)
         assertEquals(IntegrationResultKey.USER_NOT_FOUND.value(), exception.key)
         assertEquals(Language.RU, exception.language)
+    }
+
+    @Test
+    fun `subscribe fails when issuer is not a chat administrator`() {
+        everyAccountExists()
+        every { permissionService.canManageIntegrationChat(user, false) } returns false
+
+        val exception = assertFailsWith<GrpcKeyLocaleException> {
+            service.subscribeToOrganization(
+                IntegrationTestFixtures.ISSUER_ACCOUNT_ID,
+                organization.id,
+                IntegrationTestFixtures.MESSENGER_CHAT_ID,
+                Messenger.TELEGRAM
+            )
+        }
+
+        assertEquals(Status.PERMISSION_DENIED, exception.status)
+        assertEquals(IntegrationResultKey.CHAT_MANAGEMENT_DENIED.value(), exception.key)
     }
 
     @Test
@@ -300,6 +323,7 @@ class IntegrationSubscriptionServiceTest {
 
     @Test
     fun `unsubscribeFromOrganization deletes exact organization and child subscriptions`() {
+        everyAccountExists()
         everyChatExists()
         every { chatSubscriptionRepository.deleteByChatAndScopeIdAndScopeType(chat, organization.id, ScopeType.ORGANIZATION) } returns 1
         every { threadRepository.findAllIdsByOrganizationId(organization.id) } returns listOf(202, 203)
@@ -324,6 +348,7 @@ class IntegrationSubscriptionServiceTest {
 
     @Test
     fun `unsubscribeFromThread deletes exact thread and child deadline subscriptions`() {
+        everyAccountExists()
         everyChatExists()
         every { chatSubscriptionRepository.deleteByChatAndScopeIdAndScopeType(chat, thread.id, ScopeType.THREAD) } returns 1
         every { deadlineRepository.findAllIdsByThreadId(thread.id) } returns listOf(303, 304)
@@ -343,6 +368,7 @@ class IntegrationSubscriptionServiceTest {
 
     @Test
     fun `unsubscribeFromDeadline returns not subscribed when nothing is deleted`() {
+        everyAccountExists()
         everyChatExists()
         every { chatSubscriptionRepository.deleteByChatAndScopeIdAndScopeType(chat, deadline.id, ScopeType.DEADLINE) } returns 0
 
@@ -366,6 +392,7 @@ class IntegrationSubscriptionServiceTest {
                 Messenger.TELEGRAM, IntegrationTestFixtures.ISSUER_ACCOUNT_ID
             )
         } returns Optional.of(account)
+        every { permissionService.canManageIntegrationChat(user, false) } returns true
 
         val exception = assertFailsWith<GrpcKeyLocaleException> {
             service.unsubscribeFromDeadline(
@@ -382,6 +409,7 @@ class IntegrationSubscriptionServiceTest {
 
     @Test
     fun `unsubscribeFromAll deletes all chat subscriptions`() {
+        everyAccountExists()
         everyChatExists()
         every { chatSubscriptionRepository.deleteAllByChat(chat) } returns 3
 
@@ -407,6 +435,7 @@ class IntegrationSubscriptionServiceTest {
                 Messenger.TELEGRAM, IntegrationTestFixtures.ISSUER_ACCOUNT_ID
             )
         } returns Optional.of(account)
+        every { permissionService.canManageIntegrationChat(user, false) } returns true
 
         val exception = assertFailsWith<GrpcKeyLocaleException> {
             service.unsubscribeFromAll(
@@ -426,6 +455,7 @@ class IntegrationSubscriptionServiceTest {
                 any(), IntegrationTestFixtures.ISSUER_ACCOUNT_ID
             )
         } returns Optional.of(account)
+        every { permissionService.canManageIntegrationChat(user, false) } returns true
     }
 
     private fun everyAccountMissing() {

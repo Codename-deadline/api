@@ -23,6 +23,8 @@ import xyz.om3lette.deadlines_api.redisData.integration.messengerAccount.model.A
 import xyz.om3lette.deadlines_api.redisData.integration.messengerAccount.repo.AccountLinkageRepository
 import xyz.om3lette.deadlines_api.services.integration.kafka.AccountLinkageProducer
 import xyz.om3lette.deadlines_api.services.permission.PermissionService
+import org.springframework.kafka.support.SendResult
+import java.util.concurrent.CompletableFuture
 import java.util.Optional
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -64,7 +66,8 @@ class MessengerAccountLinkingServiceTest {
         every { userMessengerAccountRepository.findAllByUserAndMessenger(user, Messenger.TELEGRAM) } returns emptyList()
         every { permissionService.canLinkAccount(user, 0) } returns true
         every { accountLinkageRepository.save(capture(savedRequest)) } answers { savedRequest.captured }
-        every { accountLinkageProducer.sendToMessenger(Messenger.TELEGRAM, capture(sentEvent)) } just runs
+        every { accountLinkageProducer.sendToMessenger(Messenger.TELEGRAM, capture(sentEvent)) } returns
+            CompletableFuture.completedFuture(mockk<SendResult<String, UserMessengerAccountLinkageEvent>>())
 
         service.sendConfirmationForAccountLinkage(user, IntegrationTestFixtures.ISSUER_ACCOUNT_ID, Messenger.TELEGRAM)
 
@@ -115,7 +118,12 @@ class MessengerAccountLinkingServiceTest {
         every { userRepository.findById(user.id) } returns Optional.of(user)
         every { userMessengerAccountRepository.save(capture(savedAccount)) } answers { savedAccount.captured }
 
-        val result = service.linkMessengerAccount("request-id", isAccepted = true)
+        val result = service.linkMessengerAccount(
+            "request-id",
+            isAccepted = true,
+            messengerAccountId = request.accountId,
+            messenger = request.messenger
+        )
 
         assertEquals(IntegrationResultKey.ACCOUNT_LINKAGE_SUCCESS.value(), result.key)
         assertEquals(user.language, result.language)
@@ -131,7 +139,12 @@ class MessengerAccountLinkingServiceTest {
         every { accountLinkageRepository.findById("request-id") } returns Optional.of(request)
         every { userRepository.findById(user.id) } returns Optional.of(user)
 
-        val result = service.linkMessengerAccount("request-id", isAccepted = false)
+        val result = service.linkMessengerAccount(
+            "request-id",
+            isAccepted = false,
+            messengerAccountId = request.accountId,
+            messenger = request.messenger
+        )
 
         assertEquals(IntegrationResultKey.ACCOUNT_LINKAGE_IGNORED.value(), result.key)
         assertEquals(user.language, result.language)
@@ -145,7 +158,12 @@ class MessengerAccountLinkingServiceTest {
         every { accountLinkageRepository.findById("request-id") } returns Optional.of(request)
         every { userRepository.findById(99) } returns Optional.empty()
 
-        val result = service.linkMessengerAccount("request-id", isAccepted = false)
+        val result = service.linkMessengerAccount(
+            "request-id",
+            isAccepted = false,
+            messengerAccountId = request.accountId,
+            messenger = request.messenger
+        )
 
         assertEquals(IntegrationResultKey.ACCOUNT_LINKAGE_IGNORED.value(), result.key)
         assertEquals(Language.RU, result.language)
@@ -156,7 +174,12 @@ class MessengerAccountLinkingServiceTest {
         every { accountLinkageRepository.findById("missing") } returns Optional.empty()
 
         val exception = assertFailsWith<GrpcKeyLocaleException> {
-            service.linkMessengerAccount("missing", isAccepted = true)
+            service.linkMessengerAccount(
+                "missing",
+                isAccepted = true,
+                messengerAccountId = IntegrationTestFixtures.ISSUER_ACCOUNT_ID,
+                messenger = Messenger.TELEGRAM
+            )
         }
 
         assertEquals(Status.NOT_FOUND, exception.status)
@@ -171,12 +194,36 @@ class MessengerAccountLinkingServiceTest {
         every { userRepository.findById(99) } returns Optional.empty()
 
         val exception = assertFailsWith<GrpcKeyLocaleException> {
-            service.linkMessengerAccount("request-id", isAccepted = true)
+            service.linkMessengerAccount(
+                "request-id",
+                isAccepted = true,
+                messengerAccountId = request.accountId,
+                messenger = request.messenger
+            )
         }
 
         assertEquals(Status.NOT_FOUND, exception.status)
         assertEquals(IntegrationResultKey.USER_NOT_FOUND.value(), exception.key)
         assertEquals(Language.RU, exception.language)
-        verify { accountLinkageRepository.delete(request) }
+        verify(exactly = 0) { accountLinkageRepository.delete(request) }
+    }
+
+    @Test
+    fun `linkMessengerAccount rejects a confirmation from another messenger account`() {
+        val request = AccountLinkageRequest("request-id", IntegrationTestFixtures.ISSUER_ACCOUNT_ID, Messenger.TELEGRAM, user.id)
+        every { accountLinkageRepository.findById("request-id") } returns Optional.of(request)
+
+        val exception = assertFailsWith<GrpcKeyLocaleException> {
+            service.linkMessengerAccount(
+                "request-id",
+                isAccepted = true,
+                messengerAccountId = 999,
+                messenger = Messenger.TELEGRAM
+            )
+        }
+
+        assertEquals(Status.PERMISSION_DENIED, exception.status)
+        assertEquals(IntegrationResultKey.REQUEST_NOT_FOUND.value(), exception.key)
+        verify(exactly = 0) { accountLinkageRepository.delete(request) }
     }
 }

@@ -16,6 +16,8 @@ class NotificationPublishingTask(
 ) {
     private val batchSize = outboxProperties.batchSize
 
+    // FIXME: Notification with no chats to send to never get updated from 'I' status
+    // as they never reach outbox (no chats are interested in receiving them)
     @Async
     @Scheduled(fixedRate = 60 * 1000)
     fun run() =

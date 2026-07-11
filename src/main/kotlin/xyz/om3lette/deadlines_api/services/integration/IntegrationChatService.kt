@@ -15,14 +15,12 @@ import xyz.om3lette.deadlines_api.data.integration.common.enums.IntegrationResul
 import xyz.om3lette.deadlines_api.data.integration.common.response.IntegrationResult
 import xyz.om3lette.deadlines_api.data.integration.constraints.IntegrationConstraints
 import xyz.om3lette.deadlines_api.data.integration.messengerAccount.repo.UserMessengerAccountRepository
-import xyz.om3lette.deadlines_api.services.permission.PermissionService
-import xyz.om3lette.deadlines_api.util.requirePermissionGrpc
 import java.time.Instant
 
 @Service
 class IntegrationChatService(
     private val userMessengerAccountRepository: UserMessengerAccountRepository,
-    private val permissionService: PermissionService,
+    private val integrationPermissionValidator: IntegrationPermissionValidator,
     private val botRepository: BotRepository,
     private val chatRepository: ChatRepository,
     private val languageResolver: IntegrationLanguageResolver,
@@ -44,17 +42,6 @@ class IntegrationChatService(
         return IssuerContext(messenger, issuerMessengerAccountId, messengerAccount)
     }
 
-    private fun requireChatManagementPermission(issuerContext: IssuerContext, issuerHasMessengerChatAdminRights: Boolean) {
-        requirePermissionGrpc(
-            permissionService.canManageIntegrationChat(
-                issuerContext.user,
-                issuerHasMessengerChatAdminRights
-            ),
-            IntegrationResultKey.CHAT_MANAGEMENT_DENIED.value(),
-            { issuerContext.language }
-        )
-    }
-
     @Transactional
     fun registerChat(
         botId: Long,
@@ -66,7 +53,7 @@ class IntegrationChatService(
         issuerHasMessengerChatAdminRights: Boolean,
     ): IntegrationResult {
         val issuerContext = getIssuerContext(messenger, issuerMessengerAccountId)
-        requireChatManagementPermission(issuerContext, issuerHasMessengerChatAdminRights)
+        integrationPermissionValidator.requireChatManagementPermission(issuerContext, issuerHasMessengerChatAdminRights)
 
         val language = Language.entries.firstOrNull { it.name == languageName } ?: issuerContext.language
 
@@ -102,7 +89,7 @@ class IntegrationChatService(
         issuerHasMessengerChatAdminRights: Boolean,
     ): IntegrationResult {
         val issuerContext = getIssuerContext(messenger, issuerMessengerAccountId)
-        requireChatManagementPermission(issuerContext, issuerHasMessengerChatAdminRights)
+        integrationPermissionValidator.requireChatManagementPermission(issuerContext, issuerHasMessengerChatAdminRights)
 
         val chatToDelete = chatRepository.findByMessengerChatIdAndMessenger(messengerChatId, messenger)
         if (chatToDelete != null) chatRepository.delete(chatToDelete)
@@ -127,7 +114,7 @@ class IntegrationChatService(
         issuerHasMessengerChatAdminRights: Boolean,
     ): IntegrationResult {
         val issuerContext = getIssuerContext(messenger, issuerMessengerAccountId)
-        requireChatManagementPermission(issuerContext, issuerHasMessengerChatAdminRights)
+        integrationPermissionValidator.requireChatManagementPermission(issuerContext, issuerHasMessengerChatAdminRights)
 
         val chat = chatRepository.findByMessengerChatIdAndMessenger(messengerChatId, messenger)
             ?: throw grpcException(

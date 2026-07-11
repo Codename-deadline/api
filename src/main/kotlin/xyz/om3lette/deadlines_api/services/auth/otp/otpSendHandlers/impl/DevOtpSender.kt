@@ -8,7 +8,7 @@ import xyz.om3lette.deadlines_api.redisData.otp.enums.OtpChannel
 import xyz.om3lette.deadlines_api.services.auth.otp.otpSendHandlers.OtpSender
 
 @Service
-@Profile("dev")
+@Profile("!dev")
 class DevOtpSender : OtpSender {
     override val channel = OtpChannel.TELEGRAM
 

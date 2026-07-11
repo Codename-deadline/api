@@ -29,6 +29,7 @@ import java.time.Instant
 class IntegrationSubscriptionService(
     private val userMessengerAccountRepository: UserMessengerAccountRepository,
     private val permissionService: PermissionService,
+    private val integrationPermissionValidator: IntegrationPermissionValidator,
     private val organizationRepository: OrganizationRepository,
     private val chatRepository: ChatRepository,
     private val chatSubscriptionRepository: ChatSubscriptionRepository,
@@ -57,10 +58,12 @@ class IntegrationSubscriptionService(
         targetId: Long,
         messengerChatId: Long,
         messenger: Messenger,
+        issuerHasMessengerChatAdminRights: Boolean = false,
     ): IntegrationResult = subscribeTo(
         issuerMessengerAccountId,
         messengerChatId,
         messenger,
+        issuerHasMessengerChatAdminRights,
         ScopeType.ORGANIZATION,
     ) { issuer ->
         val organization = organizationRepository.findById(targetId).orElseThrow {
@@ -82,10 +85,12 @@ class IntegrationSubscriptionService(
         targetId: Long,
         messengerChatId: Long,
         messenger: Messenger,
+        issuerHasMessengerChatAdminRights: Boolean = false,
     ): IntegrationResult = subscribeTo(
         issuerMessengerAccountId,
         messengerChatId,
         messenger,
+        issuerHasMessengerChatAdminRights,
         ScopeType.THREAD,
     ) { issuer ->
         val thread = threadRepository.findById(targetId).orElseThrow {
@@ -105,10 +110,12 @@ class IntegrationSubscriptionService(
         targetId: Long,
         messengerChatId: Long,
         messenger: Messenger,
+        issuerHasMessengerChatAdminRights: Boolean = false,
     ): IntegrationResult = subscribeTo(
         issuerMessengerAccountId,
         messengerChatId,
         messenger,
+        issuerHasMessengerChatAdminRights,
         ScopeType.DEADLINE,
     ) { issuer ->
         val deadline = deadlineRepository.findById(targetId).orElseThrow {
@@ -126,10 +133,12 @@ class IntegrationSubscriptionService(
         issuerMessengerAccountId: Long,
         messengerChatId: Long,
         messenger: Messenger,
+        issuerHasMessengerChatAdminRights: Boolean,
         scopeType: ScopeType,
         getTargetIdAndCheckPermission: (issuer: User) -> Long,
     ): IntegrationResult {
         val issuerContext = getIssuerContext(messenger, issuerMessengerAccountId)
+        integrationPermissionValidator.requireChatManagementPermission(issuerContext, issuerHasMessengerChatAdminRights)
         val resolvedTargetId = getTargetIdAndCheckPermission(issuerContext.user)
 
         val chat = chatRepository.findByMessengerChatIdAndMessenger(messengerChatId, messenger)
@@ -157,11 +166,13 @@ class IntegrationSubscriptionService(
         targetId: Long,
         messengerChatId: Long,
         messenger: Messenger,
+        issuerHasMessengerChatAdminRights: Boolean = false,
     ): IntegrationResult = unsubscribeFrom(
         issuerMessengerAccountId,
         targetId,
         messengerChatId,
         messenger,
+        issuerHasMessengerChatAdminRights,
         ScopeType.ORGANIZATION
     )
 
@@ -171,11 +182,13 @@ class IntegrationSubscriptionService(
         targetId: Long,
         messengerChatId: Long,
         messenger: Messenger,
+        issuerHasMessengerChatAdminRights: Boolean = false,
     ): IntegrationResult = unsubscribeFrom(
         issuerMessengerAccountId,
         targetId,
         messengerChatId,
         messenger,
+        issuerHasMessengerChatAdminRights,
         ScopeType.THREAD
     )
 
@@ -185,11 +198,13 @@ class IntegrationSubscriptionService(
         targetId: Long,
         messengerChatId: Long,
         messenger: Messenger,
+        issuerHasMessengerChatAdminRights: Boolean = false,
     ): IntegrationResult = unsubscribeFrom(
         issuerMessengerAccountId,
         targetId,
         messengerChatId,
         messenger,
+        issuerHasMessengerChatAdminRights,
         ScopeType.DEADLINE
     )
 
@@ -198,13 +213,16 @@ class IntegrationSubscriptionService(
         targetId: Long,
         messengerChatId: Long,
         messenger: Messenger,
+        issuerHasMessengerChatAdminRights: Boolean,
         scopeType: ScopeType,
     ): IntegrationResult {
+        val issuerContext = getIssuerContext(messenger, issuerMessengerAccountId)
+        integrationPermissionValidator.requireChatManagementPermission(issuerContext, issuerHasMessengerChatAdminRights)
         val chat = chatRepository.findByMessengerChatIdAndMessenger(messengerChatId, messenger)
             ?: throw grpcException(
                 Status.NOT_FOUND,
                 IntegrationResultKey.CHAT_NOT_FOUND,
-                languageResolver.resolve(messenger, issuerMessengerAccountId)
+                issuerContext.language
             )
 
         val deleted = deleteSubscriptions(chat, targetId, scopeType)
@@ -221,12 +239,15 @@ class IntegrationSubscriptionService(
         issuerMessengerAccountId: Long,
         messengerChatId: Long,
         messenger: Messenger,
+        issuerHasMessengerChatAdminRights: Boolean = false,
     ): IntegrationResult {
+        val issuerContext = getIssuerContext(messenger, issuerMessengerAccountId)
+        integrationPermissionValidator.requireChatManagementPermission(issuerContext, issuerHasMessengerChatAdminRights)
         val chat = chatRepository.findByMessengerChatIdAndMessenger(messengerChatId, messenger)
             ?: throw grpcException(
                 Status.NOT_FOUND,
                 IntegrationResultKey.CHAT_NOT_FOUND,
-                languageResolver.resolve(messenger, issuerMessengerAccountId)
+                issuerContext.language
             )
 
         chatSubscriptionRepository.deleteAllByChat(chat)

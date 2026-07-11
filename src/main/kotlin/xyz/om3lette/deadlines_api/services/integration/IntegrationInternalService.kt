@@ -7,16 +7,7 @@ import org.springframework.grpc.server.service.GrpcService
 import xyz.om3lette.deadlines_api.data.integration.bot.enums.Language
 import xyz.om3lette.deadlines_api.data.integration.bot.enums.Messenger
 import xyz.om3lette.deadlines_api.data.integration.common.enums.IntegrationResultKey
-import xyz.om3lette.deadlines_api.proto.DeregisterChatRequest
-import xyz.om3lette.deadlines_api.proto.GeneralResponse
-import xyz.om3lette.deadlines_api.proto.IntegrationServiceGrpc
-import xyz.om3lette.deadlines_api.proto.LinkMessengerAccountRequest
-import xyz.om3lette.deadlines_api.proto.ProtoMessenger
-import xyz.om3lette.deadlines_api.proto.RegisterChatRequest
-import xyz.om3lette.deadlines_api.proto.SubscribeToRequest
-import xyz.om3lette.deadlines_api.proto.UnsubscribeFromAllRequest
-import xyz.om3lette.deadlines_api.proto.UnsubscribeFromRequest
-import xyz.om3lette.deadlines_api.proto.UpdateChatInfoRequest
+import xyz.om3lette.deadlines_api.proto.*
 
 @GrpcService
 class IntegrationInternalService(
@@ -45,7 +36,12 @@ class IntegrationInternalService(
         request: LinkMessengerAccountRequest,
         responseObserver: StreamObserver<GeneralResponse>
     ) = responseObserver.sendResult(
-        messengerAccountLinkingService.linkMessengerAccount(request.requestId, request.isAccepted)
+        messengerAccountLinkingService.linkMessengerAccount(
+            request.requestId,
+            request.isAccepted,
+            request.messengerAccountId,
+            getMessengerOr500(request.messenger)
+        )
     )
 
     override fun subscribeToOrganization(
@@ -56,7 +52,8 @@ class IntegrationInternalService(
             request.issuerMessengerAccountId,
             request.targetId,
             request.messengerChatId,
-            getMessengerOr500(request.messenger)
+            getMessengerOr500(request.messenger),
+            request.issuerHasMessengerChatAdminRights
         )
     )
 
@@ -68,7 +65,8 @@ class IntegrationInternalService(
             request.issuerMessengerAccountId,
             request.targetId,
             request.messengerChatId,
-            getMessengerOr500(request.messenger)
+            getMessengerOr500(request.messenger),
+            request.issuerHasMessengerChatAdminRights
         )
     )
 
@@ -80,7 +78,8 @@ class IntegrationInternalService(
             request.issuerMessengerAccountId,
             request.targetId,
             request.messengerChatId,
-            getMessengerOr500(request.messenger)
+            getMessengerOr500(request.messenger),
+            request.issuerHasMessengerChatAdminRights
         )
     )
 
@@ -92,7 +91,8 @@ class IntegrationInternalService(
             request.issuerMessengerAccountId,
             request.targetId,
             request.messengerChatId,
-            getMessengerOr500(request.messenger)
+            getMessengerOr500(request.messenger),
+            request.issuerHasMessengerChatAdminRights
         )
     )
 
@@ -104,7 +104,8 @@ class IntegrationInternalService(
             request.issuerMessengerAccountId,
             request.targetId,
             request.messengerChatId,
-            getMessengerOr500(request.messenger)
+            getMessengerOr500(request.messenger),
+            request.issuerHasMessengerChatAdminRights
         )
     )
 
@@ -116,7 +117,8 @@ class IntegrationInternalService(
             request.issuerMessengerAccountId,
             request.targetId,
             request.messengerChatId,
-            getMessengerOr500(request.messenger)
+            getMessengerOr500(request.messenger),
+            request.issuerHasMessengerChatAdminRights
         )
     )
 
@@ -127,7 +129,8 @@ class IntegrationInternalService(
         integrationSubscriptionService.unsubscribeFromAll(
             request.issuerMessengerAccountId,
             request.messengerChatId,
-            getMessengerOr500(request.messenger)
+            getMessengerOr500(request.messenger),
+            request.issuerHasMessengerChatAdminRights
         )
     )
 

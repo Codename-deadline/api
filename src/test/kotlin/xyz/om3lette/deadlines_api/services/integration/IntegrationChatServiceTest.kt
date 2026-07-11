@@ -27,6 +27,10 @@ import kotlin.test.assertTrue
 class IntegrationChatServiceTest {
     private val userMessengerAccountRepository: UserMessengerAccountRepository = mockk()
     private val permissionService: PermissionService = mockk()
+    // Serves as an extraction of common require clauses and maps directly to permission service
+    private val integrationPermissionValidator: IntegrationPermissionValidator = IntegrationPermissionValidator(
+        permissionService
+    )
     private val botRepository: BotRepository = mockk()
     private val chatRepository: ChatRepository = mockk()
     private val languageResolver = IntegrationLanguageResolver(
@@ -35,7 +39,7 @@ class IntegrationChatServiceTest {
     )
     private val service = IntegrationChatService(
         userMessengerAccountRepository,
-        permissionService,
+        integrationPermissionValidator,
         botRepository,
         chatRepository,
         languageResolver
