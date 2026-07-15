@@ -1,0 +1,24 @@
+spring:
+  ssl:
+    bundle:
+      pem:
+        grpc:
+          keystore:
+            certificate: ${GRPC_TLS_CERTIFICATE:/run/secrets/grpc/server.crt}
+            private-key: ${GRPC_TLS_PRIVATE_KEY:/run/secrets/grpc/server.key}
+          truststore:
+            certificate: ${GRPC_TLS_CA_CERTIFICATE:/run/secrets/grpc/ca.crt}
+  grpc:
+    server:
+      ssl:
+        enabled: true
+        bundle: grpc
+        client-auth: REQUIRE
+  kafka:
+    security-protocol: ${KAFKA_SECURITY_PROTOCOL:SSL}
+    ssl:
+      truststore-location: ${KAFKA_SSL_TRUSTSTORE_LOCATION:/run/secrets/kafka/client.truststore.p12}
+      truststore-password: ${KAFKA_SSL_TRUSTSTORE_PASSWORD}
+      keystore-location: ${KAFKA_SSL_KEYSTORE_LOCATION:/run/secrets/kafka/client.keystore.p12}
+      keystore-password: ${KAFKA_SSL_KEYSTORE_PASSWORD}
+      key-password: ${KAFKA_SSL_KEY_PASSWORD}
