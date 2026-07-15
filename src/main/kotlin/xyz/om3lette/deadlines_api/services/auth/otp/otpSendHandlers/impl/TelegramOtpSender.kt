@@ -12,7 +12,7 @@ import xyz.om3lette.deadlines_api.services.auth.otp.kafka.OtpProducer
 import xyz.om3lette.deadlines_api.services.auth.otp.otpSendHandlers.OtpSender
 
 @Service
-@Profile("dev")
+@Profile("!dev")
 class TelegramOtpSender(
     private val otpProducer: OtpProducer
 ) : OtpSender {

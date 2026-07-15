@@ -8,6 +8,8 @@ spring:
             private-key: ${GRPC_TLS_PRIVATE_KEY:/run/secrets/grpc/server.key}
           truststore:
             certificate: ${GRPC_TLS_CA_CERTIFICATE:/run/secrets/grpc/ca.crt}
+  jpa:
+    show-sql: ${SPRING_JPA_SHOW_SQL:false}
   grpc:
     server:
       ssl:
