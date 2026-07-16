@@ -7,7 +7,6 @@ import jakarta.validation.Valid
 import jakarta.validation.constraints.Min
 import jakarta.validation.constraints.Positive
 import org.springframework.security.core.annotation.AuthenticationPrincipal
-import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PatchMapping
@@ -24,7 +23,6 @@ import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.services.ThreadService
 
 @SecurityRequirement(name = "bearerAuth")
-@Validated
 @RestController
 @RequestMapping("/threads/{threadId}")
 @Tag(name = "Threads")

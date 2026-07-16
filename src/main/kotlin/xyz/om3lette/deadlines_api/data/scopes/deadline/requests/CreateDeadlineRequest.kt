@@ -3,7 +3,8 @@ package xyz.om3lette.deadlines_api.data.scopes.deadline.requests
 import jakarta.validation.Valid
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Size
-import xyz.om3lette.deadlines_api.data.scopes.common.dto.UsernameRolePairList
+import xyz.om3lette.deadlines_api.data.scopes.common.constraints.ScopeInvitationConstraints
+import xyz.om3lette.deadlines_api.data.scopes.common.dto.UsernameRolePair
 import xyz.om3lette.deadlines_api.data.scopes.common.constraints.ScopeTextConstraints
 import java.time.Instant
 
@@ -18,5 +19,6 @@ data class CreateDeadlineRequest(
     val due: Instant,
 
     @field:Valid
-    val invitations: UsernameRolePairList
+    @field:Size(max = ScopeInvitationConstraints.MAX_INVITATIONS)
+    val invitations: List<@Valid UsernameRolePair>
 )

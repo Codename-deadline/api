@@ -7,7 +7,6 @@ import jakarta.validation.Valid
 import jakarta.validation.constraints.Positive
 import org.springframework.http.MediaType
 import org.springframework.security.core.annotation.AuthenticationPrincipal
-import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.multipart.MultipartFile
 import xyz.om3lette.deadlines_api.data.attachments.request.PatchFileMetadataRequest
@@ -15,7 +14,6 @@ import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.services.storage.AttachmentsService
 
 @SecurityRequirement(name = "bearerAuth")
-@Validated
 @RestController
 @RequestMapping("/attachments")
 @Tag(name = "Attachments")

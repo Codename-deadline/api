@@ -8,7 +8,6 @@ import jakarta.validation.constraints.Max
 import jakarta.validation.constraints.Min
 import jakarta.validation.constraints.Positive
 import org.springframework.security.core.annotation.AuthenticationPrincipal
-import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PatchMapping
@@ -20,13 +19,13 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import xyz.om3lette.deadlines_api.data.common.constraints.PaginationConstraints
 import xyz.om3lette.deadlines_api.data.scopes.organization.request.CreateOrganizationRequest
+import xyz.om3lette.deadlines_api.data.scopes.common.dto.UsernameRolePairList
 import xyz.om3lette.deadlines_api.data.scopes.organization.request.PatchOrganizationRequest
 import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.services.OrganizationService
 import kotlin.math.min
 
 @SecurityRequirement(name = "bearerAuth")
-@Validated
 @RestController
 @RequestMapping("/organizations")
 @Tag(name = "Organizations")
@@ -57,7 +56,7 @@ class OrganizationController(
         request.title,
         request.description,
         request.type,
-        request.invitations
+        UsernameRolePairList(request.invitations)
     )
 
     @DeleteMapping("/{organizationId}")
