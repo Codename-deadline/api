@@ -2,6 +2,7 @@ package xyz.om3lette.deadlines_api.configs
 
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.http.HttpMethod
 import org.springframework.security.authentication.AuthenticationManager
 import org.springframework.security.authentication.ProviderManager
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider
@@ -12,6 +13,7 @@ import org.springframework.security.core.userdetails.UserDetailsService
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter
+import org.springframework.security.web.util.matcher.RegexRequestMatcher
 import org.springframework.web.cors.CorsConfiguration
 import xyz.om3lette.deadlines_api.configs.properties.CorsProperties
 import xyz.om3lette.deadlines_api.entrypoints.RestAuthenticationEntryPoint
@@ -42,6 +44,14 @@ class SecurityConfig(
             "/swagger-ui/**",
             "/actuator/health",
         )
+        val SEMI_PUBLIC_GET_URLS = arrayOf(
+            Regex('^' + api("/organizations/[0-9]+") + '$'),
+            Regex('^' + api("/threads/[0-9]+") + '$'),
+            Regex('^' + api("/deadlines/[0-9]+") + '$'),
+        )
+
+        fun isSemiPublicGet(method: String, requestUri: String): Boolean =
+            method == HttpMethod.GET.name() && SEMI_PUBLIC_GET_URLS.any { it.matches(requestUri) }
     }
 
     @Bean
@@ -70,7 +80,12 @@ class SecurityConfig(
             }
             .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
             .authorizeHttpRequests {
-                PUBLIC_URLS.forEach { url -> it.requestMatchers(url).permitAll() }
+                it.requestMatchers(*PUBLIC_URLS).permitAll()
+                it.requestMatchers(
+                    *SEMI_PUBLIC_GET_URLS.map { pattern ->
+                        RegexRequestMatcher.regexMatcher(HttpMethod.GET, pattern.pattern)
+                    }.toTypedArray()
+                ).permitAll()
                 it.anyRequest().authenticated()
             }
             .exceptionHandling { exceptions ->

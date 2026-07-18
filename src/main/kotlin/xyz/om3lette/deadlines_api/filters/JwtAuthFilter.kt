@@ -32,8 +32,12 @@ class JwtAuthFilter(
         if (SecurityConfig.PUBLIC_URLS.any { request.requestURI.startsWith(it.substringBefore("/**")) })
             return filterChain.doFilter(request, response)
 
+        val authHeader = request.getHeader("Authorization")
+        if (authHeader == null && SecurityConfig.isSemiPublicGet(request.method, request.requestURI)) {
+            return filterChain.doFilter(request, response)
+        }
+
         try {
-            val authHeader = request.getHeader("Authorization")
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
                 throw BadCredentialsException("")
             }

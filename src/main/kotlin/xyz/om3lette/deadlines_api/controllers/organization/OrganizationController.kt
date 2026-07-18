@@ -42,7 +42,7 @@ class OrganizationController(
     @GetMapping("/{organizationId}")
     @Operation(summary = "Get organization metadata")
     fun getOrganizationMetadata(
-        @AuthenticationPrincipal user: User,
+        @AuthenticationPrincipal user: User?,
         @PathVariable @Positive organizationId: Long
     ) = organizationService.getOrganization(user, organizationId)
 

@@ -134,7 +134,7 @@ class OrganizationService(
         }
     }
 
-    fun getOrganization(issuer: User, organizationId: Long): OrganizationResponse {
+    fun getOrganization(issuer: User?, organizationId: Long): OrganizationResponse {
         val organization = organizationRepository.findByIdOr404(organizationId, ErrorCode.ORG_NOT_FOUND)
         requirePermission(
             permissionService.hasAccess(issuer, OrganizationScope(

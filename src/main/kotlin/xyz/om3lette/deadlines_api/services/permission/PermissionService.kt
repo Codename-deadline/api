@@ -69,11 +69,11 @@ class PermissionService(
     /*
         Organization permissions:
      */
-    private fun hasOrganizationAccess(issuer: User, organization: Organization): Boolean =
-        issuer.isAdminOr {
-            if (organization.type == OrganizationType.PUBLIC) return true
-            return roleForOrganizationLazy(issuer, organization.id)() != null
-        }
+    private fun hasOrganizationAccess(issuer: User?, organization: Organization): Boolean {
+        if (organization.type == OrganizationType.PUBLIC) return true
+        if (issuer == null) return false
+        return issuer.isAdminOr { roleForOrganizationLazy(issuer, organization.id)() != null }
+    }
 
     private fun canDeleteOrganization(issuer: User, organizationId: Long): Boolean =
         issuer.isAdminOrHasRoleAnd(roleForOrganizationLazy(issuer, organizationId)) { role ->
@@ -110,27 +110,48 @@ class PermissionService(
      *
      * IMPORTANT: if calling for a list of unique organization it is advices to call `prefetchUserRoles` first
      */
-    fun buildOrganizationPermissions(issuer: User, organizationId: Long) = OrganizationPermissions(
-        update = canUpdateOrganization(issuer, organizationId),
-        delete = canDeleteOrganization(issuer, organizationId),
-        manageRoles = canManageOrganizationMembers(issuer, organizationId),
-        invite = canSendOrganizationInvitation(issuer, organizationId),
-        createThreads = canCreateThread(issuer, organizationId)
-    )
+    fun buildOrganizationPermissions(issuer: User?, organizationId: Long) =
+        if (issuer == null) {
+            OrganizationPermissions(
+                update = false,
+                delete = false,
+                manageRoles = false,
+                invite = false,
+                createThreads = false
+            )
+        } else {
+            OrganizationPermissions(
+                update = canUpdateOrganization(issuer, organizationId),
+                delete = canDeleteOrganization(issuer, organizationId),
+                manageRoles = canManageOrganizationMembers(issuer, organizationId),
+                invite = canSendOrganizationInvitation(issuer, organizationId),
+                createThreads = canCreateThread(issuer, organizationId)
+            )
+        }
 
-    fun buildThreadPermissions(issuer: User, thread: Thread) = ThreadPermissions(
-        update = canUpdateThread(issuer, thread),
-        delete = canDeleteThread(issuer, thread),
-        manageAssignees = canManageThreadAssignees(issuer, thread),
-        createDeadlines = canCreateDeadline(issuer, thread)
-    )
+    fun buildThreadPermissions(issuer: User?, thread: Thread) =
+        if (issuer == null) {
+            ThreadPermissions(update = false, delete = false, manageAssignees = false, createDeadlines = false)
+        } else {
+            ThreadPermissions(
+                update = canUpdateThread(issuer, thread),
+                delete = canDeleteThread(issuer, thread),
+                manageAssignees = canManageThreadAssignees(issuer, thread),
+                createDeadlines = canCreateDeadline(issuer, thread)
+            )
+        }
 
-    fun buildDeadlinePermissions(issuer: User, deadline: Deadline) = DeadlinePermissions(
-        update = canUpdateDeadline(issuer, deadline),
-        delete = canDeleteDeadline(issuer, deadline),
-        manageAssignees = canManageDeadlineAssignees(issuer, deadline),
-        manageAttachments = canManageDeadlineAttachments(issuer, deadline)
-    )
+    fun buildDeadlinePermissions(issuer: User?, deadline: Deadline) =
+        if (issuer == null) {
+            DeadlinePermissions(update = false, delete = false, manageAssignees = false, manageAttachments = false)
+        } else {
+            DeadlinePermissions(
+                update = canUpdateDeadline(issuer, deadline),
+                delete = canDeleteDeadline(issuer, deadline),
+                manageAssignees = canManageDeadlineAssignees(issuer, deadline),
+                manageAttachments = canManageDeadlineAttachments(issuer, deadline)
+            )
+        }
 
     fun buildDeadlineAttachmentPermissions(issuer: User, ddlAttachment: Attachment) = AttachmentPermissions(
         update = canUpdateDeadlineAttachment(issuer, ddlAttachment),
@@ -140,8 +161,9 @@ class PermissionService(
     /*
         Thread permissions:
      */
-    private fun hasThreadAccess(issuer: User, thread: Thread): Boolean {
+    private fun hasThreadAccess(issuer: User?, thread: Thread): Boolean {
         if (thread.organization.type == OrganizationType.PUBLIC) return true
+        if (issuer == null) return false
         return issuer.isAdminOrHasRoleAnd(roleForThreadLazy(issuer, thread)) { role ->
             role >= ScopeRole.THR_ASSIGNEE
         }
@@ -170,8 +192,9 @@ class PermissionService(
     /*
         Deadline permissions:
      */
-    private fun hasDeadlineAccess(issuer: User, deadline: Deadline): Boolean {
+    private fun hasDeadlineAccess(issuer: User?, deadline: Deadline): Boolean {
         if (deadline.thread.organization.type == OrganizationType.PUBLIC) return true
+        if (issuer == null) return false
         return issuer.isAdminOrHasRoleAnd(roleForDeadlineLazy(issuer, deadline)) { role ->
             role >= ScopeRole.DDL_ASSIGNEE
         }
@@ -240,7 +263,7 @@ class PermissionService(
      *
      * **WARNING**: `OrganizationScope.organization` must be provided
      */
-    fun hasAccess(issuer: User, permissionScope: PermissionScope) =
+    fun hasAccess(issuer: User?, permissionScope: PermissionScope) =
         when (permissionScope) {
             is OrganizationScope ->
                 if (permissionScope.organization != null) {

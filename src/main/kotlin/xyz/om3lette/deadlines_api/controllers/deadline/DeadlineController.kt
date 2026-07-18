@@ -37,7 +37,7 @@ class DeadlineController(
     @GetMapping
     @Operation(summary = "Get deadline data")
     fun getDeadline(
-        @AuthenticationPrincipal user: User,
+        @AuthenticationPrincipal user: User?,
         @PathVariable @Positive deadlineId: Long
     ) = deadlineService.getDeadline(user, deadlineId)
 

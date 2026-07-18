@@ -174,18 +174,18 @@ class DeadlineService(
         userScopeRepository.deleteByUserIdAndScopeId(permissionDTO.userId, null, null, deadlineId)
     }
 
-    fun getDeadline(issuer: User, deadlineId: Long): DeadlineResponseWithRole {
+    fun getDeadline(issuer: User?, deadlineId: Long): DeadlineResponseWithRole {
         val deadline = deadlineRepository.findByIdOr404(deadlineId, ErrorCode.DDL_NOT_FOUND)
 
         requirePermission(
             permissionService.hasAccess(issuer, DeadlineScope(deadline))
         )
 
-        val stats = prepareDeadlineResponseData(issuer, listOf(deadline), false)
+        val stats = prepareDeadlineResponseData(listOf(deadline))
         return mapDeadlineToFullResponse(issuer, deadline, stats)
     }
 
-    private fun prepareDeadlineResponseData(user: User, deadlines: List<Deadline>, prefetchRoles: Boolean = true): Map<Long, DeadlineStatsDTO> {
+    private fun prepareDeadlineResponseData(deadlines: List<Deadline>, user: User? = null): Map<Long, DeadlineStatsDTO> {
         val deadlineIds = mutableSetOf<Long>()
         val threadIds = mutableSetOf<Long>()
         val organizationIds = mutableSetOf<Long>()
@@ -197,7 +197,7 @@ class DeadlineService(
         }
 
         val deadlineIdsList = deadlineIds.toList()
-        if (prefetchRoles) {
+        if (user != null) {
             permissionService.prefetchUserRoles(
                 user,
                 orgIds = organizationIds.toList(),
@@ -210,18 +210,20 @@ class DeadlineService(
             .associateBy { it.deadlineId }
     }
 
-    private fun mapDeadlineToFullResponse(user: User, deadline: Deadline, stats: Map<Long, DeadlineStatsDTO>) =
+    private fun mapDeadlineToFullResponse(user: User?, deadline: Deadline, stats: Map<Long, DeadlineStatsDTO>) =
         deadline.toResponse(stats[deadline.id]!!, permissionService.buildDeadlinePermissions(user, deadline)).withRole(
-            permissionService.getRole(deadline.id, ScopeType.DEADLINE),
-            permissionService.getMaxRole(
-                listOf(
-                    PermissionContext.PermissionKey(ScopeType.DEADLINE, deadline.id),
-                    PermissionContext.PermissionKey(ScopeType.THREAD, deadline.thread.id),
-                    PermissionContext.PermissionKey(ScopeType.ORGANIZATION, deadline.thread.organization.id)
-                )
-            ).takeIf {
-                // The goal is to not return a "read only" role
-                maxRole -> maxRole > ScopeRole.DDL_ASSIGNEE
+            user?.let { permissionService.getRole(deadline.id, ScopeType.DEADLINE) },
+            user?.let {
+                permissionService.getMaxRole(
+                    listOf(
+                        PermissionContext.PermissionKey(ScopeType.DEADLINE, deadline.id),
+                        PermissionContext.PermissionKey(ScopeType.THREAD, deadline.thread.id),
+                        PermissionContext.PermissionKey(ScopeType.ORGANIZATION, deadline.thread.organization.id)
+                    )
+                ).takeIf {
+                    // The goal is to not return a "read only" role
+                    maxRole -> maxRole > ScopeRole.DDL_ASSIGNEE
+                }
             }
         )
 
@@ -234,7 +236,7 @@ class DeadlineService(
             issuer.id, PageRequest.of(pageNumber, pageSize)
         )
 
-        val stats = prepareDeadlineResponseData(issuer, userDeadlines.toList())
+        val stats = prepareDeadlineResponseData(userDeadlines.toList(), issuer)
         return PaginationResponse.fromPage(
             userDeadlines.map {
                 mapDeadlineToFullResponse(issuer, it, stats)
@@ -257,7 +259,7 @@ class DeadlineService(
         val threadDeadlines = deadlineRepository.findAllByThread(
             thread, PageRequest.of(pageNumber, pageSize)
         )
-        val stats = prepareDeadlineResponseData(issuer, threadDeadlines.toList())
+        val stats = prepareDeadlineResponseData(threadDeadlines.toList(), issuer)
         return PaginationResponse.fromPage(
             threadDeadlines.map {
                 mapDeadlineToFullResponse(issuer, it, stats)

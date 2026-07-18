@@ -18,9 +18,12 @@ import xyz.om3lette.deadlines_api.data.permissions.dto.DeadlineScope
 import xyz.om3lette.deadlines_api.data.permissions.dto.OrganizationScope
 import xyz.om3lette.deadlines_api.data.permissions.dto.PermissionScope
 import xyz.om3lette.deadlines_api.data.permissions.dto.ThreadScope
+import xyz.om3lette.deadlines_api.data.scopes.deadline.dto.DeadlinePermissions
 import xyz.om3lette.deadlines_api.data.scopes.deadline.model.Deadline
+import xyz.om3lette.deadlines_api.data.scopes.organization.dto.OrganizationPermissions
 import xyz.om3lette.deadlines_api.data.scopes.organization.enums.OrganizationType
 import xyz.om3lette.deadlines_api.data.scopes.organization.model.Organization
+import xyz.om3lette.deadlines_api.data.scopes.thread.dto.ThreadPermissions
 import xyz.om3lette.deadlines_api.data.scopes.thread.model.Thread
 import xyz.om3lette.deadlines_api.data.scopes.userScope.dto.ScopeRoleDTO
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeRole
@@ -241,6 +244,17 @@ class PermissionServiceTest {
             }
 
             @Test
+            fun `public organization is available anonymously`() {
+                assertTrue(permissionService.hasAccess(null, orgScope()))
+            }
+
+            @Test
+            fun `private organization is not available anonymously`() {
+                organization.type = OrganizationType.PRIVATE
+                assertFalse(permissionService.hasAccess(null, orgScope()))
+            }
+
+            @Test
             fun `private organization are not available if user is not a member`() {
                 organization.type = OrganizationType.PRIVATE
                 withRole(nonAdmin, orgId = organization.id, role = null)
@@ -288,6 +302,17 @@ class PermissionServiceTest {
             }
 
             @Test
+            fun `thread in public organization is available anonymously`() {
+                assertTrue(permissionService.hasAccess(null, thrScope()))
+            }
+
+            @Test
+            fun `thread in private organization is not available anonymously`() {
+                organization.type = OrganizationType.PRIVATE
+                assertFalse(permissionService.hasAccess(null, thrScope()))
+            }
+
+            @Test
             fun `threads in private organizations are accessible only by org members`() {
                 organization.type = OrganizationType.PRIVATE
                 withRole(nonAdmin, thread = thread, role = null)
@@ -332,6 +357,17 @@ class PermissionServiceTest {
             }
 
             @Test
+            fun `deadline in public organization is available anonymously`() {
+                assertTrue(permissionService.hasAccess(null, ddlScope()))
+            }
+
+            @Test
+            fun `deadline in private organization is not available anonymously`() {
+                organization.type = OrganizationType.PRIVATE
+                assertFalse(permissionService.hasAccess(null, ddlScope()))
+            }
+
+            @Test
             fun `deadlines in private organizations are only accessible by deadline assignees or higher`() {
                 organization.type = OrganizationType.PRIVATE
                 withRole(nonAdmin, deadline = deadline, role = null)
@@ -362,6 +398,31 @@ class PermissionServiceTest {
         fun canManageDeadlineAttachments() = testForMinAcceptableRoleRaw(
             ScopeRole.DDL_ASSIGNEE, deadline, permissionService::canManageDeadlineAttachments
         )
+    }
+
+    @Nested
+    inner class AnonymousPermissions {
+        @Test
+        fun `anonymous permission payloads are read only`() {
+            assertEquals(
+                OrganizationPermissions(
+                    update = false,
+                    delete = false,
+                    manageRoles = false,
+                    invite = false,
+                    createThreads = false
+                ),
+                permissionService.buildOrganizationPermissions(null, organization.id)
+            )
+            assertEquals(
+                ThreadPermissions(update = false, delete = false, manageAssignees = false, createDeadlines = false),
+                permissionService.buildThreadPermissions(null, thread)
+            )
+            assertEquals(
+                DeadlinePermissions(update = false, delete = false, manageAssignees = false, manageAttachments = false),
+                permissionService.buildDeadlinePermissions(null, deadline)
+            )
+        }
     }
 
     @Nested

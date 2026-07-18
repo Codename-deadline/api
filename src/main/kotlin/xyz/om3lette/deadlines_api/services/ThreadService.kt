@@ -21,7 +21,6 @@ import xyz.om3lette.deadlines_api.data.scopes.userScope.model.UserScope
 import xyz.om3lette.deadlines_api.data.scopes.userScope.repo.UserScopeRepository
 import xyz.om3lette.deadlines_api.data.scopes.userScope.response.UserScopeResponse
 import xyz.om3lette.deadlines_api.data.user.model.User
-import xyz.om3lette.deadlines_api.data.user.repo.UserRepository
 import xyz.om3lette.deadlines_api.exceptions.enums.ErrorCode
 import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
 import xyz.om3lette.deadlines_api.services.permission.PermissionContext
@@ -33,7 +32,6 @@ import java.time.Instant
 
 @Service
 class ThreadService(
-    private val userRepository: UserRepository,
     private val userScopeRepository: UserScopeRepository,
     private val threadRepository: ThreadRepository,
     private val organizationRepository: OrganizationRepository,
@@ -152,7 +150,7 @@ class ThreadService(
         userScopeRepository.deleteByUserIdAndScopeId(permissionDTO.userId, null, threadId, null)
     }
 
-    fun getThread(issuer: User, threadId: Long): ThreadResponse {
+    fun getThread(issuer: User?, threadId: Long): ThreadResponse {
         val thread: Thread = threadRepository.findByIdOr404(threadId, ErrorCode.THR_NOT_FOUND)
 
         requirePermission(

@@ -39,7 +39,7 @@ class ThreadController(
     @GetMapping
     @Operation(summary = "Get thread data")
     fun getThread(
-        @AuthenticationPrincipal user: User,
+        @AuthenticationPrincipal user: User?,
         @PathVariable @Positive threadId: Long
     ) = threadService.getThread(user, threadId)
 
