@@ -47,6 +47,7 @@ enum class ErrorCode(val code: String) {
 
     INTEGRATION_ACCOUNT_ALREADY_IN_USE("integration.account-not-available"),
     INTEGRATION_ACCOUNT_NOT_LINKED("integration.account-not-linked"),
+    INTEGRATION_LAST_ACCOUNT_UNLINK_FORBIDDEN("integration.last-account-unlink-forbidden"),
     INTEGRATION_INVALID_IDENTIFIER_FORMAT("integration.invalid-identifier-format"),
     INTEGRATION_MESSENGER_LINKAGE_LIMIT_EXCEEDED("integration.messenger-linkage-limit-exceeded"),
 

@@ -226,4 +226,52 @@ class MessengerAccountLinkingServiceTest {
         assertEquals(IntegrationResultKey.REQUEST_NOT_FOUND.value(), exception.key)
         verify(exactly = 0) { accountLinkageRepository.delete(request) }
     }
+
+    @Test
+    fun `unlinkMessengerAccount removes an account when another remains`() {
+        val account = IntegrationTestFixtures.messengerAccount(user = user)
+        val otherAccount = IntegrationTestFixtures.messengerAccount(user = user, id = 11, accountId = 999)
+        every { userMessengerAccountRepository.findAllByUserForUpdate(user) } returns listOf(account, otherAccount)
+        every {
+            userMessengerAccountRepository.deleteByUserAndAccountIdAndMessenger(
+                user,
+                account.accountId,
+                account.messenger
+            )
+        } returns 1
+
+        val deleted = service.unlinkMessengerAccount(user, account.accountId, account.messenger)
+
+        assertEquals(1, deleted)
+    }
+
+    @Test
+    fun `unlinkMessengerAccount rejects removing the last account`() {
+        val account = IntegrationTestFixtures.messengerAccount(user = user)
+        every { userMessengerAccountRepository.findAllByUserForUpdate(user) } returns listOf(account)
+
+        val exception = assertFailsWith<StatusCodeException> {
+            service.unlinkMessengerAccount(user, account.accountId, account.messenger)
+        }
+
+        assertEquals(409, exception.statusCode)
+        assertEquals(ErrorCode.INTEGRATION_LAST_ACCOUNT_UNLINK_FORBIDDEN, exception.code)
+        verify(exactly = 0) {
+            userMessengerAccountRepository.deleteByUserAndAccountIdAndMessenger(any(), any(), any())
+        }
+    }
+
+    @Test
+    fun `unlinkMessengerAccount remains idempotent for an unknown account`() {
+        every { userMessengerAccountRepository.findAllByUserForUpdate(user) } returns listOf(
+            IntegrationTestFixtures.messengerAccount(user = user)
+        )
+
+        val deleted = service.unlinkMessengerAccount(user, 999, Messenger.TELEGRAM)
+
+        assertEquals(0, deleted)
+        verify(exactly = 0) {
+            userMessengerAccountRepository.deleteByUserAndAccountIdAndMessenger(any(), any(), any())
+        }
+    }
 }

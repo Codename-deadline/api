@@ -3,6 +3,7 @@ package xyz.om3lette.deadlines_api.services.integration
 import io.grpc.Status
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import xyz.om3lette.deadlines_api.data.integration.bot.enums.Messenger
 import xyz.om3lette.deadlines_api.data.integration.common.enums.IntegrationResultKey
 import xyz.om3lette.deadlines_api.data.integration.common.response.IntegrationResult
@@ -107,5 +108,18 @@ class MessengerAccountLinkingService(
         logger.info("Account linkage request $requestId accepted")
 
         return integrationResult(IntegrationResultKey.ACCOUNT_LINKAGE_SUCCESS, user.language)
+    }
+
+    @Transactional
+    fun unlinkMessengerAccount(user: User, accountId: Long, messenger: Messenger): Long {
+        val accounts = userMessengerAccountRepository.findAllByUserForUpdate(user)
+        val accountExists = accounts.any { it.accountId == accountId && it.messenger == messenger }
+        if (!accountExists) return 0
+
+        if (accounts.size == 1) {
+            throw StatusCodeException(409, ErrorCode.INTEGRATION_LAST_ACCOUNT_UNLINK_FORBIDDEN)
+        }
+
+        return userMessengerAccountRepository.deleteByUserAndAccountIdAndMessenger(user, accountId, messenger)
     }
 }

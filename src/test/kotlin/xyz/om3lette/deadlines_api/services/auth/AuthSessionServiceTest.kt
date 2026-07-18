@@ -114,8 +114,8 @@ class AuthSessionServiceTest {
             existingRefreshToken = DomainObjectBuilder.refreshToken(user, jti = "refresh-jti")
 
             every { jwtService.extractAllClaims(jwt) } returns claims
-            every { userRepository.findByUsernameIgnoreCase(user.username) } returns Optional.of(user)
             every { refreshTokenRepository.findByJti("refresh-jti") } returns Optional.of(existingRefreshToken)
+            every { userRepository.findById(user.id) } returns Optional.of(user)
         }
 
         fun badClaimsProvider() = listOf(
@@ -149,7 +149,7 @@ class AuthSessionServiceTest {
 
         @Test
         fun `user not found throws 401`() = assertInvalidCredentials {
-            every { userRepository.findByUsernameIgnoreCase(user.username) } returns Optional.empty()
+            every { userRepository.findById(user.id) } returns Optional.empty()
         }
 
         @Test
@@ -177,6 +177,25 @@ class AuthSessionServiceTest {
                 { assertEquals("new-access", result.accessToken) },
                 { assertEquals("new-refresh", result.refreshToken) },
                 { assertEquals("new-jti", savedRefreshToken.captured.jti) }
+            )
+        }
+
+        @Test
+        fun `refresh succeeds after username changes`() {
+            val originalUsername = user.username
+            user._username = "renamed-bob"
+            every { claims.subject } returns originalUsername
+            every { refreshTokenRepository.save(existingRefreshToken) } returns existingRefreshToken
+            every { refreshTokenRepository.save(any()) } returnsArgument 0
+            stubTokenGeneration(accessToken = "renamed-access", refreshToken = "renamed-refresh")
+
+            val result = authSessionService.refreshSession(jwt)
+
+            assertAll(
+                { assertEquals("renamed-access", result.accessToken) },
+                { assertEquals("renamed-refresh", result.refreshToken) },
+                { verify { jwtService.generateAccessToken(user) } },
+                { verify { jwtService.generateRefreshToken(user) } }
             )
         }
     }

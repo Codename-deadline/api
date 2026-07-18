@@ -15,6 +15,7 @@ import jakarta.persistence.UniqueConstraint
 import org.hibernate.annotations.OnDelete
 import org.hibernate.annotations.OnDeleteAction
 import xyz.om3lette.deadlines_api.data.integration.bot.enums.Messenger
+import xyz.om3lette.deadlines_api.data.integration.messengerAccount.dto.MessengerAccountDTO
 import xyz.om3lette.deadlines_api.data.user.model.User
 
 @Entity
@@ -39,4 +40,9 @@ data class UserMessengerAccount (
 
     @Enumerated(EnumType.STRING)
     val messenger: Messenger
-)
+) {
+    fun toResponse() = MessengerAccountDTO(
+        accountId = accountId,
+        messenger = messenger
+    )
+}

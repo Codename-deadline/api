@@ -26,7 +26,7 @@ data class User(
     @field:NotBlank
     @field:Size(min = UserConstraints.USERNAME_MIN, max = UserConstraints.USERNAME_MAX)
     @Column(unique = true, name = "username", length = UserConstraints.USERNAME_MAX, nullable = false)
-    val _username: String,
+    var _username: String,
 
     @Column(columnDefinition = "TIMESTAMP WITH TIME ZONE")
     val joinedAt: Instant,

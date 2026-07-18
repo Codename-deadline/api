@@ -51,9 +51,9 @@ class AuthSessionService(
             throw StatusCodeException(401, ErrorCode.AUTH_INVALID_CREDENTIALS)
         }
 
-        val user = userRepository.findByUsernameIgnoreCase(username)
-            .orElseThrow { StatusCodeException(401, ErrorCode.AUTH_INVALID_CREDENTIALS) }
         val refreshTokenEntry = refreshTokenRepository.findByJti(jti)
+            .orElseThrow { StatusCodeException(401, ErrorCode.AUTH_INVALID_CREDENTIALS) }
+        val user = userRepository.findById(refreshTokenEntry.user.id)
             .orElseThrow { StatusCodeException(401, ErrorCode.AUTH_INVALID_CREDENTIALS) }
 
         if (refreshTokenEntry.revoked) {

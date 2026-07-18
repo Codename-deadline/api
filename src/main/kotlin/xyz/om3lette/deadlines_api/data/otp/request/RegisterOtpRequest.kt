@@ -28,5 +28,5 @@ data class RegisterOtpRequest(
     @field:Size(min = UserConstraints.FULL_NAME_MIN, max = UserConstraints.FULL_NAME_MAX)
     val fullName: String,
 
-    val language: Language?
+    val language: Language
 )
