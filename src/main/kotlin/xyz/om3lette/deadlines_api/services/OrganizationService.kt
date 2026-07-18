@@ -2,6 +2,7 @@ package xyz.om3lette.deadlines_api.services
 
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -184,4 +185,9 @@ class OrganizationService(
             organizationId, ScopeType.ORGANIZATION, pageRequest
         ).toPaginationResponse { it.toResponse() }
     }
+
+    fun getMemberUsernamesStartingWith(organizationId: Long, usernamePrefix: String): List<String> =
+            userScopeRepository.findOrganizationMembersWithUsernameStartingWithIgnoreCase(
+                organizationId, usernamePrefix.lowercase(), Pageable.ofSize(10)
+            )
 }

@@ -11,7 +11,7 @@ class UserService(
 ) {
     fun getUsernamesStartingWith(usernameStart: String): List<String> =
         userRepository.findUsernamesStartingWithIgnoreCase(
-            usernameStart, Pageable.ofSize(10)
+            usernameStart.lowercase(), Pageable.ofSize(10)
         )
 
     fun deleteUser(user: User) = userRepository.delete(user)

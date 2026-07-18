@@ -7,6 +7,7 @@ import jakarta.validation.Valid
 import jakarta.validation.constraints.Max
 import jakarta.validation.constraints.Min
 import jakarta.validation.constraints.Positive
+import jakarta.validation.constraints.Size
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
@@ -21,6 +22,7 @@ import xyz.om3lette.deadlines_api.data.common.constraints.PaginationConstraints
 import xyz.om3lette.deadlines_api.data.scopes.organization.request.CreateOrganizationRequest
 import xyz.om3lette.deadlines_api.data.scopes.common.dto.UsernameRolePairList
 import xyz.om3lette.deadlines_api.data.scopes.organization.request.PatchOrganizationRequest
+import xyz.om3lette.deadlines_api.data.user.constraints.UserConstraints
 import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.services.OrganizationService
 import kotlin.math.min
@@ -97,4 +99,13 @@ class OrganizationController(
         pageSize: Int
     ) = organizationService.getOrganizationMembers(user, organizationId, pageNumber, pageSize)
 
+
+    @GetMapping("/{organizationId}/members/hints")
+    @Operation(summary = "Get a batch of organization member usernames starting with")
+    fun getMemberUsernamesStartingWith(
+        @PathVariable @Positive organizationId: Long,
+        @RequestParam
+        @Size(min = UserConstraints.USERNAME_HINT_MIN, max = UserConstraints.USERNAME_HINT_MAX)
+        startsWith: String
+    ) = organizationService.getMemberUsernamesStartingWith(organizationId, startsWith)
 }

@@ -20,7 +20,9 @@ interface UserRepository : JpaRepository<User, Long> {
     @Query("""
         SELECT u._username
         FROM User u
-        WHERE LOWER(u._username) LIKE LOWER(:username) || '%'
+        WHERE LOWER(u._username) LIKE CONCAT(:username, '%') || '%'
     """)
-    fun findUsernamesStartingWithIgnoreCase(username: String, pageable: Pageable): List<String>
+    fun findUsernamesStartingWithIgnoreCase(
+        @Param("username") usernamePrefixLower: String, pageable: Pageable
+    ): List<String>
 }

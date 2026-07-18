@@ -116,14 +116,6 @@ interface UserScopeRepository : JpaRepository<UserScope, Long> {
 
     @Modifying
     @Transactional
-    fun deleteByUserIdAndScopeTypeAndScopeIdIn(
-        userId: Long,
-        scopeType: ScopeType,
-        scopeId: Collection<Long>
-    ): Int
-
-    @Modifying
-    @Transactional
     @Query(
         """
             DELETE FROM UserScope us
@@ -166,4 +158,15 @@ interface UserScopeRepository : JpaRepository<UserScope, Long> {
         """
     )
     fun findUserRolesInScopes(userId: Long, orgIds: List<Long>, thrIds: List<Long>, ddlIds: List<Long>): List<ScopeRoleDTO>
+
+    @Query("""
+        SELECT us.user._username
+        FROM UserScope us
+        WHERE us.scopeId = :orgId
+            AND us.scopeType = 'ORG'
+            AND LOWER(us.user._username) LIKE CONCAT(:username, '%')
+    """)
+    fun findOrganizationMembersWithUsernameStartingWithIgnoreCase(
+        orgId: Long, @Param("username") usernamePrefixLower: String, pageable: Pageable
+    ): List<String>
 }
