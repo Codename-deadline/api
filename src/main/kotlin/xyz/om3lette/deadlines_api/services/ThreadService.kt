@@ -1,5 +1,6 @@
 package xyz.om3lette.deadlines_api.services
 
+import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import org.springframework.stereotype.Service
@@ -116,16 +117,20 @@ class ThreadService(
             permissionService.canAddAssignees(issuer, ThreadScope(thread))
         )
 
-        userScopeRepository.save(
-            UserScope(
-                0,
-                newAssignee.user,
-                ScopeType.THREAD,
-                thread.id,
-                role,
-                Instant.now()
+        try {
+            userScopeRepository.save(
+                UserScope(
+                    0,
+                    newAssignee.user,
+                    ScopeType.THREAD,
+                    thread.id,
+                    role,
+                    Instant.now()
+                )
             )
-        )
+        } catch (_: DataIntegrityViolationException) {
+            throw StatusCodeException(409, ErrorCode.MEMBER_ALREADY_ASSIGNED)
+        }
     }
 
     @Transactional

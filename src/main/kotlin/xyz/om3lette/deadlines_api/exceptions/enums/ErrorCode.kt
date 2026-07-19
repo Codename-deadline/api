@@ -21,6 +21,7 @@ enum class ErrorCode(val code: String) {
     USER_NOT_FOUND("user.not-found"),
 
     MEMBER_NOT_FOUND("member.not-found"),
+    MEMBER_ALREADY_ASSIGNED("member.already-assigned"),
 
     ACTION_SELF_REMOVAL("action.self-removal"),
 

@@ -8,5 +8,8 @@ import org.springframework.validation.annotation.Validated
 @ConfigurationProperties("deadlines")
 data class DeadlinesProperties(
     @field:Min(0)
-    val maxAssignees: Long = 10
+    val maxAssignees: Long = 10,
+
+    @field:Min(15)
+    val minExpiryMinutes: Long = 15
 )

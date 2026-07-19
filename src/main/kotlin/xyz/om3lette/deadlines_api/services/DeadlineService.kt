@@ -1,5 +1,6 @@
 package xyz.om3lette.deadlines_api.services
 
+import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -12,6 +13,7 @@ import xyz.om3lette.deadlines_api.data.scopes.deadline.dto.DeadlineStatsDTO
 import xyz.om3lette.deadlines_api.data.scopes.deadline.model.Deadline
 import xyz.om3lette.deadlines_api.data.scopes.deadline.repo.DeadlineRepository
 import xyz.om3lette.deadlines_api.data.scopes.deadline.response.DeadlineCreatedResponse
+import xyz.om3lette.deadlines_api.data.scopes.deadline.response.DeadlineResponseParams
 import xyz.om3lette.deadlines_api.data.scopes.deadline.response.DeadlineResponseWithRole
 import xyz.om3lette.deadlines_api.data.scopes.thread.repo.ThreadRepository
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeRole
@@ -32,16 +34,13 @@ import java.time.temporal.ChronoUnit
 
 @Service
 class DeadlineService(
-    private val minDeadlineExpiryTimeMinutes: Long = 15,
-    deadlinesProperties: DeadlinesProperties,
+    private val deadlinesProperties: DeadlinesProperties,
     private val userScopeRepository: UserScopeRepository,
     private val threadRepository: ThreadRepository,
     private val deadlineRepository: DeadlineRepository,
     private val deadlineNotificationPlannerService: DeadlineNotificationPlannerService,
     private val permissionService: PermissionService
 ) {
-    private val maxAssignees = deadlinesProperties.maxAssignees
-
     @Transactional
     fun createDeadline(
         issuer: User,
@@ -52,16 +51,15 @@ class DeadlineService(
         assignees: UsernameRolePairList
     ): DeadlineCreatedResponse {
         val now = Instant.now()
-        val minExpirationTime = now.plus(minDeadlineExpiryTimeMinutes, ChronoUnit.MINUTES)
+        val minExpirationTime = now.plus(deadlinesProperties.minExpiryMinutes, ChronoUnit.MINUTES)
         if (due.isBefore(minExpirationTime)) {
-            val minutesBeforeExpiration = ChronoUnit.MINUTES.between(now, due)
             throw StatusCodeException(
                 statusCode = 400,
                 code = ErrorCode.DDL_INVALID_TIMESTAMP,
-                detail = "Cannot create a deadline with $minutesBeforeExpiration minutes before expiration. Min value: $minDeadlineExpiryTimeMinutes",
-                params = mapOf(
-                    "remaining" to minutesBeforeExpiration,
-                    "min" to minDeadlineExpiryTimeMinutes
+                params = DeadlineResponseParams.invalidDueTimestamp(
+                    due,
+                    deadlinesProperties.minExpiryMinutes,
+                    now
                 )
             )
         }
@@ -84,7 +82,7 @@ class DeadlineService(
         )
 
         val assigneeMap = assignees.filterByScope(ScopeType.DEADLINE).associateBy { it.username.lowercase() }
-        if (assigneeMap.size > maxAssignees) {
+        if (assigneeMap.size > deadlinesProperties.maxAssignees) {
             throw StatusCodeException(409, ErrorCode.DDL_ASSIGNEE_LIMIT_EXCEEDED)
         }
         val deadlineAssigneeScopes: MutableList<UserScope> = mutableListOf()
@@ -139,20 +137,24 @@ class DeadlineService(
         requirePermission(
             permissionService.canAddAssignees(issuer, DeadlineScope(deadline))
         )
-        if (userScopeRepository.countDeadlineAssignees(deadline.id) >= maxAssignees) {
+        if (userScopeRepository.countDeadlineAssignees(deadline.id) >= deadlinesProperties.maxAssignees) {
             throw StatusCodeException(409, ErrorCode.DDL_ASSIGNEE_LIMIT_EXCEEDED)
         }
 
-        userScopeRepository.save(
-            UserScope(
-                0,
-                newAssignee.user,
-                ScopeType.DEADLINE,
-                deadline.id,
-                role,
-                Instant.now()
+        try {
+            userScopeRepository.save(
+                UserScope(
+                    0,
+                    newAssignee.user,
+                    ScopeType.DEADLINE,
+                    deadline.id,
+                    role,
+                    Instant.now()
+                )
             )
-        )
+        } catch (_: DataIntegrityViolationException) {
+            throw StatusCodeException(409, ErrorCode.MEMBER_ALREADY_ASSIGNED)
+        }
     }
 
     @Transactional
@@ -289,8 +291,17 @@ class DeadlineService(
         )
 
         if (due != null) {
-            if (due.isBefore(Instant.now())) {
-                throw StatusCodeException(400, ErrorCode.DDL_INVALID_TIMESTAMP)
+            val now = Instant.now()
+            if (due.isBefore(now)) {
+                throw StatusCodeException(
+                    400,
+                    ErrorCode.DDL_INVALID_TIMESTAMP,
+                    params = DeadlineResponseParams.invalidDueTimestamp(
+                        due,
+                        deadlinesProperties.minExpiryMinutes,
+                        now
+                    )
+                )
             }
             deadline.due = due
             deadlineNotificationPlannerService.reconcileNotifications(deadline)
