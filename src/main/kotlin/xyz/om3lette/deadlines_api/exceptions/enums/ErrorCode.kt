@@ -27,6 +27,7 @@ enum class ErrorCode(val code: String) {
     ROLE_CHANGE_SELF("role-change.self"),
     ROLE_CHANGE_INVALID_SCOPE_ROLE("role-change.invalid-scope-role"),
     ROLE_CHANGE_NO_ROLE("role-change.no-role"),
+    ROLE_IMPLICIT_OWNERSHIP_CHANGE("role-change.implicit-ownership"),
 
     INVITATION_NOT_FOUND("invitation.not-found"),
     INVITATION_INVALID_ROLE("invitation.invalid-role"),

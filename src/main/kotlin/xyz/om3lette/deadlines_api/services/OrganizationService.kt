@@ -103,6 +103,10 @@ class OrganizationService(
             throw StatusCodeException(400, ErrorCode.ACTION_SELF_REMOVAL)
         }
 
+        organizationRepository.findByIdForUpdate(orgId)
+            ?: throw StatusCodeException(404, ErrorCode.ORG_NOT_FOUND)
+
+
         val permissionDTO = userScopeRepository.findRoleAndUserIdByUsernameLowerAndScopeIdAndScopeType(
             memberUsernameToRemove.lowercase(), orgId, ScopeType.ORGANIZATION
         ) ?: throw StatusCodeException(404, ErrorCode.MEMBER_NOT_FOUND)

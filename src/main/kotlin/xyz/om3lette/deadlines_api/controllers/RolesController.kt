@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
+import xyz.om3lette.deadlines_api.data.roles.request.ChangeOrganizationOwnerRequest
 import xyz.om3lette.deadlines_api.data.roles.request.ChangeRoleRequest
 import xyz.om3lette.deadlines_api.data.roles.response.RolesMetadataResponse
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType
@@ -33,6 +34,20 @@ class RolesController(
         @Valid @RequestBody request: ChangeRoleRequest
     ) = rolesService.changeRole(
         issuer, organizationId, request.subjectUsername, request.newRole, ScopeType.ORGANIZATION
+    )
+
+    @SecurityRequirement(name = "bearerAuth")
+    @PostMapping("/organization/{organizationId}/change-owner")
+    @Operation(
+        summary = "Change organization owner",
+        description = "Owner is demoted to ADMIN while the provided org member is promoted to owner"
+    )
+    fun changeOrganizationOwner(
+        @AuthenticationPrincipal issuer: User,
+        @PathVariable @Positive organizationId: Long,
+        @Valid @RequestBody request: ChangeOrganizationOwnerRequest
+    ) = rolesService.changeOrganizationOwner(
+        issuer, organizationId, request.newOwnerUsername
     )
 
     @SecurityRequirement(name = "bearerAuth")

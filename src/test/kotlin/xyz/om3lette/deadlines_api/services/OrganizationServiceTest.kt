@@ -102,6 +102,7 @@ class OrganizationServiceTest {
         every { userRepository.findByUsernameInIgnoreCase(listOf(dummyUserAlice.username)) } returns listOf(dummyUserAlice)
 
         every { organizationRepository.findById(dummyOrganization.id) } returns Optional.of(dummyOrganization)
+        every { organizationRepository.findByIdForUpdate(dummyOrganization.id) } returns dummyOrganization
 
         every { userScopeRepository.deleteByUserIdAndOrganizationId(dummyUserAlice.id, dummyOrganization.id) } returns 1
 

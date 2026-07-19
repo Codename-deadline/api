@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param
 import org.springframework.transaction.annotation.Transactional
 import xyz.om3lette.deadlines_api.data.permissions.dto.PermissionRoleDTO
 import xyz.om3lette.deadlines_api.data.scopes.userScope.dto.ScopeRoleDTO
+import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeRole
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType
 import xyz.om3lette.deadlines_api.data.scopes.userScope.model.UserScope
 import xyz.om3lette.deadlines_api.data.user.model.User
@@ -169,4 +170,37 @@ interface UserScopeRepository : JpaRepository<UserScope, Long> {
     fun findOrganizationMembersWithUsernameStartingWithIgnoreCase(
         orgId: Long, @Param("username") usernamePrefixLower: String, pageable: Pageable
     ): List<String>
+
+    @Query("""
+        SELECT
+            us.user.id as userId,
+            us.role as role
+        FROM UserScope us
+        WHERE us.scopeId = :scopeId
+            AND us.scopeType = 'ORG'
+            AND (
+                us.user.id = :userId
+                OR LOWER(us.user._username) = :newOwnerUsernameLower
+            )
+    """)
+    fun findOrganizationRolesForOwnerTransfer(
+        @Param("userId") ownerId: Long,
+        @Param("newOwnerUsernameLower") newOwnerUsernameLower: String,
+        @Param("scopeId") organizationId: Long
+    ): List<PermissionRoleDTO>
+
+    @Modifying
+    @Query("""
+        UPDATE UserScope us
+        SET us.role = :newRole
+        WHERE us.scopeType = :scopeType
+            AND us.scopeId = :scopeId
+            AND us.user.id = :userId
+    """)
+    fun updateRoleByUserIdAndScopeIdAndScopeType(
+        userId: Long,
+        newRole: ScopeRole,
+        scopeId: Long,
+        scopeType: ScopeType
+    ): Int
 }

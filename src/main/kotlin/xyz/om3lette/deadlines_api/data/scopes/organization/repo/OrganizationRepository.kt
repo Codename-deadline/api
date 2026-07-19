@@ -1,15 +1,22 @@
 package xyz.om3lette.deadlines_api.data.scopes.organization.repo
 
+import jakarta.persistence.LockModeType
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Lock
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
 import xyz.om3lette.deadlines_api.data.scopes.organization.dto.OrganizationStatsDTO
 import xyz.om3lette.deadlines_api.data.scopes.organization.model.Organization
 import xyz.om3lette.deadlines_api.data.user.model.User
+import java.util.Optional
 
 interface OrganizationRepository : JpaRepository<Organization, Long> {
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT o FROM Organization o WHERE o.id = :organizationId")
+    fun findByIdForUpdate(@Param("organizationId") organizationId: Long): Organization?
+
     @Query("""
         SELECT o FROM Organization o
         JOIN UserScope us ON us.scopeId = o.id AND us.scopeType = 'ORG'
