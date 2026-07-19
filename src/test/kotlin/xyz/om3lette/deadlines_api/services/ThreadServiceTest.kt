@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertAll
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
+import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.data.domain.PageImpl
 import xyz.om3lette.deadlines_api.DomainObjectBuilder
 import xyz.om3lette.deadlines_api.data.permissions.dto.OrganizationScope
@@ -34,6 +35,7 @@ import xyz.om3lette.deadlines_api.data.scopes.userScope.model.UserScope
 import xyz.om3lette.deadlines_api.data.scopes.userScope.repo.UserScopeRepository
 import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.data.user.repo.UserRepository
+import xyz.om3lette.deadlines_api.exceptions.enums.ErrorCode
 import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
 import xyz.om3lette.deadlines_api.services.permission.PermissionService
 import java.util.Optional
@@ -214,6 +216,163 @@ class ThreadServiceTest {
             threadService.deleteThread(dummyUserBob,thread.id)
             assertTrue(savedThreadSlot.isCaptured)
             assertEquals(thread.id, savedThreadSlot.captured.id)
+        }
+    }
+
+    @Nested
+    inner class AddAssignee {
+        private val savedUserScopeSlot: CapturingSlot<UserScope> = slot()
+
+        @BeforeEach
+        fun commonHappyStubs() {
+            every {
+                userScopeRepository.findByScopeTypeAndScopeIdAndUsernameIgnoreCase(
+                    dummyUserAlice.username,
+                    ScopeType.ORGANIZATION,
+                    organization.id
+                )
+            } returns Optional.of(dummyUserScopeAlice)
+            every { permissionService.canAddAssignees(dummyUserBob, thrScope()) } returns true
+            every { userScopeRepository.save(capture(savedUserScopeSlot)) } returnsArgument 0
+        }
+
+        @Test
+        fun `invalid thread role throws 400`() {
+            val error = assertThrows<StatusCodeException> {
+                threadService.addAssignee(
+                    dummyUserBob,
+                    thread.id,
+                    dummyUserAlice.username,
+                    ScopeRole.DDL_ASSIGNEE
+                )
+            }
+
+            assertAll(
+                { assertEquals(400, error.statusCode) },
+                { assertEquals(ErrorCode.INVITATION_INVALID_ROLE, error.code) },
+                { verify(exactly = 0) { userScopeRepository.save(any()) } }
+            )
+        }
+
+        @Test
+        fun `assigning issuer throws 400`() {
+            val error = assertThrows<StatusCodeException> {
+                threadService.addAssignee(
+                    dummyUserBob,
+                    thread.id,
+                    dummyUserBob.username.uppercase(),
+                    ScopeRole.THR_ASSIGNEE
+                )
+            }
+
+            assertAll(
+                { assertEquals(400, error.statusCode) },
+                { assertEquals(ErrorCode.INVITATION_SELF_INVITE, error.code) },
+                { verify(exactly = 0) { userScopeRepository.save(any()) } }
+            )
+        }
+
+        @Test
+        fun `missing thread throws 404`() {
+            every { threadRepository.findById(thread.id) } returns Optional.empty()
+
+            val error = assertThrows<StatusCodeException> {
+                threadService.addAssignee(
+                    dummyUserBob,
+                    thread.id,
+                    dummyUserAlice.username,
+                    ScopeRole.THR_ASSIGNEE
+                )
+            }
+
+            assertAll(
+                { assertEquals(404, error.statusCode) },
+                { assertEquals(ErrorCode.THR_NOT_FOUND, error.code) },
+                { verify(exactly = 0) { userScopeRepository.save(any()) } }
+            )
+        }
+
+        @Test
+        fun `assignee outside organization throws 400`() {
+            every {
+                userScopeRepository.findByScopeTypeAndScopeIdAndUsernameIgnoreCase(
+                    dummyUserAlice.username,
+                    ScopeType.ORGANIZATION,
+                    organization.id
+                )
+            } returns Optional.empty()
+
+            val error = assertThrows<StatusCodeException> {
+                threadService.addAssignee(
+                    dummyUserBob,
+                    thread.id,
+                    dummyUserAlice.username,
+                    ScopeRole.THR_ASSIGNEE
+                )
+            }
+
+            assertAll(
+                { assertEquals(400, error.statusCode) },
+                { assertEquals(ErrorCode.INVITATION_NOT_ORG_MEMBER, error.code) },
+                { verify(exactly = 0) { userScopeRepository.save(any()) } }
+            )
+        }
+
+        @Test
+        fun `insufficient permissions throws 403`() {
+            every { permissionService.canAddAssignees(dummyUserBob, thrScope()) } returns false
+
+            val error = assertThrows<StatusCodeException> {
+                threadService.addAssignee(
+                    dummyUserBob,
+                    thread.id,
+                    dummyUserAlice.username,
+                    ScopeRole.THR_ASSIGNEE
+                )
+            }
+
+            assertAll(
+                { assertEquals(403, error.statusCode) },
+                { assertEquals(ErrorCode.AUTH_INSUFFICIENT_PERMISSIONS, error.code) },
+                { verify(exactly = 0) { userScopeRepository.save(any()) } }
+            )
+        }
+
+        @Test
+        fun `already assigned member throws 409`() {
+            every { userScopeRepository.save(any()) } throws DataIntegrityViolationException("duplicate assignment")
+
+            val error = assertThrows<StatusCodeException> {
+                threadService.addAssignee(
+                    dummyUserBob,
+                    thread.id,
+                    dummyUserAlice.username,
+                    ScopeRole.THR_ASSIGNEE
+                )
+            }
+
+            assertAll(
+                { assertEquals(409, error.statusCode) },
+                { assertEquals(ErrorCode.MEMBER_ALREADY_ASSIGNED, error.code) }
+            )
+        }
+
+        @Test
+        fun `happy path saves thread assignee scope`() {
+            threadService.addAssignee(
+                dummyUserBob,
+                thread.id,
+                dummyUserAlice.username,
+                ScopeRole.THR_ASSIGNEE
+            )
+
+            assertAll(
+                { assertTrue(savedUserScopeSlot.isCaptured) },
+                { assertEquals(dummyUserAlice, savedUserScopeSlot.captured.user) },
+                { assertEquals(ScopeType.THREAD, savedUserScopeSlot.captured.scopeType) },
+                { assertEquals(thread.id, savedUserScopeSlot.captured.scopeId) },
+                { assertEquals(ScopeRole.THR_ASSIGNEE, savedUserScopeSlot.captured.role) }
+            )
         }
     }
 
