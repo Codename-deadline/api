@@ -17,27 +17,29 @@ data class OrganizationInvitation(
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "org_inv_seq")
     val id: Long = 0,
 
-    @ManyToOne(fetch = FetchType.EAGER, cascade = [CascadeType.REMOVE])
+    @ManyToOne(fetch = FetchType.EAGER)
     @OnDelete(action = OnDeleteAction.CASCADE)
-    @JoinColumn(name = "invited_by_user_id")
+    @JoinColumn(name = "invited_by_user_id", nullable = false)
     val invitedBy: User,
 
-    @ManyToOne(fetch = FetchType.EAGER, cascade = [CascadeType.REMOVE])
+    @ManyToOne(fetch = FetchType.EAGER)
     @OnDelete(action = OnDeleteAction.CASCADE)
-    @JoinColumn(name = "invited_user_id")
+    @JoinColumn(name = "invited_user_id", nullable = false)
     val invitedUser: User,
 
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "organization_id")
+    @JoinColumn(name = "organization_id", nullable = false)
     val organization: Organization,
 
     @Enumerated(value = EnumType.STRING)
+    @Column(nullable = false)
     var status: InvitationStatus,
 
     @Enumerated(value = EnumType.STRING)
+    @Column(nullable = false)
     val role: ScopeRole,
 
-    @Column(columnDefinition = "TIMESTAMP WITH TIME ZONE")
+    @Column(nullable = false, columnDefinition = "TIMESTAMP WITH TIME ZONE")
     val createdAt: Instant,
 
     @Column(columnDefinition = "TIMESTAMP WITH TIME ZONE")

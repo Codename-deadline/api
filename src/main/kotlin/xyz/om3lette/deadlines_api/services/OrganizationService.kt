@@ -57,7 +57,6 @@ class OrganizationService(
 
         userScopeRepository.save(
             UserScope(
-                0,
                 issuer,
                 ScopeType.ORGANIZATION,
                 organization.id,

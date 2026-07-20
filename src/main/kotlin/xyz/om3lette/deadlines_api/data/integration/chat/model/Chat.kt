@@ -8,6 +8,7 @@ import jakarta.persistence.Enumerated
 import jakarta.persistence.FetchType
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.Id
+import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.OneToMany
 import jakarta.persistence.Table
@@ -31,9 +32,11 @@ data class Chat(
     @GeneratedValue
     val id: Long,
 
+    @Column(nullable = false)
     val messengerChatId: Long,
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     val messenger: Messenger,
 
     @field:Size(max = IntegrationConstraints.CHAT_TITLE_MAX)
@@ -41,12 +44,14 @@ data class Chat(
     var title: String,
 
     @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "bot_id", nullable = false)
     val bot: Bot,
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     var language: Language = Language.RU,
 
-    @Column(columnDefinition = "TIMESTAMP WITH TIME ZONE")
+    @Column(nullable = false, columnDefinition = "TIMESTAMP WITH TIME ZONE")
     val registeredAt: Instant,
 
     @OneToMany(

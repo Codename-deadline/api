@@ -33,6 +33,10 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-grpc-server")
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.3")
 
+	implementation("org.springframework.boot:spring-boot-flyway")
+	implementation("org.flywaydb:flyway-core")
+	runtimeOnly("org.flywaydb:flyway-database-postgresql")
+
     implementation("org.springframework.kafka:spring-kafka") {
         exclude(module = "lz4-java")
     }
@@ -60,9 +64,11 @@ dependencies {
 	testImplementation("org.springframework.boot:spring-boot-starter-test") {
 		exclude(module = "mockito-core")
 	}
+	testImplementation("org.springframework.boot:spring-boot-testcontainers")
+	testImplementation("org.testcontainers:testcontainers-postgresql")
+	testImplementation("org.testcontainers:testcontainers-junit-jupiter")
     testImplementation("org.springframework.boot:spring-boot-starter-grpc-server-test")
     testImplementation("org.springframework.security:spring-security-test")
-    testImplementation("com.h2database:h2:2.4.240")
 	testImplementation("io.mockk:mockk:1.14.11")
 	testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")

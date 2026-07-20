@@ -29,8 +29,10 @@ data class Bot(
     val id: Long,
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     val messenger: Messenger,
 
+    @Column(nullable = false)
     val botId: Long,
 
     @field:Size(max = IntegrationConstraints.BOT_USERNAME_MAX)

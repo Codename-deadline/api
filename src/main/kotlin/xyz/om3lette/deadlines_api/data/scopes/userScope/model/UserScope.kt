@@ -5,7 +5,6 @@ import org.hibernate.annotations.OnDelete
 import org.hibernate.annotations.OnDeleteAction
 
 import xyz.om3lette.deadlines_api.data.user.model.User
-import xyz.om3lette.deadlines_api.data.scopes.userScope.converters.ScopeTypeConverter
 import xyz.om3lette.deadlines_api.data.scopes.userScope.dto.ScopeRoleDTO
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeRole
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType
@@ -13,32 +12,29 @@ import xyz.om3lette.deadlines_api.data.scopes.userScope.response.UserScopeRespon
 import java.time.Instant
 
 @Entity
-@Table(
-    name = "user_scopes",
-    uniqueConstraints = [
-        UniqueConstraint(columnNames = ["user_id", "scope_id", "scope_type"])
-    ]
-)
+@Table(name = "user_scopes")
+@IdClass(UserScopeId::class)
 data class UserScope(
     @Id
-    @SequenceGenerator(name = "scope_seq", sequenceName = "scope_sequence", initialValue = 1)
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "scope_seq")
-    val id: Long = 0,
-
-    @ManyToOne(fetch = FetchType.EAGER, cascade = [CascadeType.REMOVE])
+    @ManyToOne(fetch = FetchType.EAGER)
     @OnDelete(action = OnDeleteAction.CASCADE)
+    @JoinColumn(name = "user_id", nullable = false)
     val user: User,
 
-    @Convert(converter = ScopeTypeConverter::class)
+    @Id
+    @Enumerated(EnumType.STRING)
+    @Column(name = "scope_type", length = 12, nullable = false)
     val scopeType: ScopeType,
 
-    @Column(name = "scope_id")
+    @Id
+    @Column(name = "scope_id", nullable = false)
     val scopeId: Long,
 
     @Enumerated(value = EnumType.STRING)
+    @Column(nullable = false)
     var role: ScopeRole,
 
-    @Column(columnDefinition = "TIMESTAMP WITH TIME ZONE")
+    @Column(nullable = false, columnDefinition = "TIMESTAMP WITH TIME ZONE")
     val assignedAt: Instant
 ) {
     fun toMap() = mapOf(

@@ -12,10 +12,11 @@ import xyz.om3lette.deadlines_api.data.scopes.userScope.dto.ScopeRoleDTO
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeRole
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType
 import xyz.om3lette.deadlines_api.data.scopes.userScope.model.UserScope
+import xyz.om3lette.deadlines_api.data.scopes.userScope.model.UserScopeId
 import xyz.om3lette.deadlines_api.data.user.model.User
 import java.util.Optional
 
-interface UserScopeRepository : JpaRepository<UserScope, Long> {
+interface UserScopeRepository : JpaRepository<UserScope, UserScopeId> {
     @Query("""
         SELECT
             us.user.id as userId,
@@ -102,9 +103,9 @@ interface UserScopeRepository : JpaRepository<UserScope, Long> {
             DELETE FROM UserScope us
             WHERE us.user.id = :userId
                 AND (
-                    (us.scopeType = 'ORG' AND us.scopeId = :orgId)
-                    OR (us.scopeType = 'THR' AND us.scopeId = :thrId)
-                    OR (us.scopeType = 'DDL' AND us.scopeId = :ddlId)
+                    (us.scopeType = xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType.ORGANIZATION AND us.scopeId = :orgId)
+                    OR (us.scopeType = xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType.THREAD AND us.scopeId = :thrId)
+                    OR (us.scopeType = xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType.DEADLINE AND us.scopeId = :ddlId)
                 )
         """
     )
@@ -122,11 +123,11 @@ interface UserScopeRepository : JpaRepository<UserScope, Long> {
             DELETE FROM UserScope us
             WHERE us.user.id = :userId
                 AND (
-                    (us.scopeType = 'ORG' AND us.scopeId = :orgId)
-                    OR (us.scopeType = 'THR' AND us.scopeId IN (
+                    (us.scopeType = xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType.ORGANIZATION AND us.scopeId = :orgId)
+                    OR (us.scopeType = xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType.THREAD AND us.scopeId IN (
                         SELECT t.id FROM Thread t WHERE t.organization.id = :orgId
                     ))
-                    OR (us.scopeType = 'DDL' AND us.scopeId IN (
+                    OR (us.scopeType = xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType.DEADLINE AND us.scopeId IN (
                         SELECT d.id FROM Deadline d WHERE d.thread.organization.id = :orgId
                     ))
                 )
@@ -139,9 +140,9 @@ interface UserScopeRepository : JpaRepository<UserScope, Long> {
         SELECT role, scopeId, scopeType FROM UserScope us
         WHERE us.user.id = :userId
             AND (
-                (us.scopeType = 'ORG' AND us.scopeId = :orgId)
-                OR (us.scopeType = 'THR' AND us.scopeId = :thrId)
-                OR (us.scopeType = 'DDL' AND us.scopeId = :ddlId)
+                (us.scopeType = xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType.ORGANIZATION AND us.scopeId = :orgId)
+                OR (us.scopeType = xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType.THREAD AND us.scopeId = :thrId)
+                OR (us.scopeType = xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType.DEADLINE AND us.scopeId = :ddlId)
             )
         """
     )
@@ -152,9 +153,9 @@ interface UserScopeRepository : JpaRepository<UserScope, Long> {
         SELECT role, scopeId, scopeType FROM UserScope us
         WHERE us.user.id = :userId
             AND (
-                (us.scopeType = 'ORG' AND us.scopeId IN :orgIds)
-                OR (us.scopeType = 'THR' AND us.scopeId IN :thrIds)
-                OR (us.scopeType = 'DDL' AND us.scopeId IN :ddlIds)
+                (us.scopeType = xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType.ORGANIZATION AND us.scopeId IN :orgIds)
+                OR (us.scopeType = xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType.THREAD AND us.scopeId IN :thrIds)
+                OR (us.scopeType = xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType.DEADLINE AND us.scopeId IN :ddlIds)
             )
         """
     )
@@ -164,7 +165,7 @@ interface UserScopeRepository : JpaRepository<UserScope, Long> {
         SELECT us.user._username
         FROM UserScope us
         WHERE us.scopeId = :orgId
-            AND us.scopeType = 'ORG'
+            AND us.scopeType = xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType.ORGANIZATION
             AND LOWER(us.user._username) LIKE CONCAT(:username, '%')
     """)
     fun findOrganizationMembersWithUsernameStartingWithIgnoreCase(
@@ -177,7 +178,7 @@ interface UserScopeRepository : JpaRepository<UserScope, Long> {
             us.role as role
         FROM UserScope us
         WHERE us.scopeId = :scopeId
-            AND us.scopeType = 'ORG'
+            AND us.scopeType = xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType.ORGANIZATION
             AND (
                 us.user.id = :userId
                 OR LOWER(us.user._username) = :newOwnerUsernameLower

@@ -62,7 +62,6 @@ class ThreadService(
         // Start with a thread creator and then add all the assignees
         val threadAssigneeScopes: MutableList<UserScope> = mutableListOf(
             UserScope(
-                0,
                 issuer,
                 ScopeType.THREAD,
                 thread.id,
@@ -78,7 +77,6 @@ class ThreadService(
         ).forEach { userScope ->
             threadAssigneeScopes.add(
                 UserScope(
-                    0,
                     userScope.user,
                     ScopeType.THREAD,
                     thread.id,
@@ -120,7 +118,6 @@ class ThreadService(
         try {
             userScopeRepository.save(
                 UserScope(
-                    0,
                     newAssignee.user,
                     ScopeType.THREAD,
                     thread.id,
@@ -201,7 +198,7 @@ class ThreadService(
                 )
             ).takeIf {
                 // The goal is to not return a "read only" role
-                maxRole -> maxRole > ScopeRole.THR_ASSIGNEE
+                maxRole -> maxRole.isHigherThan(ScopeRole.THR_ASSIGNEE)
             }
         )
 

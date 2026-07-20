@@ -1,6 +1,4 @@
 spring:
-  profiles:
-    active: test
   grpc:
     server:
       port: 9091
@@ -14,12 +12,6 @@ spring:
     port: ${REDIS_PORT:6379}
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
-
-jdbc:
-  driverClassName: org.h2.Driver
-  url: jdbc:h2:mem:db;DB_CLOSE_DELAY=-1
-  username: sa
-  password:
 
 users:
   max-sessions: ${USERS_MAX_SESSIONS:5}

@@ -111,11 +111,9 @@ object DomainObjectBuilder {
         scopeType: ScopeType,
         scopeId: Long,
         role: ScopeRole,
-        id: Long = 72,
         assignedAt: Instant = Instant.now()
     ): UserScope =
         UserScope(
-            id = id,
             user = user,
             scopeType = scopeType,
             scopeId = scopeId,

@@ -6,15 +6,8 @@ import org.apache.tika.metadata.Metadata
 import org.apache.tika.metadata.TikaCoreProperties
 import org.springframework.stereotype.Service
 import org.springframework.web.multipart.MultipartFile
-import xyz.om3lette.deadlines_api.data.attachments.enums.AttachmentCategory
 import xyz.om3lette.deadlines_api.exceptions.enums.ErrorCode
 import xyz.om3lette.deadlines_api.util.requirePermission
-
-data class AttachmentFileInfo(
-    val mimeType: String,
-    val category: AttachmentCategory,
-    val sizeBytes: Long
-)
 
 @Service
 class FileCheckerService(
@@ -29,7 +22,7 @@ class FileCheckerService(
         return !forbiddenSubtypes.contains(subtype)
     }
 
-    fun getAttachmentFileInfoOr403(fileStream: MultipartFile): AttachmentFileInfo {
+    fun getAttachmentMimeTypeOr403(fileStream: MultipartFile): String {
         val mimeType = TikaInputStream.get(fileStream.inputStream).use { inputStream ->
             tika.detect(inputStream, Metadata().apply {
                 set(TikaCoreProperties.RESOURCE_NAME_KEY, fileStream.originalFilename)
@@ -42,13 +35,6 @@ class FileCheckerService(
             400
         )
 
-        val attachmentCategory = when {
-            mimeType.startsWith("video") -> AttachmentCategory.VIDEO
-            mimeType.startsWith("audio") -> AttachmentCategory.AUDIO
-            mimeType.startsWith("text") -> AttachmentCategory.TEXT
-            mimeType.startsWith("image") -> AttachmentCategory.IMAGE
-            else -> AttachmentCategory.OTHER
-        }
-        return AttachmentFileInfo(mimeType, attachmentCategory, fileStream.size)
+        return mimeType
     }
 }

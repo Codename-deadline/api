@@ -92,11 +92,10 @@ class DeadlineService(
             assigneeMap.keys.map { it }
         )
             .groupBy { it.user.id }.values
-            .map{ scopes -> scopes.maxBy { it.role } }
+            .map { scopes -> scopes.maxBy { it.role.rank } }
             .forEach { userScope ->
                 deadlineAssigneeScopes.add(
                     UserScope(
-                        0,
                         userScope.user,
                         ScopeType.DEADLINE,
                         deadline.id,
@@ -144,7 +143,6 @@ class DeadlineService(
         try {
             userScopeRepository.save(
                 UserScope(
-                    0,
                     newAssignee.user,
                     ScopeType.DEADLINE,
                     deadline.id,
@@ -224,7 +222,7 @@ class DeadlineService(
                     )
                 ).takeIf {
                     // The goal is to not return a "read only" role
-                    maxRole -> maxRole > ScopeRole.DDL_ASSIGNEE
+                    maxRole -> maxRole.isHigherThan(ScopeRole.DDL_ASSIGNEE)
                 }
             }
         )

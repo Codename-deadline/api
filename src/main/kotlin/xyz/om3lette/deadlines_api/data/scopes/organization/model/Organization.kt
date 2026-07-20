@@ -2,21 +2,17 @@ package xyz.om3lette.deadlines_api.data.scopes.organization.model
 
 import jakarta.persistence.CascadeType
 import jakarta.persistence.Column
-import jakarta.persistence.ConstraintMode
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
 import jakarta.persistence.Enumerated
-import jakarta.persistence.ForeignKey
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
-import jakarta.persistence.JoinColumn
 import jakarta.persistence.OneToMany
 import jakarta.persistence.SequenceGenerator
 import jakarta.persistence.Table
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Size
-import org.hibernate.annotations.SQLRestriction
 import xyz.om3lette.deadlines_api.data.scopes.common.constraints.ScopeTextConstraints
 import xyz.om3lette.deadlines_api.data.scopes.organization.dto.OrganizationDTO
 import xyz.om3lette.deadlines_api.data.scopes.organization.dto.OrganizationPermissions
@@ -24,7 +20,6 @@ import xyz.om3lette.deadlines_api.data.scopes.organization.dto.OrganizationStats
 import xyz.om3lette.deadlines_api.data.scopes.organization.enums.OrganizationType
 import xyz.om3lette.deadlines_api.data.scopes.organization.response.OrganizationResponse
 import xyz.om3lette.deadlines_api.data.scopes.thread.model.Thread
-import xyz.om3lette.deadlines_api.data.scopes.userScope.model.UserScope
 import java.time.Instant
 
 @Entity
@@ -45,20 +40,11 @@ data class Organization(
     var description: String?,
 
     @Enumerated(value = EnumType.STRING)
+    @Column(nullable = false)
     var type: OrganizationType,
 
-    @Column(columnDefinition = "TIMESTAMP WITH TIME ZONE")
+    @Column(nullable = false, columnDefinition = "TIMESTAMP WITH TIME ZONE")
     val createdAt: Instant,
-
-    @OneToMany(cascade = [CascadeType.ALL], orphanRemoval = true)
-    @JoinColumn(
-        name = "scope_id",
-        referencedColumnName = "id",
-        insertable = false, updatable = false,
-        foreignKey = ForeignKey(ConstraintMode.NO_CONSTRAINT)
-    )
-    @SQLRestriction("scope_type = 'ORG'")
-    val members: MutableList<UserScope> = mutableListOf(),
 
     @OneToMany(mappedBy = "organization", cascade = [CascadeType.ALL], orphanRemoval = true)
     val threads: MutableList<Thread> = mutableListOf(),
