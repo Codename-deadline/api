@@ -88,7 +88,11 @@ allOpen {
 }
 
 tasks.withType<Test> {
-	useJUnitPlatform()
+	useJUnitPlatform {
+		if (providers.gradleProperty("excludeTestcontainersTests").getOrElse("false").toBoolean()) {
+			excludeTags("testcontainers")
+		}
+	}
 	testLogging {
 		events("SKIPPED", "FAILED")
 	}

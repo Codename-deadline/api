@@ -1,6 +1,7 @@
 package xyz.om3lette.deadlines_api.db
 
 import jakarta.persistence.EntityManager
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
@@ -37,6 +38,7 @@ import java.time.Instant
 import kotlin.test.assertEquals
 
 @SpringBootTest
+@Tag("testcontainers")
 @ActiveProfiles("test")
 @Import(TestInfraMocks::class, TestDatabaseConfig::class)
 class DatabaseIntegrationTests {

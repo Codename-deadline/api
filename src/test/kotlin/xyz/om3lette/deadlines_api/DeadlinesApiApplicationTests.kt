@@ -1,6 +1,7 @@
 package xyz.om3lette.deadlines_api
 
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.Tag
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.annotation.Import
@@ -14,6 +15,7 @@ import xyz.om3lette.deadlines_api.data.common.validation.SimpleValidationReason
 import xyz.om3lette.deadlines_api.db.TestDatabaseConfig
 
 @SpringBootTest
+@Tag("testcontainers")
 @ActiveProfiles("test")
 @Import(TestInfraMocks::class, TestDatabaseConfig::class)
 class DeadlinesApiApplicationTests {
