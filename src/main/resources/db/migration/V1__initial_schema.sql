@@ -136,7 +136,7 @@ CREATE TABLE organization_invitations (
 
 CREATE TABLE user_scopes (
     user_id bigint NOT NULL,
-    scope_type varchar(12) NOT NULL,
+    scope_type varchar(3) NOT NULL,
     scope_id bigint NOT NULL,
     role varchar(255) NOT NULL,
     assigned_at timestamp with time zone NOT NULL,
@@ -144,12 +144,12 @@ CREATE TABLE user_scopes (
     CONSTRAINT fk_user_scopes_user FOREIGN KEY (user_id)
         REFERENCES users (id) ON DELETE CASCADE,
     CONSTRAINT ck_user_scopes_scope_type CHECK (
-        scope_type IN ('ORGANIZATION', 'THREAD', 'DEADLINE')
+        scope_type IN ('ORG', 'THR', 'DDL')
     ),
     CONSTRAINT ck_user_scopes_role_compatibility CHECK (
-        (scope_type = 'ORGANIZATION' AND role IN ('ORG_MEMBER', 'ORG_ADMIN', 'ORG_OWNER'))
-        OR (scope_type = 'THREAD' AND role IN ('THR_ASSIGNEE', 'THR_ADMIN', 'THR_OWNER'))
-        OR (scope_type = 'DEADLINE' AND role = 'DDL_ASSIGNEE')
+        (scope_type = 'ORG' AND role IN ('ORG_MEMBER', 'ORG_ADMIN', 'ORG_OWNER'))
+        OR (scope_type = 'THR' AND role IN ('THR_ASSIGNEE', 'THR_ADMIN', 'THR_OWNER'))
+        OR (scope_type = 'DDL' AND role = 'DDL_ASSIGNEE')
     )
 );
 
@@ -167,14 +167,14 @@ CREATE TABLE user_messenger_accounts (
 
 CREATE TABLE chat_subscriptions (
     chat_id bigint NOT NULL,
-    scope_type varchar(12) NOT NULL,
+    scope_type varchar(3) NOT NULL,
     scope_id bigint NOT NULL,
     subscribed_at timestamp with time zone NOT NULL,
     CONSTRAINT pk_chat_subscriptions PRIMARY KEY (chat_id, scope_type, scope_id),
     CONSTRAINT fk_chat_subscriptions_chat FOREIGN KEY (chat_id)
         REFERENCES chats (id) ON DELETE CASCADE,
     CONSTRAINT ck_chat_subscriptions_scope_type CHECK (
-        scope_type IN ('ORGANIZATION', 'THREAD', 'DEADLINE')
+        scope_type IN ('ORG', 'THR', 'DDL')
     )
 );
 
@@ -234,62 +234,80 @@ CREATE TABLE notification_outbox (
     CONSTRAINT ck_notification_outbox_retries CHECK (retries >= 0)
 );
 
+-- Enforces case-insensitive usernames and serves exact login plus lower(username) prefix hints.
 CREATE UNIQUE INDEX uq_users_username_lower
     ON users (lower(username) text_pattern_ops);
 
+-- Serves active-session lookup and revocation for one user without scanning expired/revoked tokens.
 CREATE INDEX ix_refresh_tokens_valid_user
     ON refresh_tokens (user_id, expiry)
     WHERE revoked = false;
 
+-- Serializes concurrent invitation creation so a user has at most one pending invite per organization.
 CREATE UNIQUE INDEX uq_organization_invitations_pending
     ON organization_invitations (invited_user_id, organization_id)
     WHERE status = 'PENDING';
+-- Serves the recipient's pending-invitation page and pending count.
 CREATE INDEX ix_organization_invitations_pending_recipient
     ON organization_invitations (invited_user_id, created_at DESC, id DESC)
     WHERE status = 'PENDING';
+-- Serves the sender's pending-invitation page.
 CREATE INDEX ix_organization_invitations_pending_sender
     ON organization_invitations (invited_by_user_id, created_at DESC, id DESC)
     WHERE status = 'PENDING';
+-- Locates invitation rows for the organization FK's ON DELETE CASCADE action.
 CREATE INDEX ix_organization_invitations_organization
     ON organization_invitations (organization_id);
 
+-- Enforces at most one organization owner during concurrent ownership transfers.
 CREATE UNIQUE INDEX uq_user_scopes_organization_owner
     ON user_scopes (scope_id)
-    WHERE scope_type = 'ORGANIZATION' AND role = 'ORG_OWNER';
+    WHERE scope_type = 'ORG' AND role = 'ORG_OWNER';
+-- Serves scope-first member/assignee lists and counts; the PK serves user-first permission hydration.
 CREATE INDEX ix_user_scopes_scope
     ON user_scopes (scope_type, scope_id, user_id)
     INCLUDE (role, assigned_at);
 
+-- Serves organization thread pages, thread-ID hydration, statistics, and organization deletion.
 CREATE INDEX ix_threads_organization
     ON threads (organization_id, id);
+-- Serves thread deadline pages/IDs and total/completed deadline statistics.
 CREATE INDEX ix_deadlines_thread_completion
-    ON deadlines (thread_id, is_completed, id);
+    ON deadlines (thread_id, is_completed)
+    INCLUDE (id);
 
+-- Serves profile account listing, per-messenger limits, locking, unlinking, and user deletion.
 CREATE INDEX ix_user_messenger_accounts_user_messenger
     ON user_messenger_accounts (user_id, messenger, id);
 
-CREATE INDEX ix_chats_bot
-    ON chats (bot_id);
+-- Serves deadline/thread/organization subscription fan-out while publishing notifications.
 CREATE INDEX ix_chat_subscriptions_scope
     ON chat_subscriptions (scope_type, scope_id, chat_id);
 
+-- Serves attachment count/list operations for a deadline in newest-first order.
 CREATE INDEX ix_deadline_attachments_deadline_uploaded
     ON deadline_attachments (deadline_id, uploaded_at DESC, id DESC);
+-- Locates uploaded attachments for the user FK's ON DELETE SET NULL action.
 CREATE INDEX ix_deadline_attachments_user
     ON deadline_attachments (user_id);
 
+-- Serves pending-notification reconciliation and locking when a deadline due date changes.
 CREATE INDEX ix_deadline_notifications_deadline_status
     ON deadline_notifications (deadline_id, status);
+-- Serves ordered SKIP LOCKED claims of due pending deadline notifications.
 CREATE INDEX ix_deadline_notifications_due
     ON deadline_notifications (send_at, id)
     WHERE status = 'P';
+-- Prevents concurrent planners from creating duplicate pending reminder types for a deadline.
 CREATE UNIQUE INDEX uq_deadline_notifications_pending_type
     ON deadline_notifications (deadline_id, type)
     WHERE status = 'P';
 
+-- Serves priority-ordered claims of available pending or abandoned in-progress outbox work.
 CREATE INDEX ix_notification_outbox_claim
     ON notification_outbox (priority DESC, retries, available_at, id)
     WHERE status IN ('P', 'I');
+-- Serves notification finalization checks for unfinished or failed outbox rows.
 CREATE INDEX ix_notification_outbox_notification_status
     ON notification_outbox (notification_id, status);
 
@@ -299,11 +317,11 @@ LANGUAGE plpgsql
 AS $$
 BEGIN
     CASE NEW.scope_type
-        WHEN 'ORGANIZATION' THEN
+        WHEN 'ORG' THEN
             PERFORM 1 FROM organizations WHERE id = NEW.scope_id FOR KEY SHARE;
-        WHEN 'THREAD' THEN
+        WHEN 'THR' THEN
             PERFORM 1 FROM threads WHERE id = NEW.scope_id FOR KEY SHARE;
-        WHEN 'DEADLINE' THEN
+        WHEN 'DDL' THEN
             PERFORM 1 FROM deadlines WHERE id = NEW.scope_id FOR KEY SHARE;
         ELSE
             RAISE EXCEPTION USING
@@ -351,12 +369,12 @@ $$;
 
 CREATE TRIGGER trg_organizations_cleanup_scope_targets
 AFTER DELETE ON organizations
-FOR EACH ROW EXECUTE FUNCTION cleanup_polymorphic_scope_targets('ORGANIZATION');
+FOR EACH ROW EXECUTE FUNCTION cleanup_polymorphic_scope_targets('ORG');
 
 CREATE TRIGGER trg_threads_cleanup_scope_targets
 AFTER DELETE ON threads
-FOR EACH ROW EXECUTE FUNCTION cleanup_polymorphic_scope_targets('THREAD');
+FOR EACH ROW EXECUTE FUNCTION cleanup_polymorphic_scope_targets('THR');
 
 CREATE TRIGGER trg_deadlines_cleanup_scope_targets
 AFTER DELETE ON deadlines
-FOR EACH ROW EXECUTE FUNCTION cleanup_polymorphic_scope_targets('DEADLINE');
+FOR EACH ROW EXECUTE FUNCTION cleanup_polymorphic_scope_targets('DDL');

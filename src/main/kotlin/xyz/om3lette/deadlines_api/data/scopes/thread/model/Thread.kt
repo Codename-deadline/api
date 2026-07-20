@@ -14,6 +14,8 @@ import jakarta.persistence.SequenceGenerator
 import jakarta.persistence.Table
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Size
+import org.hibernate.annotations.OnDelete
+import org.hibernate.annotations.OnDeleteAction
 import xyz.om3lette.deadlines_api.data.scopes.common.constraints.ScopeTextConstraints
 import xyz.om3lette.deadlines_api.data.scopes.deadline.model.Deadline
 import xyz.om3lette.deadlines_api.data.scopes.organization.model.Organization
@@ -48,6 +50,7 @@ data class Thread(
     val createdAt: Instant,
 
     @OneToMany(mappedBy = "thread", cascade = [CascadeType.ALL], orphanRemoval = true)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     val deadlines: MutableList<Deadline> = mutableListOf(),
 
 ) {

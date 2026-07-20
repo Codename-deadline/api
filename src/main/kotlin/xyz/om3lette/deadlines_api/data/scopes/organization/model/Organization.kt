@@ -13,6 +13,8 @@ import jakarta.persistence.SequenceGenerator
 import jakarta.persistence.Table
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Size
+import org.hibernate.annotations.OnDelete
+import org.hibernate.annotations.OnDeleteAction
 import xyz.om3lette.deadlines_api.data.scopes.common.constraints.ScopeTextConstraints
 import xyz.om3lette.deadlines_api.data.scopes.organization.dto.OrganizationDTO
 import xyz.om3lette.deadlines_api.data.scopes.organization.dto.OrganizationPermissions
@@ -47,9 +49,11 @@ data class Organization(
     val createdAt: Instant,
 
     @OneToMany(mappedBy = "organization", cascade = [CascadeType.ALL], orphanRemoval = true)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     val threads: MutableList<Thread> = mutableListOf(),
 
     @OneToMany(mappedBy = "organization", cascade = [CascadeType.ALL], orphanRemoval = true)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     val invitations: MutableList<OrganizationInvitation> = mutableListOf()
 ) {
     fun toMap() = mapOf(

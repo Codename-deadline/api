@@ -7,11 +7,12 @@ import jakarta.persistence.EnumType
 import jakarta.persistence.Enumerated
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.Id
-import jakarta.persistence.JoinColumn
 import jakarta.persistence.OneToMany
 import jakarta.persistence.Table
 import jakarta.persistence.UniqueConstraint
 import jakarta.validation.constraints.Size
+import org.hibernate.annotations.OnDelete
+import org.hibernate.annotations.OnDeleteAction
 import xyz.om3lette.deadlines_api.data.integration.constraints.IntegrationConstraints
 import xyz.om3lette.deadlines_api.data.integration.chat.model.Chat
 import xyz.om3lette.deadlines_api.data.integration.bot.enums.Messenger
@@ -40,5 +41,6 @@ data class Bot(
     val username: String,
 
     @OneToMany(cascade = [CascadeType.ALL], orphanRemoval = true, mappedBy = "bot")
+    @OnDelete(action = OnDeleteAction.CASCADE)
     val chats: MutableList<Chat>
 )

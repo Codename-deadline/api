@@ -40,6 +40,7 @@ data class Attachment(
     val uploadedBy: User?,
 
     @ManyToOne(fetch = FetchType.EAGER)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     @JoinColumn(name = "deadline_id", nullable = false)
     val deadline: Deadline,
 

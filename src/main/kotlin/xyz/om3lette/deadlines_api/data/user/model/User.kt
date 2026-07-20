@@ -3,6 +3,8 @@ package xyz.om3lette.deadlines_api.data.user.model
 import jakarta.persistence.*
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Size
+import org.hibernate.annotations.OnDelete
+import org.hibernate.annotations.OnDeleteAction
 import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.core.userdetails.UserDetails
@@ -51,6 +53,7 @@ data class User(
     val role: UserRole = UserRole.USER,
 
     @OneToMany(mappedBy = "user", cascade = [CascadeType.ALL], orphanRemoval = true)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     val messengerAccounts: MutableList<UserMessengerAccount> = mutableListOf()
 
 ) : UserDetails {

@@ -3,6 +3,8 @@ package xyz.om3lette.deadlines_api.data.scopes.deadline.model
 import jakarta.persistence.*
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Size
+import org.hibernate.annotations.OnDelete
+import org.hibernate.annotations.OnDeleteAction
 import xyz.om3lette.deadlines_api.data.notifications.model.DeadlineNotification
 import xyz.om3lette.deadlines_api.data.scopes.common.constraints.ScopeTextConstraints
 import xyz.om3lette.deadlines_api.data.scopes.deadline.dto.DeadlineDTO
@@ -44,6 +46,7 @@ data class Deadline(
     var isCompleted: Boolean = false,
 
     @OneToMany(cascade = [CascadeType.ALL], mappedBy = "deadline")
+    @OnDelete(action = OnDeleteAction.CASCADE)
     val notifications: MutableList<DeadlineNotification> = mutableListOf(),
 
 ) {

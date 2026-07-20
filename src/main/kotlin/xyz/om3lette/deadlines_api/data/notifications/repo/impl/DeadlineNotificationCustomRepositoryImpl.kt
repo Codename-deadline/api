@@ -51,7 +51,7 @@ class DeadlineNotificationCustomRepositoryImpl(
                        nc.*,
                        1 AS precedence
                 FROM notification_context nc
-                 JOIN chat_subscriptions cs ON cs.scope_type = 'DEADLINE' AND cs.scope_id = nc.deadline_id
+                 JOIN chat_subscriptions cs ON cs.scope_type = 'DDL' AND cs.scope_id = nc.deadline_id
                 WHERE nc.is_completed = false
                 
                 UNION ALL
@@ -60,7 +60,7 @@ class DeadlineNotificationCustomRepositoryImpl(
                        nc.*,
                        2 AS precedence
                 FROM notification_context nc
-                 JOIN chat_subscriptions cs ON cs.scope_type = 'THREAD' AND cs.scope_id = nc.thread_id
+                 JOIN chat_subscriptions cs ON cs.scope_type = 'THR' AND cs.scope_id = nc.thread_id
                 WHERE nc.is_completed = false
                 
                 UNION ALL
@@ -69,7 +69,7 @@ class DeadlineNotificationCustomRepositoryImpl(
                        nc.*,
                        3 AS precedence
                 FROM notification_context nc
-                 JOIN chat_subscriptions cs ON cs.scope_type = 'ORGANIZATION' AND cs.scope_id = nc.organization_id
+                 JOIN chat_subscriptions cs ON cs.scope_type = 'ORG' AND cs.scope_id = nc.organization_id
                 WHERE nc.is_completed = false
             ),
             selected AS (

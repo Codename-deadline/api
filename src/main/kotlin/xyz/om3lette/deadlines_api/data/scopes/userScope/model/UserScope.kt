@@ -23,7 +23,7 @@ data class UserScope(
 
     @Id
     @Enumerated(EnumType.STRING)
-    @Column(name = "scope_type", length = 12, nullable = false)
+    @Column(name = "scope_type", length = 3, nullable = false)
     val scopeType: ScopeType,
 
     @Id

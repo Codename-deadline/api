@@ -27,7 +27,7 @@ data class ChatSubscription(
 
     @Id
     @Enumerated(EnumType.STRING)
-    @Column(length = 12, nullable = false)
+    @Column(length = 3, nullable = false)
     val scopeType: ScopeType,
 
     @Column(nullable = false, columnDefinition = "TIMESTAMP WITH TIME ZONE")

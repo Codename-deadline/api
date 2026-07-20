@@ -1,5 +1,6 @@
 package xyz.om3lette.deadlines_api
 
+import jakarta.persistence.EntityManager
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
@@ -20,6 +21,14 @@ import org.testcontainers.junit.jupiter.Testcontainers
 import xyz.om3lette.deadlines_api.config.TestInfraMocks
 import xyz.om3lette.deadlines_api.data.common.validation.MinimumValidationReason
 import xyz.om3lette.deadlines_api.data.common.validation.SimpleValidationReason
+import xyz.om3lette.deadlines_api.data.integration.chat.model.Chat
+import xyz.om3lette.deadlines_api.data.integration.chat.model.ChatSubscription
+import xyz.om3lette.deadlines_api.data.integration.chat.model.ChatSubscriptionId
+import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeRole
+import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType
+import xyz.om3lette.deadlines_api.data.scopes.userScope.model.UserScope
+import xyz.om3lette.deadlines_api.data.scopes.userScope.model.UserScopeId
+import xyz.om3lette.deadlines_api.data.user.model.User
 import kotlin.test.assertEquals
 
 @SpringBootTest
@@ -41,6 +50,9 @@ class DeadlinesApiApplicationTests {
     @Autowired
     private lateinit var jdbc: JdbcTemplate
 
+    @Autowired
+    private lateinit var entityManager: EntityManager
+
 	@Test
 	fun contextLoads() {
 	}
@@ -54,7 +66,7 @@ class DeadlinesApiApplicationTests {
             jdbc.update(
                 """
                 INSERT INTO user_scopes (user_id, scope_type, scope_id, role, assigned_at)
-                VALUES (1001, 'ORGANIZATION', 9999, 'ORG_MEMBER', now())
+                VALUES (1001, 'ORG', 9999, 'ORG_MEMBER', now())
                 """.trimIndent()
             )
         }
@@ -70,7 +82,7 @@ class DeadlinesApiApplicationTests {
             jdbc.update(
                 """
                 INSERT INTO user_scopes (user_id, scope_type, scope_id, role, assigned_at)
-                VALUES (1002, 'ORGANIZATION', 2001, 'THR_ADMIN', now())
+                VALUES (1002, 'ORG', 2001, 'THR_ADMIN', now())
                 """.trimIndent()
             )
         }
@@ -121,7 +133,7 @@ class DeadlinesApiApplicationTests {
         jdbc.update(
             """
             INSERT INTO user_scopes (user_id, scope_type, scope_id, role, assigned_at)
-            VALUES (1003, 'ORGANIZATION', 2002, 'ORG_OWNER', now())
+            VALUES (1003, 'ORG', 2002, 'ORG_OWNER', now())
             """.trimIndent()
         )
 
@@ -129,7 +141,7 @@ class DeadlinesApiApplicationTests {
             jdbc.update(
                 """
                 INSERT INTO user_scopes (user_id, scope_type, scope_id, role, assigned_at)
-                VALUES (1004, 'ORGANIZATION', 2002, 'ORG_OWNER', now())
+                VALUES (1004, 'ORG', 2002, 'ORG_OWNER', now())
                 """.trimIndent()
             )
         }
@@ -150,13 +162,13 @@ class DeadlinesApiApplicationTests {
         jdbc.update(
             """
             INSERT INTO user_scopes (user_id, scope_type, scope_id, role, assigned_at)
-            VALUES (1005, 'ORGANIZATION', 2003, 'ORG_OWNER', now())
+            VALUES (1005, 'ORG', 2003, 'ORG_OWNER', now())
             """.trimIndent()
         )
         jdbc.update(
             """
             INSERT INTO chat_subscriptions (chat_id, scope_type, scope_id, subscribed_at)
-            VALUES (3002, 'ORGANIZATION', 2003, now())
+            VALUES (3002, 'ORG', 2003, now())
             """.trimIndent()
         )
 
@@ -164,6 +176,60 @@ class DeadlinesApiApplicationTests {
 
         assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM user_scopes WHERE scope_id = 2003", Int::class.java))
         assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM chat_subscriptions WHERE scope_id = 2003", Int::class.java))
+    }
+
+    @Test
+    @Transactional
+    fun `JPA composite scope identifiers persist compact scope codes`() {
+        insertUser(1010, "scope-code-user")
+        insertOrganization(2005)
+        jdbc.update("INSERT INTO bots (id, messenger, bot_id, username) VALUES (3003, 'TELEGRAM', 4003, 'scope_code_bot')")
+        jdbc.update(
+            """
+            INSERT INTO chats (id, messenger_chat_id, messenger, title, bot_id, language, registered_at)
+            VALUES (3004, 4004, 'TELEGRAM', 'Scope code chat', 3003, 'EN', now())
+            """.trimIndent()
+        )
+
+        val user = entityManager.find(User::class.java, 1010L)
+        val chat = entityManager.find(Chat::class.java, 3004L)
+        entityManager.persist(
+            UserScope(user, ScopeType.ORGANIZATION, 2005, ScopeRole.ORG_MEMBER, java.time.Instant.now())
+        )
+        entityManager.persist(
+            ChatSubscription(chat, 2005, ScopeType.ORGANIZATION, java.time.Instant.now())
+        )
+        entityManager.flush()
+        entityManager.clear()
+
+        assertEquals(
+            "ORG",
+            jdbc.queryForObject(
+                "SELECT scope_type FROM user_scopes WHERE user_id = 1010 AND scope_id = 2005",
+                String::class.java
+            )
+        )
+        assertEquals(
+            "ORG",
+            jdbc.queryForObject(
+                "SELECT scope_type FROM chat_subscriptions WHERE chat_id = 3004 AND scope_id = 2005",
+                String::class.java
+            )
+        )
+        assertEquals(
+            ScopeType.ORGANIZATION,
+            entityManager.find(
+                UserScope::class.java,
+                UserScopeId(1010, ScopeType.ORGANIZATION, 2005)
+            ).scopeType
+        )
+        assertEquals(
+            ScopeType.ORGANIZATION,
+            entityManager.find(
+                ChatSubscription::class.java,
+                ChatSubscriptionId(3004, 2005, ScopeType.ORGANIZATION)
+            ).scopeType
+        )
     }
 
     @Test

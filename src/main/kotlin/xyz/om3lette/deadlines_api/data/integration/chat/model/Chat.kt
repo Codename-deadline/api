@@ -14,6 +14,8 @@ import jakarta.persistence.OneToMany
 import jakarta.persistence.Table
 import jakarta.persistence.UniqueConstraint
 import jakarta.validation.constraints.Size
+import org.hibernate.annotations.OnDelete
+import org.hibernate.annotations.OnDeleteAction
 import xyz.om3lette.deadlines_api.data.integration.constraints.IntegrationConstraints
 import xyz.om3lette.deadlines_api.data.integration.bot.enums.Language
 import xyz.om3lette.deadlines_api.data.integration.bot.enums.Messenger
@@ -59,5 +61,6 @@ data class Chat(
         orphanRemoval = true,
         mappedBy = "chat"
     )
+    @OnDelete(action = OnDeleteAction.CASCADE)
     val subscriptions: MutableList<ChatSubscription> = mutableListOf(),
 )
