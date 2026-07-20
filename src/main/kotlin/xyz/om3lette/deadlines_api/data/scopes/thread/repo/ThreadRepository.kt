@@ -23,7 +23,7 @@ interface ThreadRepository : JpaRepository<Thread, Long> {
             SELECT 1  
             FROM UserScope us  
             WHERE us.scopeId = t.id  
-              AND us.scopeType = xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType.THREAD
+              AND us.scopeType = 'THR'
               AND us.user.id = :userId  
         )
     """)
@@ -32,7 +32,7 @@ interface ThreadRepository : JpaRepository<Thread, Long> {
     @Query("""
         SELECT
             t.id as threadId,
-            (SELECT COUNT(us) FROM UserScope us WHERE us.scopeId = t.id AND us.scopeType = xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType.THREAD) as assignees,
+            (SELECT COUNT(us) FROM UserScope us WHERE us.scopeId = t.id AND us.scopeType = 'THR') as assignees,
             (SELECT COUNT(d.id) FROM Deadline d WHERE d.thread = t) as deadlines,
             (SELECT COUNT(d.id) FROM Deadline d WHERE d.thread = t AND d.isCompleted = TRUE) as completedDeadlines
         FROM Thread t

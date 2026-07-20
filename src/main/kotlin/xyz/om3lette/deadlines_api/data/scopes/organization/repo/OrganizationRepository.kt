@@ -19,7 +19,7 @@ interface OrganizationRepository : JpaRepository<Organization, Long> {
 
     @Query("""
         SELECT o FROM Organization o
-        JOIN UserScope us ON us.scopeId = o.id AND us.scopeType = xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType.ORGANIZATION
+        JOIN UserScope us ON us.scopeId = o.id AND us.scopeType = 'ORG'
         WHERE us.user = :user
         ORDER BY CASE WHEN o.type = 'PERSONAL' THEN 0 ELSE 1 END
     """)
@@ -28,7 +28,7 @@ interface OrganizationRepository : JpaRepository<Organization, Long> {
     @Query("""
         SELECT
             o.id as organizationId,
-            (SELECT COUNT(us) FROM UserScope us WHERE us.scopeId = o.id AND us.scopeType = xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType.ORGANIZATION) as members,
+            (SELECT COUNT(us) FROM UserScope us WHERE us.scopeId = o.id AND us.scopeType = 'ORG') as members,
             (SELECT COUNT(t) FROM Thread t WHERE t.organization = o) as threads
         FROM Organization o
         WHERE o.id IN :ids

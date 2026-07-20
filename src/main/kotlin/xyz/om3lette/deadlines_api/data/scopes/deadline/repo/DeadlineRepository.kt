@@ -22,7 +22,7 @@ interface DeadlineRepository : JpaRepository<Deadline, Long> {
     @Query("""
         SELECT
             d.id as deadlineId,
-            (SELECT COUNT(us) FROM UserScope us WHERE us.scopeId = d.id AND us.scopeType = xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType.DEADLINE) as assignees,
+            (SELECT COUNT(us) FROM UserScope us WHERE us.scopeId = d.id AND us.scopeType = 'DDL') as assignees,
             (SELECT COUNT(at.id) FROM Attachment at WHERE at.deadline = d) as attachments
         FROM Deadline d
         WHERE d.id IN :ids
@@ -36,7 +36,7 @@ interface DeadlineRepository : JpaRepository<Deadline, Long> {
             SELECT 1  
             FROM UserScope us  
             WHERE us.scopeId = d.id  
-              AND us.scopeType = xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType.DEADLINE
+              AND us.scopeType = 'DDL'
               AND us.user.id = :userId  
         )
     """)

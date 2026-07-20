@@ -103,9 +103,9 @@ interface UserScopeRepository : JpaRepository<UserScope, UserScopeId> {
             DELETE FROM UserScope us
             WHERE us.user.id = :userId
                 AND (
-                    (us.scopeType = xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType.ORGANIZATION AND us.scopeId = :orgId)
-                    OR (us.scopeType = xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType.THREAD AND us.scopeId = :thrId)
-                    OR (us.scopeType = xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType.DEADLINE AND us.scopeId = :ddlId)
+                    (us.scopeType = 'ORG' AND us.scopeId = :orgId)
+                    OR (us.scopeType = 'THR' AND us.scopeId = :thrId)
+                    OR (us.scopeType = 'DDL' AND us.scopeId = :ddlId)
                 )
         """
     )
@@ -123,11 +123,11 @@ interface UserScopeRepository : JpaRepository<UserScope, UserScopeId> {
             DELETE FROM UserScope us
             WHERE us.user.id = :userId
                 AND (
-                    (us.scopeType = xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType.ORGANIZATION AND us.scopeId = :orgId)
-                    OR (us.scopeType = xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType.THREAD AND us.scopeId IN (
+                    (us.scopeType = 'ORG' AND us.scopeId = :orgId)
+                    OR (us.scopeType = 'THR' AND us.scopeId IN (
                         SELECT t.id FROM Thread t WHERE t.organization.id = :orgId
                     ))
-                    OR (us.scopeType = xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType.DEADLINE AND us.scopeId IN (
+                    OR (us.scopeType = 'DDL' AND us.scopeId IN (
                         SELECT d.id FROM Deadline d WHERE d.thread.organization.id = :orgId
                     ))
                 )
@@ -140,9 +140,9 @@ interface UserScopeRepository : JpaRepository<UserScope, UserScopeId> {
         SELECT role, scopeId, scopeType FROM UserScope us
         WHERE us.user.id = :userId
             AND (
-                (us.scopeType = xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType.ORGANIZATION AND us.scopeId = :orgId)
-                OR (us.scopeType = xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType.THREAD AND us.scopeId = :thrId)
-                OR (us.scopeType = xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType.DEADLINE AND us.scopeId = :ddlId)
+                (us.scopeType = 'ORG' AND us.scopeId = :orgId)
+                OR (us.scopeType = 'THR' AND us.scopeId = :thrId)
+                OR (us.scopeType = 'DDL' AND us.scopeId = :ddlId)
             )
         """
     )
@@ -153,9 +153,9 @@ interface UserScopeRepository : JpaRepository<UserScope, UserScopeId> {
         SELECT role, scopeId, scopeType FROM UserScope us
         WHERE us.user.id = :userId
             AND (
-                (us.scopeType = xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType.ORGANIZATION AND us.scopeId IN :orgIds)
-                OR (us.scopeType = xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType.THREAD AND us.scopeId IN :thrIds)
-                OR (us.scopeType = xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType.DEADLINE AND us.scopeId IN :ddlIds)
+                (us.scopeType = 'ORG' AND us.scopeId IN :orgIds)
+                OR (us.scopeType = 'THR' AND us.scopeId IN :thrIds)
+                OR (us.scopeType = 'DDL' AND us.scopeId IN :ddlIds)
             )
         """
     )
@@ -165,7 +165,7 @@ interface UserScopeRepository : JpaRepository<UserScope, UserScopeId> {
         SELECT us.user._username
         FROM UserScope us
         WHERE us.scopeId = :orgId
-            AND us.scopeType = xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType.ORGANIZATION
+            AND us.scopeType = 'ORG'
             AND LOWER(us.user._username) LIKE CONCAT(:username, '%')
     """)
     fun findOrganizationMembersWithUsernameStartingWithIgnoreCase(
@@ -178,7 +178,7 @@ interface UserScopeRepository : JpaRepository<UserScope, UserScopeId> {
             us.role as role
         FROM UserScope us
         WHERE us.scopeId = :scopeId
-            AND us.scopeType = xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType.ORGANIZATION
+            AND us.scopeType = 'ORG'
             AND (
                 us.user.id = :userId
                 OR LOWER(us.user._username) = :newOwnerUsernameLower
