@@ -77,8 +77,6 @@ class OrganizationInvitationServiceTest {
             role = ScopeRole.ORG_ADMIN,
             id = 0
         )
-        dummyOrganization.members.add(dummyUserScopeBob)
-
         every { organizationInvitationRepository.findById(0) } returns Optional.of(dummyInvitation)
         every { userScopeRepository.existsByUserAndScopeIdAndScopeType(
             dummyUserBob, dummyOrganization.id, ScopeType.ORGANIZATION)

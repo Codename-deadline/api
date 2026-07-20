@@ -155,9 +155,9 @@ class PermissionServiceTest {
         ScopeRole.entries.forEach { role ->
             withRoleScope(nonAdmin, permissionScope, role)
             assertEquals(
-                role >= minRole,
+                role.isEqualOrHigherThan(minRole),
                 method(nonAdmin, permissionScope),
-                "$role should ${if (role >= minRole) "pass" else "fail"} for minimum role $minRole"
+                "$role should ${if (role.isEqualOrHigherThan(minRole)) "pass" else "fail"} for minimum role $minRole"
             )
         }
     }
@@ -175,9 +175,9 @@ class PermissionServiceTest {
         ScopeRole.entries.forEach { role ->
             withRoleForTarget(nonAdmin, target, role)
             assertEquals(
-                role >= minRole,
+                role.isEqualOrHigherThan(minRole),
                 method(nonAdmin, target),
-                "$role should ${if (role >= minRole) "pass" else "fail"} for minimum role $minRole"
+                "$role should ${if (role.isEqualOrHigherThan(minRole)) "pass" else "fail"} for minimum role $minRole"
             )
         }
     }
@@ -197,7 +197,7 @@ class PermissionServiceTest {
 
         fun higherLowerPairs(): List<Arguments> = ScopeRole.entries.flatMap { currentRole ->
             ScopeRole.entries.map { requiredRole ->
-                Arguments.of(currentRole, requiredRole, currentRole.ordinal >= requiredRole.ordinal)
+                Arguments.of(currentRole, requiredRole, currentRole.rank >= requiredRole.rank)
             }
         }
 
@@ -205,8 +205,14 @@ class PermissionServiceTest {
         @MethodSource("higherLowerPairs")
         fun `roleIsEqualOrHigherThan behaves as expected`(currentRole: ScopeRole, requiredRole: ScopeRole, expected: Boolean) {
             every { userScope.role } returns currentRole
-            assertEquals(expected, currentRole >= requiredRole)
+            assertEquals(expected, currentRole.isEqualOrHigherThan(requiredRole))
             assertEquals(expected, userScope.roleIsEqualOrHigherThan(requiredRole))
+        }
+
+        @Test
+        fun `role ranks preserve the published role hierarchy`() {
+            assertEquals((0..6).toList(), ScopeRole.entries.map { it.rank })
+            ScopeRole.entries.forEach { role -> assertEquals(role, ScopeRole.fromInt(role.rank)) }
         }
     }
 

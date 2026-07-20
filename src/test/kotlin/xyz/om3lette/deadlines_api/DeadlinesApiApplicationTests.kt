@@ -11,17 +11,18 @@ import org.springframework.web.context.WebApplicationContext
 import xyz.om3lette.deadlines_api.config.TestInfraMocks
 import xyz.om3lette.deadlines_api.data.common.validation.MinimumValidationReason
 import xyz.om3lette.deadlines_api.data.common.validation.SimpleValidationReason
+import xyz.om3lette.deadlines_api.db.TestDatabaseConfig
 
 @SpringBootTest
 @ActiveProfiles("test")
-@Import(TestInfraMocks::class)
+@Import(TestInfraMocks::class, TestDatabaseConfig::class)
 class DeadlinesApiApplicationTests {
     @Autowired
     private lateinit var context: WebApplicationContext
 
-	@Test
-	fun contextLoads() {
-	}
+    @Test
+    fun contextLoads() {
+    }
 
     @Test
     fun validationResponseIsDocumentedInOpenApi() {
@@ -46,5 +47,4 @@ class DeadlinesApiApplicationTests {
                 }
             }
     }
-
 }

@@ -3,6 +3,7 @@ package xyz.om3lette.deadlines_api.data.notifications.model
 import jakarta.persistence.Column
 import jakarta.persistence.Convert
 import jakarta.persistence.Entity
+import jakarta.persistence.EnumType
 import jakarta.persistence.Enumerated
 import jakarta.persistence.FetchType
 import jakarta.persistence.GeneratedValue
@@ -27,15 +28,17 @@ data class DeadlineNotification(
     val id: Long,
 
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "deadline_id")
+    @JoinColumn(name = "deadline_id", nullable = false)
     val deadline: Deadline,
 
-    @Column(columnDefinition = "TIMESTAMP WITH TIME ZONE")
+    @Column(nullable = false, columnDefinition = "TIMESTAMP WITH TIME ZONE")
     var sendAt: Instant,
 
-    @Enumerated
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     val type: TimeRemaining,
 
     @Convert(converter = NotificationStatusConverter::class)
+    @Column(nullable = false, length = 1)
     var status: NotificationStatus
 )

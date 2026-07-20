@@ -3,6 +3,8 @@ package xyz.om3lette.deadlines_api.data.user.model
 import jakarta.persistence.*
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Size
+import org.hibernate.annotations.OnDelete
+import org.hibernate.annotations.OnDeleteAction
 import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.core.userdetails.UserDetails
@@ -25,10 +27,10 @@ data class User(
 
     @field:NotBlank
     @field:Size(min = UserConstraints.USERNAME_MIN, max = UserConstraints.USERNAME_MAX)
-    @Column(unique = true, name = "username", length = UserConstraints.USERNAME_MAX, nullable = false)
+    @Column(name = "username", length = UserConstraints.USERNAME_MAX, nullable = false)
     var _username: String,
 
-    @Column(columnDefinition = "TIMESTAMP WITH TIME ZONE")
+    @Column(nullable = false, columnDefinition = "TIMESTAMP WITH TIME ZONE")
     val joinedAt: Instant,
 
     @field:NotBlank
@@ -40,16 +42,18 @@ data class User(
     var _password: String? = null,
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     var language: Language = Language.EN,
 
-    @Column(columnDefinition = "TIMESTAMP WITH TIME ZONE")
+    @Column(nullable = false, columnDefinition = "TIMESTAMP WITH TIME ZONE")
     var lastPasswordChange: Instant = Instant.EPOCH,
 
     @Enumerated(value = EnumType.STRING)
+    @Column(nullable = false)
     val role: UserRole = UserRole.USER,
 
-    @OneToMany(cascade = [CascadeType.ALL], orphanRemoval = true)
-    @JoinColumn
+    @OneToMany(mappedBy = "user", cascade = [CascadeType.ALL], orphanRemoval = true)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     val messengerAccounts: MutableList<UserMessengerAccount> = mutableListOf()
 
 ) : UserDetails {

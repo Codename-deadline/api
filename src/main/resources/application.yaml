@@ -14,7 +14,7 @@ spring:
     password: ${SPRING_DATASOURCE_PASSWORD:}
   jpa:
     hibernate:
-      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:update}
+      ddl-auto: validate
     open-in-view: false
     properties:
       hibernate:
@@ -22,6 +22,8 @@ spring:
           time_zone: UTC
         format_sql: ${SPRING_JPA_FORMAT_SQL:true}
     show-sql: ${SPRING_JPA_SHOW_SQL:true}
+  flyway:
+    enabled: true
   security:
     jwt:
       secret: ${JWT_SECRET:amt2bWZrbXZta21wYXNwZHZtYVtwc2Rudmpkb2JuYjBhW3Nkdm5kZnVwWzxvaXNkdm5ib3c5ZXVwaXV2bmhiZnk4czk=}
@@ -78,6 +80,7 @@ attachments:
   max-per-deadline: ${ATTACHMENTS_MAX_PER_DEADLINE:25}
 
 deadlines:
+  min-expiry-minutes: ${DEADLINES_MIN_EXPIRY_MINUTES:15}
   max-assignees: ${DEADLINES_MAX_ASSIGNEES:10}
 
 storage:

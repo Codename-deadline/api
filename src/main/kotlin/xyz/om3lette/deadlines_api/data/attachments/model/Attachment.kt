@@ -6,7 +6,6 @@ import jakarta.validation.constraints.Size
 import org.hibernate.annotations.OnDelete
 import org.hibernate.annotations.OnDeleteAction
 import xyz.om3lette.deadlines_api.data.attachments.constraints.AttachmentConstraints
-import xyz.om3lette.deadlines_api.data.attachments.enums.AttachmentCategory
 import xyz.om3lette.deadlines_api.data.attachments.reponse.AttachmentPermissions
 import xyz.om3lette.deadlines_api.data.attachments.reponse.AttachmentResponse
 import xyz.om3lette.deadlines_api.data.scopes.deadline.model.Deadline
@@ -21,6 +20,7 @@ data class Attachment(
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "ddl_attach_seq")
     val id: Long,
 
+    @Column(nullable = false, unique = true)
     val objectKey: String,
 
     @field:NotBlank
@@ -28,11 +28,10 @@ data class Attachment(
     @Column(length = AttachmentConstraints.FILENAME_MAX, nullable = false)
     var filename: String,
 
-    @Enumerated(value = EnumType.STRING)
-    var category: AttachmentCategory,
-
+    @Column(nullable = false)
     var mimeType: String,
 
+    @Column(nullable = false)
     var sizeBytes: Long,
 
     @ManyToOne(fetch = FetchType.EAGER)
@@ -41,16 +40,16 @@ data class Attachment(
     val uploadedBy: User?,
 
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "deadline_id")
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    @JoinColumn(name = "deadline_id", nullable = false)
     val deadline: Deadline,
 
-    @Column(columnDefinition = "TIMESTAMP WITH TIME ZONE")
+    @Column(nullable = false, columnDefinition = "TIMESTAMP WITH TIME ZONE")
     var uploadedAt: Instant
 ) {
     fun toMap() = mapOf(
         "id" to id,
         "filename" to filename,
-        "category" to category.name,
         "mimeType" to (mimeType),
         "sizeBytes" to (sizeBytes),
         "uploadedBy" to uploadedBy?.toMap(),
@@ -61,7 +60,6 @@ data class Attachment(
     fun toResponse(permissions: AttachmentPermissions) = AttachmentResponse(
         id,
         filename,
-        category.name,
         mimeType,
         sizeBytes,
         uploadedBy?.toMinimalResponse(),

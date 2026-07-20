@@ -146,7 +146,7 @@ class IntegrationSubscriptionService(
 
         try {
             chatSubscriptionRepository.save(
-                ChatSubscription(0, chat, resolvedTargetId, scopeType, Instant.now())
+                ChatSubscription(chat, resolvedTargetId, scopeType, Instant.now())
             )
         } catch (_: DataIntegrityViolationException) {
             throw grpcException(

@@ -8,8 +8,6 @@ data class AttachmentResponse(
 
     val filename: String,
 
-    val category: String,
-
     val mimeType: String,
 
     val sizeBytes: Long,

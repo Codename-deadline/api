@@ -77,17 +77,17 @@ class PermissionService(
 
     private fun canDeleteOrganization(issuer: User, organizationId: Long): Boolean =
         issuer.isAdminOrHasRoleAnd(roleForOrganizationLazy(issuer, organizationId)) { role ->
-            role >= ScopeRole.ORG_OWNER
+            role.isEqualOrHigherThan(ScopeRole.ORG_OWNER)
         }
 
     private fun canUpdateOrganization(issuer: User, organizationId: Long): Boolean =
         issuer.isAdminOrHasRoleAnd(roleForOrganizationLazy(issuer, organizationId)) { role ->
-            role >= ScopeRole.ORG_OWNER
+            role.isEqualOrHigherThan(ScopeRole.ORG_OWNER)
         }
 
     private fun canManageOrganizationMembers(issuer: User, organizationId: Long): Boolean =
         issuer.isAdminOrHasRoleAnd(roleForOrganizationLazy(issuer, organizationId)) { role ->
-            role >= ScopeRole.ORG_ADMIN
+            role.isEqualOrHigherThan(ScopeRole.ORG_ADMIN)
         }
 
     fun prefetchUserRoles(
@@ -165,28 +165,28 @@ class PermissionService(
         if (thread.organization.type == OrganizationType.PUBLIC) return true
         if (issuer == null) return false
         return issuer.isAdminOrHasRoleAnd(roleForThreadLazy(issuer, thread)) { role ->
-            role >= ScopeRole.THR_ASSIGNEE
+            role.isEqualOrHigherThan(ScopeRole.THR_ASSIGNEE)
         }
     }
 
     fun canCreateThread(issuer: User, organizationId: Long): Boolean =
         issuer.isAdminOrHasRoleAnd(roleForOrganizationLazy(issuer, organizationId)) { role ->
-            role >= ScopeRole.ORG_ADMIN
+            role.isEqualOrHigherThan(ScopeRole.ORG_ADMIN)
         }
 
     private fun canDeleteThread(issuer: User, thread: Thread): Boolean =
         issuer.isAdminOrHasRoleAnd(roleForThreadLazy(issuer, thread)) { role ->
-            role >= ScopeRole.THR_OWNER
+            role.isEqualOrHigherThan(ScopeRole.THR_OWNER)
         }
 
     private fun canUpdateThread(issuer: User, thread: Thread): Boolean =
         issuer.isAdminOrHasRoleAnd(roleForThreadLazy(issuer, thread)) { role ->
-            role >= ScopeRole.THR_ADMIN
+            role.isEqualOrHigherThan(ScopeRole.THR_ADMIN)
         }
 
     private fun canManageThreadAssignees(issuer: User, thread: Thread): Boolean =
         issuer.isAdminOrHasRoleAnd(roleForThreadLazy(issuer, thread)) { role ->
-            role >= ScopeRole.THR_ADMIN
+            role.isEqualOrHigherThan(ScopeRole.THR_ADMIN)
         }
 
     /*
@@ -196,28 +196,28 @@ class PermissionService(
         if (deadline.thread.organization.type == OrganizationType.PUBLIC) return true
         if (issuer == null) return false
         return issuer.isAdminOrHasRoleAnd(roleForDeadlineLazy(issuer, deadline)) { role ->
-            role >= ScopeRole.DDL_ASSIGNEE
+            role.isEqualOrHigherThan(ScopeRole.DDL_ASSIGNEE)
         }
     }
 
     fun canCreateDeadline(issuer: User, thread: Thread): Boolean =
         issuer.isAdminOrHasRoleAnd(roleForThreadLazy(issuer, thread)) { role ->
-            role >= ScopeRole.THR_ADMIN
+            role.isEqualOrHigherThan(ScopeRole.THR_ADMIN)
         }
 
     private fun canDeleteDeadline(issuer: User, deadline: Deadline): Boolean =
         issuer.isAdminOrHasRoleAnd(roleForDeadlineLazy(issuer, deadline)) { role ->
-            role >= ScopeRole.THR_ADMIN
+            role.isEqualOrHigherThan(ScopeRole.THR_ADMIN)
         }
 
     private fun canUpdateDeadline(issuer: User, deadline: Deadline): Boolean =
         issuer.isAdminOrHasRoleAnd(roleForDeadlineLazy(issuer, deadline)) { role ->
-            role >= ScopeRole.THR_ADMIN
+            role.isEqualOrHigherThan(ScopeRole.THR_ADMIN)
         }
 
     private fun canManageDeadlineAssignees(issuer: User, deadline: Deadline): Boolean =
         issuer.isAdminOrHasRoleAnd(roleForDeadlineLazy(issuer, deadline)) { role ->
-            role >= ScopeRole.THR_ADMIN
+            role.isEqualOrHigherThan(ScopeRole.THR_ADMIN)
         }
 
     // ===========================
@@ -225,7 +225,7 @@ class PermissionService(
     // ===========================
     fun canManageDeadlineAttachments(issuer: User, deadline: Deadline): Boolean =
         issuer.isAdminOrHasRoleAnd(roleForDeadlineLazy(issuer, deadline)) { role ->
-            role >= ScopeRole.DDL_ASSIGNEE
+            role.isEqualOrHigherThan(ScopeRole.DDL_ASSIGNEE)
         }
 
     fun canUpdateDeadlineAttachment(issuer: User, attachment: Attachment): Boolean =
@@ -233,7 +233,7 @@ class PermissionService(
 
     fun canDeleteDeadlineAttachment(issuer: User, attachment: Attachment): Boolean =
         issuer.isAdminOrHasRoleAnd(roleForDeadlineLazy(issuer, attachment.deadline)) { role ->
-            role >= ScopeRole.THR_ADMIN || issuer.id == attachment.uploadedBy?.id
+            role.isEqualOrHigherThan(ScopeRole.THR_ADMIN) || issuer.id == attachment.uploadedBy?.id
         }
 
     /*
@@ -255,7 +255,7 @@ class PermissionService(
             is DeadlineScope -> roleForDeadlineLazy(issuer, permissionScope.deadline)
         }() ?: return false
 
-        return userRole > memberRole
+        return userRole.isHigherThan(memberRole)
     }
 
     /**
@@ -295,7 +295,7 @@ class PermissionService(
     */
     fun canSendOrganizationInvitation(issuer: User, organizationId: Long): Boolean =
         issuer.isAdminOrHasRoleAnd(roleForOrganizationLazy(issuer, organizationId)) { role ->
-            role >= ScopeRole.ORG_ADMIN
+            role.isEqualOrHigherThan(ScopeRole.ORG_ADMIN)
         }
 
     fun canAccessOrganizationInvitation(issuer: User, invitation: OrganizationInvitation): Boolean =
@@ -322,7 +322,7 @@ class PermissionService(
      * Checks if issuer's role `issuerCurrentRole` is high enough to assign `roleToAssign`.
      */
     private fun canAssignWithCurrentRole(issuerCurrentRole: ScopeRole, roleToAssign: ScopeRole): Boolean {
-        return roleToAssign < issuerCurrentRole
+        return issuerCurrentRole.isHigherThan(roleToAssign)
     }
 
     fun canChangeRole(issuer: User, permissionScope: PermissionScope, newRole: ScopeRole): Boolean {
@@ -349,5 +349,5 @@ class PermissionService(
 
     fun getMaxRole(keys: List<PermissionContext.PermissionKey>) = keys.mapNotNull {
         permissionContext.get(it.scopeId, it.scopeType)
-    }.max()
+    }.maxBy { it.rank }
 }

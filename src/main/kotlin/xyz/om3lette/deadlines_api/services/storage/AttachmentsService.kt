@@ -62,20 +62,19 @@ class AttachmentsService (
             throw StatusCodeException(409, ErrorCode.ATTACHMENT_LIMIT_EXCEEDED)
         }
 
-        val fileInfo = fileCheckerService.getAttachmentFileInfoOr403(fileStream)
+        val mimeType = fileCheckerService.getAttachmentMimeTypeOr403(fileStream)
         val objectKey = UUID.randomUUID().toString()
 
         try {
-            putObject(objectKey, fileStream, fileInfo.mimeType)
+            putObject(objectKey, fileStream, mimeType)
 
             val attachment = attachmentRepository.save(
                 Attachment(
                     0,
                     objectKey,
                     filename,
-                    fileInfo.category,
-                    fileInfo.mimeType,
-                    fileInfo.sizeBytes,
+                    mimeType,
+                    fileStream.size,
                     issuer,
                     deadline,
                     Instant.now()
@@ -95,18 +94,17 @@ class AttachmentsService (
         val attachment = attachmentRepository.findByIdOr404(attachmentId, ErrorCode.ATTACHMENT_NOT_FOUND)
 
         // Avoid a db request by first validating the fileStream
-        val fileInfo = fileCheckerService.getAttachmentFileInfoOr403(fileStream)
+        val mimeType = fileCheckerService.getAttachmentMimeTypeOr403(fileStream)
         requirePermission(
             permissionService.canManageDeadlineAttachments(issuer, attachment.deadline)
         )
 
         try {
-            putObject(attachment.objectKey, fileStream, fileInfo.mimeType)
+            putObject(attachment.objectKey, fileStream, mimeType)
 
             attachment.uploadedAt = Instant.now()
-            attachment.category = fileInfo.category
-            attachment.mimeType = fileInfo.mimeType
-            attachment.sizeBytes = fileInfo.sizeBytes
+            attachment.mimeType = mimeType
+            attachment.sizeBytes = fileStream.size
 
             attachmentRepository.save(attachment)
         } catch (_: Exception) {

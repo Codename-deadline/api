@@ -17,27 +17,34 @@ data class Outbox(
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long,
 
+    @Column(nullable = false)
     val notificationId: Long,
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     val source: OutboxSource,
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     val messenger: Messenger,
 
+    @Column(nullable = false)
     val priority: Int,
 
+    @Column(nullable = false)
     val topic: String,
 
     @Type(JsonType::class)
-    @Column(columnDefinition = "jsonb")
+    @Column(nullable = false, columnDefinition = "jsonb")
     val payload: JsonNode,
 
-    @Column(columnDefinition = "TIMESTAMP WITH TIME ZONE")
+    @Column(nullable = false, columnDefinition = "TIMESTAMP WITH TIME ZONE")
     var availableAt: Instant = Instant.now(),
 
     @Convert(converter = NotificationStatusConverter::class)
+    @Column(nullable = false, length = 1)
     var status: NotificationStatus = NotificationStatus.PENDING,
 
+    @Column(nullable = false)
     var retries: Int = 0,
 )

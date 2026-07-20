@@ -76,16 +76,14 @@ class OrganizationServiceTest {
             user = dummyUserBob,
             scopeType = ScopeType.ORGANIZATION,
             scopeId = dummyOrganization.id,
-            role = ScopeRole.ORG_OWNER,
-            id = 512
+            role = ScopeRole.ORG_OWNER
         )
         dummyUserAlice = DomainObjectBuilder.userAlice()
         dummyUserScopeAlice = DomainObjectBuilder.userScope(
             user = dummyUserAlice,
             scopeType = ScopeType.ORGANIZATION,
             scopeId = dummyOrganization.id,
-            role = ScopeRole.ORG_MEMBER,
-            id = 128
+            role = ScopeRole.ORG_MEMBER
         )
 
         dummyInvitation = DomainObjectBuilder.organizationInvitation(
@@ -106,8 +104,6 @@ class OrganizationServiceTest {
 
         every { userScopeRepository.deleteByUserIdAndOrganizationId(dummyUserAlice.id, dummyOrganization.id) } returns 1
 
-        dummyOrganization.members.clear()
-        dummyOrganization.members.add(dummyUserScopeBob)
     }
 
     @Nested
@@ -310,7 +306,6 @@ class OrganizationServiceTest {
                 dummyUserAlice.username.lowercase(), any(), any()
             ) } returns PermissionRoleDTO(dummyUserAlice.id, dummyUserScopeAlice.role)
 
-            dummyOrganization.members.add(dummyUserScopeAlice)
             organizationService.removeMember(dummyUserBob, dummyOrganization.id, dummyUserAlice.username)
 
             verify(exactly = 1) { userScopeRepository.deleteByUserIdAndOrganizationId(dummyUserAlice.id, dummyOrganization.id) }

@@ -1,12 +1,15 @@
 package xyz.om3lette.deadlines_api.data.scopes.userScope.enums
 
-enum class ScopeType(val code: String) {
+import jakarta.persistence.EnumeratedValue
+
+enum class ScopeType(
+    @field:EnumeratedValue val code: String
+) {
     ORGANIZATION("ORG"),
     THREAD("THR"),
     DEADLINE("DDL");
 
     companion object {
-        fun fromCode(c: String) = entries.first { it.code == c }
+        fun fromCode(code: String) = entries.first { it.code == code }
     }
 }
-

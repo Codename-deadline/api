@@ -14,16 +14,17 @@ data class RefreshToken(
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "token_seq")
     val id: Long = 0,
 
-    @Column(unique = true)
+    @Column(nullable = false, unique = true)
     val jti: String,
 
-    @Column(columnDefinition = "TIMESTAMP WITH TIME ZONE")
+    @Column(nullable = false, columnDefinition = "TIMESTAMP WITH TIME ZONE")
     val expiry: Instant,
 
+    @Column(nullable = false)
     var revoked: Boolean = false,
 
-    @ManyToOne(fetch = FetchType.LAZY, cascade = [CascadeType.REMOVE])
+    @ManyToOne(fetch = FetchType.LAZY)
     @OnDelete(action = OnDeleteAction.CASCADE)
-    @JoinColumn(name = "user_id")
+    @JoinColumn(name = "user_id", nullable = false)
     val user: User
 )

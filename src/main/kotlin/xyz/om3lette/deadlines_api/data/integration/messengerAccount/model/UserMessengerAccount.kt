@@ -1,6 +1,5 @@
 package xyz.om3lette.deadlines_api.data.integration.messengerAccount.model
 
-import jakarta.persistence.CascadeType
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
@@ -30,15 +29,16 @@ data class UserMessengerAccount (
     @Id
     val id: Long,
 
-    @ManyToOne(fetch = FetchType.EAGER, cascade = [CascadeType.REMOVE])
+    @ManyToOne(fetch = FetchType.EAGER)
     @OnDelete(action = OnDeleteAction.CASCADE)
-    @JoinColumn("user_id")
+    @JoinColumn(name = "user_id", nullable = false)
     val user: User,
 
-    @Column(unique = true)
+    @Column(nullable = false)
     val accountId: Long,
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     val messenger: Messenger
 ) {
     fun toResponse() = MessengerAccountDTO(

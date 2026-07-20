@@ -18,10 +18,11 @@ class OutboxCustomRepositoryImpl(
                 SELECT id
                 FROM notification_outbox
                 WHERE available_at <= now()
-                    AND status != 'F'
+                    AND status IN ('P', 'I')
                     AND retries < :max_retries
                 ORDER BY priority DESC, retries ASC, available_at ASC
                 LIMIT :batch_size
+                FOR UPDATE SKIP LOCKED
             )
             RETURNING *;
         """.trimIndent()

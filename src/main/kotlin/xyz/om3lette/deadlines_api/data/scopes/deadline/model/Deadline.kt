@@ -3,7 +3,8 @@ package xyz.om3lette.deadlines_api.data.scopes.deadline.model
 import jakarta.persistence.*
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Size
-import org.hibernate.annotations.SQLRestriction
+import org.hibernate.annotations.OnDelete
+import org.hibernate.annotations.OnDeleteAction
 import xyz.om3lette.deadlines_api.data.notifications.model.DeadlineNotification
 import xyz.om3lette.deadlines_api.data.scopes.common.constraints.ScopeTextConstraints
 import xyz.om3lette.deadlines_api.data.scopes.deadline.dto.DeadlineDTO
@@ -11,7 +12,6 @@ import xyz.om3lette.deadlines_api.data.scopes.deadline.dto.DeadlinePermissions
 import xyz.om3lette.deadlines_api.data.scopes.deadline.dto.DeadlineStatsDTO
 import xyz.om3lette.deadlines_api.data.scopes.deadline.response.DeadlineResponse
 import xyz.om3lette.deadlines_api.data.scopes.thread.model.Thread
-import xyz.om3lette.deadlines_api.data.scopes.userScope.model.UserScope
 import java.time.Instant
 
 @Entity
@@ -24,7 +24,7 @@ data class Deadline(
 
     // Thread id is needed for global role lookup
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "thread_id")
+    @JoinColumn(name = "thread_id", nullable = false)
     val thread: Thread,
 
     @field:NotBlank
@@ -36,26 +36,19 @@ data class Deadline(
     @Column(length = ScopeTextConstraints.DESCRIPTION_MAX)
     var description: String?,
 
-    @Column(columnDefinition = "TIMESTAMP WITH TIME ZONE")
+    @Column(nullable = false, columnDefinition = "TIMESTAMP WITH TIME ZONE")
     val createdAt: Instant,
 
-    @Column(columnDefinition = "TIMESTAMP WITH TIME ZONE")
+    @Column(nullable = false, columnDefinition = "TIMESTAMP WITH TIME ZONE")
     var due: Instant,
 
+    @Column(nullable = false)
     var isCompleted: Boolean = false,
 
     @OneToMany(cascade = [CascadeType.ALL], mappedBy = "deadline")
+    @OnDelete(action = OnDeleteAction.CASCADE)
     val notifications: MutableList<DeadlineNotification> = mutableListOf(),
 
-    @OneToMany(cascade = [CascadeType.ALL])
-    @JoinColumn(
-        name = "scope_id",
-        referencedColumnName = "id",
-        insertable = false, updatable = false,
-        foreignKey = ForeignKey(ConstraintMode.NO_CONSTRAINT)
-    )
-    @SQLRestriction("scope_type = 'DDL'")
-    val assignees: MutableList<UserScope> = mutableListOf(),
 ) {
     fun toMap() = mapOf(
         "id" to id,

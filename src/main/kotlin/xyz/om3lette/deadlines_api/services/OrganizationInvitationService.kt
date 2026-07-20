@@ -57,7 +57,6 @@ class OrganizationInvitationService(
             permissionService.canSendOrganizationInvitation(issuer, organizationId)
         )
 
-        // FIXME: Add a db partial index to disallow multiple pending invitations of the same user at the same time
         val invitation = try {
             organizationInvitationRepository.save(newPendingInvitation(issuer, userToInvite, organization, role))
         } catch (_: DataIntegrityViolationException) {
@@ -129,7 +128,6 @@ class OrganizationInvitationService(
             val organization = organizationInvitation.organization
             userScopeRepository.save(
                 UserScope(
-                    0,
                     userAcceptingInvitation,
                     ScopeType.ORGANIZATION,
                     organization.id,

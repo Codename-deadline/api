@@ -12,10 +12,11 @@ import xyz.om3lette.deadlines_api.data.scopes.userScope.dto.ScopeRoleDTO
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeRole
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType
 import xyz.om3lette.deadlines_api.data.scopes.userScope.model.UserScope
+import xyz.om3lette.deadlines_api.data.scopes.userScope.model.UserScopeId
 import xyz.om3lette.deadlines_api.data.user.model.User
 import java.util.Optional
 
-interface UserScopeRepository : JpaRepository<UserScope, Long> {
+interface UserScopeRepository : JpaRepository<UserScope, UserScopeId> {
     @Query("""
         SELECT
             us.user.id as userId,
