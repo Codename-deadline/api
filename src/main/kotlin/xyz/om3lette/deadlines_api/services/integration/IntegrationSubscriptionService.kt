@@ -4,6 +4,7 @@ import io.grpc.Status
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import xyz.om3lette.deadlines_api.data.common.constraints.DatabaseConstraint
 import xyz.om3lette.deadlines_api.data.integration.bot.enums.Messenger
 import xyz.om3lette.deadlines_api.data.integration.chat.model.Chat
 import xyz.om3lette.deadlines_api.data.integration.chat.model.ChatSubscription
@@ -23,6 +24,7 @@ import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType
 import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.services.permission.PermissionService
 import xyz.om3lette.deadlines_api.util.requirePermissionGrpc
+import xyz.om3lette.deadlines_api.util.jpaRepository.violatesConstraint
 import java.time.Instant
 
 @Service
@@ -145,10 +147,11 @@ class IntegrationSubscriptionService(
             ?: throw grpcException(Status.NOT_FOUND, IntegrationResultKey.CHAT_NOT_FOUND, issuerContext.language)
 
         try {
-            chatSubscriptionRepository.save(
+            chatSubscriptionRepository.saveAndFlush(
                 ChatSubscription(chat, resolvedTargetId, scopeType, Instant.now())
             )
-        } catch (_: DataIntegrityViolationException) {
+        } catch (error: DataIntegrityViolationException) {
+            if (!error.violatesConstraint(DatabaseConstraint.PK_CHAT_SUBSCRIPTIONS)) throw error
             throw grpcException(
                 Status.ALREADY_EXISTS,
                 IntegrationResultKey.SUBSCRIBE_ALREADY_SUBSCRIBED,

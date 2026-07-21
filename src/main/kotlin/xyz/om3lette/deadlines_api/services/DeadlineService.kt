@@ -4,6 +4,7 @@ import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import xyz.om3lette.deadlines_api.data.common.constraints.DatabaseConstraint
 import xyz.om3lette.deadlines_api.configs.properties.DeadlinesProperties
 import xyz.om3lette.deadlines_api.data.common.response.PaginationResponse
 import xyz.om3lette.deadlines_api.data.permissions.dto.DeadlineScope
@@ -28,6 +29,7 @@ import xyz.om3lette.deadlines_api.services.notifications.DeadlineNotificationPla
 import xyz.om3lette.deadlines_api.services.permission.PermissionContext
 import xyz.om3lette.deadlines_api.services.permission.PermissionService
 import xyz.om3lette.deadlines_api.util.jpaRepository.findByIdOr404
+import xyz.om3lette.deadlines_api.util.jpaRepository.violatesConstraint
 import xyz.om3lette.deadlines_api.util.requirePermission
 import java.time.Instant
 import java.time.temporal.ChronoUnit
@@ -141,7 +143,7 @@ class DeadlineService(
         }
 
         try {
-            userScopeRepository.save(
+            userScopeRepository.saveAndFlush(
                 UserScope(
                     newAssignee.user,
                     ScopeType.DEADLINE,
@@ -150,7 +152,8 @@ class DeadlineService(
                     Instant.now()
                 )
             )
-        } catch (_: DataIntegrityViolationException) {
+        } catch (error: DataIntegrityViolationException) {
+            if (!error.violatesConstraint(DatabaseConstraint.PK_USER_SCOPES)) throw error
             throw StatusCodeException(409, ErrorCode.MEMBER_ALREADY_ASSIGNED)
         }
     }

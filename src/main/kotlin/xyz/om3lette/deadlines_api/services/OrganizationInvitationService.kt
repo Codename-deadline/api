@@ -3,6 +3,7 @@ package xyz.om3lette.deadlines_api.services
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
+import xyz.om3lette.deadlines_api.data.common.constraints.DatabaseConstraint
 import org.springframework.transaction.annotation.Transactional
 import xyz.om3lette.deadlines_api.data.common.response.PaginationResponse
 import xyz.om3lette.deadlines_api.data.scopes.organization.enums.InvitationStatus
@@ -25,6 +26,7 @@ import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
 import xyz.om3lette.deadlines_api.services.permission.PermissionService
 import xyz.om3lette.deadlines_api.util.jpaRepository.findByIdOr404
 import xyz.om3lette.deadlines_api.util.requirePermission
+import xyz.om3lette.deadlines_api.util.jpaRepository.violatesConstraint
 import xyz.om3lette.deadlines_api.util.userRepository.findByUsernameIgnoreCaseOr404
 import java.time.Instant
 
@@ -58,8 +60,9 @@ class OrganizationInvitationService(
         )
 
         val invitation = try {
-            organizationInvitationRepository.save(newPendingInvitation(issuer, userToInvite, organization, role))
-        } catch (_: DataIntegrityViolationException) {
+            organizationInvitationRepository.saveAndFlush(newPendingInvitation(issuer, userToInvite, organization, role))
+        } catch (error: DataIntegrityViolationException) {
+            if (!error.violatesConstraint(DatabaseConstraint.UQ_ORGANIZATION_INVITATIONS_PENDING)) throw error
             throw StatusCodeException(400, ErrorCode.INVITATION_ALREADY_INVITED)
         }
 

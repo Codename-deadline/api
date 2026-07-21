@@ -14,9 +14,10 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertAll
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
-import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.data.domain.PageImpl
 import xyz.om3lette.deadlines_api.DomainObjectBuilder
+import xyz.om3lette.deadlines_api.db.constraintViolation
+import xyz.om3lette.deadlines_api.data.common.constraints.DatabaseConstraint
 import xyz.om3lette.deadlines_api.data.permissions.dto.OrganizationScope
 import xyz.om3lette.deadlines_api.data.permissions.dto.PermissionRoleDTO
 import xyz.om3lette.deadlines_api.data.permissions.dto.ThreadScope
@@ -233,7 +234,7 @@ class ThreadServiceTest {
                 )
             } returns Optional.of(dummyUserScopeAlice)
             every { permissionService.canAddAssignees(dummyUserBob, thrScope()) } returns true
-            every { userScopeRepository.save(capture(savedUserScopeSlot)) } returnsArgument 0
+            every { userScopeRepository.saveAndFlush(capture(savedUserScopeSlot)) } returnsArgument 0
         }
 
         @Test
@@ -250,7 +251,7 @@ class ThreadServiceTest {
             assertAll(
                 { assertEquals(400, error.statusCode) },
                 { assertEquals(ErrorCode.INVITATION_INVALID_ROLE, error.code) },
-                { verify(exactly = 0) { userScopeRepository.save(any()) } }
+                { verify(exactly = 0) { userScopeRepository.saveAndFlush(any()) } }
             )
         }
 
@@ -268,7 +269,7 @@ class ThreadServiceTest {
             assertAll(
                 { assertEquals(400, error.statusCode) },
                 { assertEquals(ErrorCode.INVITATION_SELF_INVITE, error.code) },
-                { verify(exactly = 0) { userScopeRepository.save(any()) } }
+                { verify(exactly = 0) { userScopeRepository.saveAndFlush(any()) } }
             )
         }
 
@@ -288,7 +289,7 @@ class ThreadServiceTest {
             assertAll(
                 { assertEquals(404, error.statusCode) },
                 { assertEquals(ErrorCode.THR_NOT_FOUND, error.code) },
-                { verify(exactly = 0) { userScopeRepository.save(any()) } }
+                { verify(exactly = 0) { userScopeRepository.saveAndFlush(any()) } }
             )
         }
 
@@ -314,7 +315,7 @@ class ThreadServiceTest {
             assertAll(
                 { assertEquals(400, error.statusCode) },
                 { assertEquals(ErrorCode.INVITATION_NOT_ORG_MEMBER, error.code) },
-                { verify(exactly = 0) { userScopeRepository.save(any()) } }
+                { verify(exactly = 0) { userScopeRepository.saveAndFlush(any()) } }
             )
         }
 
@@ -334,13 +335,14 @@ class ThreadServiceTest {
             assertAll(
                 { assertEquals(403, error.statusCode) },
                 { assertEquals(ErrorCode.AUTH_INSUFFICIENT_PERMISSIONS, error.code) },
-                { verify(exactly = 0) { userScopeRepository.save(any()) } }
+                { verify(exactly = 0) { userScopeRepository.saveAndFlush(any()) } }
             )
         }
 
         @Test
         fun `already assigned member throws 409`() {
-            every { userScopeRepository.save(any()) } throws DataIntegrityViolationException("duplicate assignment")
+            every { userScopeRepository.saveAndFlush(any()) } throws
+                constraintViolation(DatabaseConstraint.PK_USER_SCOPES)
 
             val error = assertThrows<StatusCodeException> {
                 threadService.addAssignee(

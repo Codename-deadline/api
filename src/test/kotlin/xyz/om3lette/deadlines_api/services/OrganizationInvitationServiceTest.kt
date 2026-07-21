@@ -15,6 +15,8 @@ import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
+import xyz.om3lette.deadlines_api.db.constraintViolation
+import xyz.om3lette.deadlines_api.data.common.constraints.DatabaseConstraint
 import xyz.om3lette.deadlines_api.DomainObjectBuilder
 import xyz.om3lette.deadlines_api.data.scopes.organization.enums.InvitationStatus
 import xyz.om3lette.deadlines_api.data.scopes.organization.enums.OrganizationType
@@ -28,6 +30,7 @@ import xyz.om3lette.deadlines_api.data.scopes.userScope.model.UserScope
 import xyz.om3lette.deadlines_api.data.scopes.userScope.repo.UserScopeRepository
 import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.data.user.repo.UserRepository
+import xyz.om3lette.deadlines_api.exceptions.enums.ErrorCode
 import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
 import xyz.om3lette.deadlines_api.services.permission.PermissionService
 import java.util.Optional
@@ -104,7 +107,7 @@ class OrganizationInvitationServiceTest {
         fun commonHappyStubs() {
             savedInvitationSlot.clear()
 
-            every { organizationInvitationRepository.save(capture(savedInvitationSlot)) } returnsArgument 0
+            every { organizationInvitationRepository.saveAndFlush(capture(savedInvitationSlot)) } returnsArgument 0
         }
 
         @Test
@@ -213,6 +216,20 @@ class OrganizationInvitationServiceTest {
                 { assertEquals(dummyOrganization.id, savedInvitation.organization.id) },
                 { assertEquals(ScopeRole.ORG_MEMBER, savedInvitation.role) }
             )
+        }
+
+        @Test
+        fun `concurrent pending invitation throws StatusCodeException 400`() {
+            every { organizationInvitationRepository.saveAndFlush(any()) } throws
+                constraintViolation(DatabaseConstraint.UQ_ORGANIZATION_INVITATIONS_PENDING)
+
+            val error = assertThrows<StatusCodeException> {
+                organizationInvitationService.createInvitation(
+                    dummyUserBob, dummyOrganization.id, dummyUserAlice.username, ScopeRole.ORG_MEMBER
+                )
+            }
+
+            assertEquals(ErrorCode.INVITATION_ALREADY_INVITED, error.code)
         }
     }
 

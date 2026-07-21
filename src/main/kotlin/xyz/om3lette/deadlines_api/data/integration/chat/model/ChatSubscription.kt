@@ -8,7 +8,10 @@ import jakarta.persistence.Id
 import jakarta.persistence.IdClass
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
+import jakarta.persistence.PostLoad
+import jakarta.persistence.PostPersist
 import jakarta.persistence.Table
+import org.springframework.data.domain.Persistable
 import xyz.om3lette.deadlines_api.data.scopes.userScope.enums.ScopeType
 import java.time.Instant
 
@@ -32,4 +35,18 @@ data class ChatSubscription(
 
     @Column(nullable = false, columnDefinition = "TIMESTAMP WITH TIME ZONE")
     val subscribedAt: Instant
-)
+) : Persistable<ChatSubscriptionId> {
+    @field:Transient
+    private var newEntity = true
+
+    override fun getId() = ChatSubscriptionId(chat.id, scopeId, scopeType)
+
+    override fun isNew() = newEntity
+
+    @PostLoad
+    @PostPersist
+    private fun markNotNew() {
+        newEntity = false
+    }
+}
+

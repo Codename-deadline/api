@@ -159,6 +159,22 @@ object DatabaseObjectBuilder {
         )
     }
 
+    fun insertUserMessengerAccount(
+        jdbc: JdbcTemplate,
+        id: Long,
+        userId: Long,
+        accountId: Long,
+        messenger: Messenger = Messenger.TELEGRAM
+    ) {
+        jdbc.update(
+            "INSERT INTO user_messenger_accounts (id, user_id, account_id, messenger) VALUES (?, ?, ?, ?)",
+            id,
+            userId,
+            accountId,
+            messenger.name
+        )
+    }
+
     fun insertOrganizationInvitation(
         jdbc: JdbcTemplate,
         id: Long,

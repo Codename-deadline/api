@@ -8,7 +8,8 @@ import io.mockk.runs
 import io.mockk.slot
 import io.mockk.verify
 import org.junit.jupiter.api.Test
-import org.springframework.dao.DataIntegrityViolationException
+import xyz.om3lette.deadlines_api.db.constraintViolation
+import xyz.om3lette.deadlines_api.data.common.constraints.DatabaseConstraint
 import xyz.om3lette.deadlines_api.data.integration.bot.enums.Language
 import xyz.om3lette.deadlines_api.data.integration.bot.enums.Messenger
 import xyz.om3lette.deadlines_api.data.integration.bot.repo.BotRepository
@@ -22,7 +23,6 @@ import xyz.om3lette.deadlines_api.services.permission.PermissionService
 import java.util.Optional
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-import kotlin.test.assertTrue
 
 class IntegrationChatServiceTest {
     private val userMessengerAccountRepository: UserMessengerAccountRepository = mockk()
@@ -55,7 +55,7 @@ class IntegrationChatServiceTest {
         everyAccountExists()
         every { permissionService.canManageIntegrationChat(user, true) } returns true
         every { botRepository.findByBotIdAndMessenger(IntegrationTestFixtures.BOT_ID, Messenger.TELEGRAM) } returns Optional.of(bot)
-        every { chatRepository.save(capture(savedChat)) } answers { savedChat.captured }
+        every { chatRepository.saveAndFlush(capture(savedChat)) } answers { savedChat.captured }
 
         val result = service.registerChat(
             IntegrationTestFixtures.BOT_ID,
@@ -84,7 +84,7 @@ class IntegrationChatServiceTest {
         } returns Optional.of(adminAccount)
         every { permissionService.canManageIntegrationChat(admin, false) } returns true
         every { botRepository.findByBotIdAndMessenger(IntegrationTestFixtures.BOT_ID, Messenger.TELEGRAM) } returns Optional.of(bot)
-        every { chatRepository.save(any()) } answers { firstArg() }
+        every { chatRepository.saveAndFlush(any()) } answers { firstArg() }
 
         val result = service.registerChat(
             IntegrationTestFixtures.BOT_ID,
@@ -104,7 +104,7 @@ class IntegrationChatServiceTest {
         everyAccountExists()
         every { permissionService.canManageIntegrationChat(user, true) } returns true
         every { botRepository.findByBotIdAndMessenger(IntegrationTestFixtures.BOT_ID, Messenger.TELEGRAM) } returns Optional.of(bot)
-        every { chatRepository.save(any()) } answers { firstArg() }
+        every { chatRepository.saveAndFlush(any()) } answers { firstArg() }
 
         val result = service.registerChat(
             IntegrationTestFixtures.BOT_ID,
@@ -129,7 +129,7 @@ class IntegrationChatServiceTest {
         every {
             botRepository.findByBotIdAndMessenger(IntegrationTestFixtures.BOT_ID, Messenger.TELEGRAM)
         } returns Optional.of(bot)
-        every { chatRepository.save(capture(savedChat)) } answers { savedChat.captured }
+        every { chatRepository.saveAndFlush(capture(savedChat)) } answers { savedChat.captured }
 
         service.registerChat(
             IntegrationTestFixtures.BOT_ID,
@@ -220,7 +220,8 @@ class IntegrationChatServiceTest {
         every {
             botRepository.findByBotIdAndMessenger(IntegrationTestFixtures.BOT_ID, Messenger.TELEGRAM)
         } returns Optional.of(bot)
-        every { chatRepository.save(any()) } throws DataIntegrityViolationException("duplicate")
+        every { chatRepository.saveAndFlush(any()) } throws
+            constraintViolation(DatabaseConstraint.UQ_CHATS_MESSENGER_CHAT_ID_MESSENGER)
 
         val exception = assertFailsWith<GrpcKeyLocaleException> {
             service.registerChat(

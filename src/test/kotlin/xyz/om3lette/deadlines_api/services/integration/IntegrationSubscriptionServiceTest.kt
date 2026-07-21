@@ -5,8 +5,9 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
 import org.junit.jupiter.api.Test
-import org.springframework.dao.DataIntegrityViolationException
 import xyz.om3lette.deadlines_api.DomainObjectBuilder
+import xyz.om3lette.deadlines_api.db.constraintViolation
+import xyz.om3lette.deadlines_api.data.common.constraints.DatabaseConstraint
 import xyz.om3lette.deadlines_api.data.integration.bot.enums.Language
 import xyz.om3lette.deadlines_api.data.integration.bot.enums.Messenger
 import xyz.om3lette.deadlines_api.data.integration.chat.model.ChatSubscription
@@ -70,7 +71,7 @@ class IntegrationSubscriptionServiceTest {
         every { permissionService.hasAccess(user, any<OrganizationScope>()) } returns true
         everyChatExists()
         every {
-            chatSubscriptionRepository.save(capture(savedSubscription))
+            chatSubscriptionRepository.saveAndFlush(capture(savedSubscription))
         } answers { savedSubscription.captured }
 
         val result = service.subscribeToOrganization(
@@ -93,7 +94,7 @@ class IntegrationSubscriptionServiceTest {
         every { threadRepository.findById(thread.id) } returns Optional.of(thread)
         every { permissionService.hasAccess(user, any<ThreadScope>()) } returns true
         everyChatExists()
-        every { chatSubscriptionRepository.save(capture(savedSubscription)) } answers { savedSubscription.captured }
+        every { chatSubscriptionRepository.saveAndFlush(capture(savedSubscription)) } answers { savedSubscription.captured }
 
         val result = service.subscribeToThread(
             IntegrationTestFixtures.ISSUER_ACCOUNT_ID,
@@ -114,7 +115,7 @@ class IntegrationSubscriptionServiceTest {
         every { deadlineRepository.findById(deadline.id) } returns Optional.of(deadline)
         every { permissionService.hasAccess(user, any<DeadlineScope>()) } returns true
         everyChatExists()
-        every { chatSubscriptionRepository.save(capture(savedSubscription)) } answers { savedSubscription.captured }
+        every { chatSubscriptionRepository.saveAndFlush(capture(savedSubscription)) } answers { savedSubscription.captured }
 
         val result = service.subscribeToDeadline(
             IntegrationTestFixtures.ISSUER_ACCOUNT_ID,
@@ -305,7 +306,8 @@ class IntegrationSubscriptionServiceTest {
         every { organizationRepository.findById(organization.id) } returns Optional.of(organization)
         every { permissionService.hasAccess(user, any<OrganizationScope>()) } returns true
         everyChatExists()
-        every { chatSubscriptionRepository.save(any()) } throws DataIntegrityViolationException("duplicate")
+        every { chatSubscriptionRepository.saveAndFlush(any()) } throws
+            constraintViolation(DatabaseConstraint.PK_CHAT_SUBSCRIPTIONS)
 
         val exception = assertFailsWith<GrpcKeyLocaleException> {
             service.subscribeToOrganization(

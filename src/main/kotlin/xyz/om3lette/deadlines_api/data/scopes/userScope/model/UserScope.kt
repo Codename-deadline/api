@@ -3,6 +3,7 @@ package xyz.om3lette.deadlines_api.data.scopes.userScope.model
 import jakarta.persistence.*
 import org.hibernate.annotations.OnDelete
 import org.hibernate.annotations.OnDeleteAction
+import org.springframework.data.domain.Persistable
 
 import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.data.scopes.userScope.dto.ScopeRoleDTO
@@ -36,7 +37,20 @@ data class UserScope(
 
     @Column(nullable = false, columnDefinition = "TIMESTAMP WITH TIME ZONE")
     val assignedAt: Instant
-) {
+) : Persistable<UserScopeId> {
+    @field:Transient
+    private var newEntity = true
+
+    override fun getId() = UserScopeId(user.id, scopeType, scopeId)
+
+    override fun isNew() = newEntity
+
+    @PostLoad
+    @PostPersist
+    private fun markNotNew() {
+        newEntity = false
+    }
+
     fun toMap() = mapOf(
         "user" to user.toMap(),
         "role" to role,

@@ -4,7 +4,6 @@ import io.grpc.Metadata
 import io.grpc.StatusException
 import io.grpc.Status
 import org.slf4j.LoggerFactory
-import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.grpc.server.exception.GrpcExceptionHandler
 import org.springframework.stereotype.Component
 import xyz.om3lette.deadlines_api.exceptions.type.GrpcKeyLocaleException

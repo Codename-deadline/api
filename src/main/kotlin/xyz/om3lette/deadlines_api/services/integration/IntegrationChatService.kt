@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import xyz.om3lette.deadlines_api.data.common.constraints.DatabaseConstraint
 import xyz.om3lette.deadlines_api.data.integration.bot.enums.Language
 import xyz.om3lette.deadlines_api.data.integration.bot.enums.Messenger
 import xyz.om3lette.deadlines_api.data.integration.bot.repo.BotRepository
@@ -15,6 +16,7 @@ import xyz.om3lette.deadlines_api.data.integration.common.enums.IntegrationResul
 import xyz.om3lette.deadlines_api.data.integration.common.response.IntegrationResult
 import xyz.om3lette.deadlines_api.data.integration.constraints.IntegrationConstraints
 import xyz.om3lette.deadlines_api.data.integration.messengerAccount.repo.UserMessengerAccountRepository
+import xyz.om3lette.deadlines_api.util.jpaRepository.violatesConstraint
 import java.time.Instant
 
 @Service
@@ -63,7 +65,7 @@ class IntegrationChatService(
         }
 
         try {
-            chatRepository.save(
+            chatRepository.saveAndFlush(
                 Chat(
                     0,
                     messengerChatId,
@@ -74,7 +76,8 @@ class IntegrationChatService(
                     Instant.now()
                 )
             )
-        } catch (_: DataIntegrityViolationException) {
+        } catch (error: DataIntegrityViolationException) {
+            if (!error.violatesConstraint(DatabaseConstraint.UQ_CHATS_MESSENGER_CHAT_ID_MESSENGER)) throw error
             throw grpcException(Status.ALREADY_EXISTS, IntegrationResultKey.CHAT_ALREADY_REGISTERED, language)
         }
 

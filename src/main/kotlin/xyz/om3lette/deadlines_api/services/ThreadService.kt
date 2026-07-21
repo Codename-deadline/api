@@ -5,6 +5,7 @@ import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import xyz.om3lette.deadlines_api.data.common.constraints.DatabaseConstraint
 import xyz.om3lette.deadlines_api.data.common.response.PaginationResponse
 import xyz.om3lette.deadlines_api.data.permissions.dto.OrganizationScope
 import xyz.om3lette.deadlines_api.data.permissions.dto.ThreadScope
@@ -27,6 +28,7 @@ import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
 import xyz.om3lette.deadlines_api.services.permission.PermissionContext
 import xyz.om3lette.deadlines_api.services.permission.PermissionService
 import xyz.om3lette.deadlines_api.util.jpaRepository.findByIdOr404
+import xyz.om3lette.deadlines_api.util.jpaRepository.violatesConstraint
 import xyz.om3lette.deadlines_api.util.page.toPaginationResponse
 import xyz.om3lette.deadlines_api.util.requirePermission
 import java.time.Instant
@@ -116,7 +118,7 @@ class ThreadService(
         )
 
         try {
-            userScopeRepository.save(
+            userScopeRepository.saveAndFlush(
                 UserScope(
                     newAssignee.user,
                     ScopeType.THREAD,
@@ -125,7 +127,8 @@ class ThreadService(
                     Instant.now()
                 )
             )
-        } catch (_: DataIntegrityViolationException) {
+        } catch (error: DataIntegrityViolationException) {
+            if (!error.violatesConstraint(DatabaseConstraint.PK_USER_SCOPES)) throw error
             throw StatusCodeException(409, ErrorCode.MEMBER_ALREADY_ASSIGNED)
         }
     }
