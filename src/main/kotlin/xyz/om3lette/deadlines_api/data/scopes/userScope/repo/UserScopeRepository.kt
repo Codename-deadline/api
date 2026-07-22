@@ -81,6 +81,29 @@ interface UserScopeRepository : JpaRepository<UserScope, UserScopeId> {
     ): Page<UserScope>
 
     @Query("""
+        SELECT us.user.id FROM UserScope us
+        WHERE us.scopeId = :organizationId
+            AND us.scopeType = 'ORG'
+            AND us.role = 'ORG_OWNER'
+    """)
+    fun findOrganizationOwnerId(organizationId: Long): Long?
+
+    @Query("""
+        SELECT COUNT(us) > 0 FROM UserScope us
+        WHERE us.user.id != :ownerId
+            AND (
+                (us.scopeType = 'ORG' AND us.scopeId = :organizationId)
+                OR (us.scopeType = 'THR' AND us.scopeId IN (
+                    SELECT t.id FROM Thread t WHERE t.organization.id = :organizationId
+                ))
+                OR (us.scopeType = 'DDL' AND us.scopeId IN (
+                    SELECT d.id FROM Deadline d WHERE d.thread.organization.id = :organizationId
+                ))
+            )
+    """)
+    fun existsOrganizationTreeScopeByUserIdNot(organizationId: Long, ownerId: Long): Boolean
+
+    @Query("""
         SELECT COUNT(us) FROM UserScope us
         WHERE us.scopeId = :deadlineId
             AND us.scopeType = :scopeType

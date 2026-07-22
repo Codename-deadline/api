@@ -8,6 +8,14 @@ import xyz.om3lette.deadlines_api.data.scopes.organization.model.OrganizationInv
 
 interface OrganizationInvitationRepository : JpaRepository<OrganizationInvitation, Long> {
     @Query("""
+        SELECT COUNT(i) > 0
+        FROM OrganizationInvitation i
+        WHERE i.organization.id = :organizationId
+            AND i.status = 'PENDING'
+    """)
+    fun existsPendingByOrganizationId(organizationId: Long): Boolean
+
+    @Query("""
         SELECT i
         FROM OrganizationInvitation i
         WHERE i.invitedUser.id = :userId

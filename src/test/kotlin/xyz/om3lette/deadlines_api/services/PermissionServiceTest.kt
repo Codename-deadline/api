@@ -291,6 +291,11 @@ class PermissionServiceTest {
         )
 
         @Test
+        fun canChangeOrganizationVisibility() = testForMinAcceptableRoleRaw(
+            ScopeRole.ORG_OWNER, organization.id, permissionService::canChangeOrganizationVisibility
+        )
+
+        @Test
         fun canManageOrganizationMembers() = testForMinAcceptableRole(
             ScopeRole.ORG_ADMIN, orgScope(), permissionService::canAddAssignees
         )

@@ -85,6 +85,11 @@ class PermissionService(
             role.isEqualOrHigherThan(ScopeRole.ORG_OWNER)
         }
 
+    fun canChangeOrganizationVisibility(issuer: User, organizationId: Long): Boolean =
+        issuer.isAdminOrHasRoleAnd(roleForOrganizationLazy(issuer, organizationId)) { role ->
+            role.isEqualOrHigherThan(ScopeRole.ORG_OWNER)
+        }
+
     private fun canManageOrganizationMembers(issuer: User, organizationId: Long): Boolean =
         issuer.isAdminOrHasRoleAnd(roleForOrganizationLazy(issuer, organizationId)) { role ->
             role.isEqualOrHigherThan(ScopeRole.ORG_ADMIN)

@@ -49,6 +49,10 @@ class OrganizationService(
         type: OrganizationType,
         usernameRolePairToInvite: UsernameRolePairList
     ): OrganizationCreatedResponse {
+        if (type == OrganizationType.PERSONAL && usernameRolePairToInvite.usernameRolePairs.isNotEmpty()) {
+            throw StatusCodeException(400, ErrorCode.INVITATION_PERSONAL_ORG)
+        }
+
         val organization = organizationRepository.save(
             Organization(
                 0, title, description, type, Instant.now()
@@ -167,6 +171,37 @@ class OrganizationService(
         if (title != null) organization.title = title
         if (description != null) organization.description = description
 
+        organizationRepository.save(organization)
+    }
+
+    @Transactional
+    fun changeOrganizationVisibility(
+        issuer: User,
+        organizationId: Long,
+        type: OrganizationType
+    ) {
+        val organization = organizationRepository.findByIdForUpdate(organizationId)
+            ?: throw StatusCodeException(404, ErrorCode.ORG_NOT_FOUND)
+
+        requirePermission(
+            permissionService.canChangeOrganizationVisibility(issuer, organizationId)
+        )
+
+        if (organization.type == type) return
+
+        if (type == OrganizationType.PERSONAL) {
+            val ownerId = userScopeRepository.findOrganizationOwnerId(organizationId)
+                ?: throw StatusCodeException(400, ErrorCode.ORG_PERSONAL_CONVERSION_INVALID_MEMBERS)
+
+            if (userScopeRepository.existsOrganizationTreeScopeByUserIdNot(organizationId, ownerId)) {
+                throw StatusCodeException(400, ErrorCode.ORG_PERSONAL_CONVERSION_INVALID_MEMBERS)
+            }
+            if (organizationInvitationRepository.existsPendingByOrganizationId(organizationId)) {
+                throw StatusCodeException(400, ErrorCode.ORG_PERSONAL_CONVERSION_PENDING_INVITATIONS)
+            }
+        }
+
+        organization.type = type
         organizationRepository.save(organization)
     }
 

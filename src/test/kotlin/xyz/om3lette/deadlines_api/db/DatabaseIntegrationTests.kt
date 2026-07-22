@@ -5,6 +5,8 @@ import jakarta.persistence.EntityManager
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.EnumSource
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.annotation.Import
@@ -245,6 +247,40 @@ class DatabaseIntegrationTests {
             setOf(ScopeType.ORGANIZATION, ScopeType.THREAD, ScopeType.DEADLINE),
             userScopeRepository.findUserRolesInScope(1011, 2006, 2101, 2201).map { it.scopeType }.toSet()
         )
+    }
+
+    @ParameterizedTest
+    @EnumSource(ScopeType::class)
+    @Transactional
+    fun `organization tree scope query detects non-owner at every scope level`(scopeType: ScopeType) {
+        val ownerId = 1015L
+        val otherUserId = 1016L
+        val organizationId = 2009L
+        val threadId = 2102L
+        val deadlineId = 2202L
+
+        insertUser(jdbc, ownerId, "personal-conversion-owner")
+        insertUser(jdbc, otherUserId, "personal-conversion-member")
+
+        insertOrganization(jdbc, organizationId)
+        insertThread(jdbc, threadId, organizationId)
+        insertDeadline(jdbc, deadlineId, threadId)
+
+        insertUserScope(jdbc, ownerId, ScopeType.ORGANIZATION, organizationId, ScopeRole.ORG_OWNER)
+        insertUserScope(jdbc, ownerId, ScopeType.THREAD, threadId, ScopeRole.THR_OWNER)
+        insertUserScope(jdbc, ownerId, ScopeType.DEADLINE, deadlineId, ScopeRole.DDL_ASSIGNEE)
+
+        assertEquals(ownerId, userScopeRepository.findOrganizationOwnerId(organizationId))
+        assertFalse(userScopeRepository.existsOrganizationTreeScopeByUserIdNot(organizationId, ownerId))
+
+        val (scopeId, role) = when (scopeType) {
+            ScopeType.ORGANIZATION -> organizationId to ScopeRole.ORG_MEMBER
+            ScopeType.THREAD -> threadId to ScopeRole.THR_ASSIGNEE
+            ScopeType.DEADLINE -> deadlineId to ScopeRole.DDL_ASSIGNEE
+        }
+        insertUserScope(jdbc, otherUserId, scopeType, scopeId, role)
+
+        assertTrue(userScopeRepository.existsOrganizationTreeScopeByUserIdNot(organizationId, ownerId))
     }
 
     @Test

@@ -38,12 +38,14 @@ class OrganizationInvitationService(
     private val organizationInvitationRepository: OrganizationInvitationRepository,
     private val permissionService: PermissionService
 ) {
+    @Transactional
     fun createInvitation(issuer: User, organizationId: Long, usernameToInvite: String, role: ScopeRole): InvitationCreatedResponse {
         if (role == ScopeRole.ORG_OWNER || !role.canBeAssignedInScope(ScopeType.ORGANIZATION)) {
             throw StatusCodeException(400, ErrorCode.INVITATION_INVALID_ROLE)
         }
 
-        val organization = organizationRepository.findByIdOr404(organizationId, ErrorCode.ORG_NOT_FOUND)
+        val organization = organizationRepository.findByIdForUpdate(organizationId)
+            ?: throw StatusCodeException(404, ErrorCode.ORG_NOT_FOUND)
         if (organization.type == OrganizationType.PERSONAL) {
             throw StatusCodeException(400, ErrorCode.INVITATION_PERSONAL_ORG)
         }
@@ -123,12 +125,23 @@ class OrganizationInvitationService(
             throw StatusCodeException(400, ErrorCode.INVITATION_ALREADY_ANSWERED)
         }
 
+        val organization = if (newStatus == InvitationStatus.ACCEPTED) {
+            organizationRepository.findByIdForUpdate(organizationInvitation.organization.id)
+                ?.also {
+                    if (it.type == OrganizationType.PERSONAL) {
+                        throw StatusCodeException(400, ErrorCode.INVITATION_PERSONAL_ORG)
+                    }
+                }
+                ?: throw StatusCodeException(404, ErrorCode.ORG_NOT_FOUND)
+        } else {
+            null
+        }
+
         organizationInvitation.status = newStatus
         organizationInvitation.answeredAt = Instant.now()
         organizationInvitationRepository.save(organizationInvitation)
 
-        if (newStatus == InvitationStatus.ACCEPTED) {
-            val organization = organizationInvitation.organization
+        if (organization != null) {
             userScopeRepository.save(
                 UserScope(
                     userAcceptingInvitation,

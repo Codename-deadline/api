@@ -40,6 +40,8 @@ enum class ErrorCode(val code: String) {
     INVITATION_SELF_INVITE("invitation.self-invite"),
 
     ORG_NOT_FOUND("organization.not-found"),
+    ORG_PERSONAL_CONVERSION_INVALID_MEMBERS("organization.personal-conversion.invalid-members"),
+    ORG_PERSONAL_CONVERSION_PENDING_INVITATIONS("organization.personal-conversion.pending-invitations"),
 
     THR_NOT_FOUND("thread.not-found"),
 

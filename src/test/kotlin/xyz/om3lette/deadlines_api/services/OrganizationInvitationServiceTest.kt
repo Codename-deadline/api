@@ -91,7 +91,7 @@ class OrganizationInvitationServiceTest {
 
         every { permissionService.canSendOrganizationInvitation(any(), any()) } returns true
 
-        every { organizationRepository.findById(dummyOrganization.id) } returns Optional.of(dummyOrganization)
+        every { organizationRepository.findByIdForUpdate(dummyOrganization.id) } returns dummyOrganization
 
         val bobUsername = dummyUserBob.username
         val aliceUsername = dummyUserAlice.username
@@ -144,7 +144,7 @@ class OrganizationInvitationServiceTest {
 
         @Test
         fun `organization not found throws StatusCodeException 404`() {
-            every { organizationRepository.findById(1) } returns Optional.empty()
+            every { organizationRepository.findByIdForUpdate(1) } returns null
 
             val res = assertThrows<StatusCodeException> {
                 organizationInvitationService.createInvitation(
@@ -349,6 +349,27 @@ class OrganizationInvitationServiceTest {
                 { assertEquals(dummyOrganization.id, savedUserScope.scopeId) },
                 { assertEquals(dummyUserAlice.id, savedUserScope.user.id) },
                 { assertEquals(dummyInvitation.role, savedUserScope.role) },
+            )
+        }
+
+        @Test
+        fun `accepting an invitation to a personal organization is rejected`() {
+            dummyOrganization.type = OrganizationType.PERSONAL
+
+            val error = assertThrows<StatusCodeException> {
+                organizationInvitationService.resolveInvitation(
+                    dummyUserAlice,
+                    0,
+                    InvitationStatus.ACCEPTED
+                )
+            }
+
+            assertAll(
+                { assertEquals(400, error.statusCode) },
+                { assertEquals(ErrorCode.INVITATION_PERSONAL_ORG, error.code) },
+                { assertEquals(InvitationStatus.PENDING, dummyInvitation.status) },
+                { assertFalse(savedInvitationSlot.isCaptured) },
+                { assertFalse(savedUserScopeSlot.isCaptured) }
             )
         }
     }

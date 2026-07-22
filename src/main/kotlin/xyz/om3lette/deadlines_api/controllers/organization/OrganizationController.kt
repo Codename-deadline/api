@@ -19,13 +19,14 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import xyz.om3lette.deadlines_api.data.common.constraints.PaginationConstraints
+import xyz.om3lette.deadlines_api.data.scopes.organization.request.ChangeOrganizationVisibilityRequest
 import xyz.om3lette.deadlines_api.data.scopes.organization.request.CreateOrganizationRequest
 import xyz.om3lette.deadlines_api.data.scopes.common.dto.UsernameRolePairList
 import xyz.om3lette.deadlines_api.data.scopes.organization.request.PatchOrganizationRequest
 import xyz.om3lette.deadlines_api.data.user.constraints.UserConstraints
 import xyz.om3lette.deadlines_api.data.user.model.User
 import xyz.om3lette.deadlines_api.services.OrganizationService
-import kotlin.math.min
+
 
 @SecurityRequirement(name = "bearerAuth")
 @RestController
@@ -75,6 +76,14 @@ class OrganizationController(
         @PathVariable @Positive organizationId: Long,
         @Valid @RequestBody request: PatchOrganizationRequest
     ) = organizationService.patchOrganization(user, organizationId, request.title, request.description)
+
+    @PatchMapping("/{organizationId}/change-visibility")
+    @Operation(summary = "Change organization visibility")
+    fun changeOrganizationVisibility(
+        @AuthenticationPrincipal user: User,
+        @PathVariable @Positive organizationId: Long,
+        @Valid @RequestBody request: ChangeOrganizationVisibilityRequest
+    ) = organizationService.changeOrganizationVisibility(user, organizationId, request.type)
 
     @DeleteMapping("/{organizationId}/members/{memberUsername}")
     @Operation(summary = "Remove member")
