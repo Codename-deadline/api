@@ -298,6 +298,7 @@ class DeadlineService(
         requirePermission(
             permissionService.canUpdate(issuer, DeadlineScope(deadline))
         )
+        val wasCompleted = deadline.isCompleted
 
         if (due != null) {
             val now = Instant.now()
@@ -313,14 +314,18 @@ class DeadlineService(
                 )
             }
             deadline.due = due
-            deadlineNotificationPlannerService.reconcileNotifications(deadline)
         }
-
 
         if (title != null) deadline.title = title
         if (description != null) deadline.description = description
-        // TODO: Create/remove notifications?
         if (isCompleted != null) deadline.isCompleted = isCompleted
+
+        // This by design will not create notifications if due date of a completed deadline is moved further (!)
+        when {
+            !wasCompleted && isCompleted == true -> deadlineNotificationPlannerService.deleteNotifications(deadline)
+            wasCompleted && isCompleted == false -> deadlineNotificationPlannerService.reconcileNotifications(deadline)
+            due != null && !deadline.isCompleted -> deadlineNotificationPlannerService.reconcileNotifications(deadline)
+        }
 
         deadlineRepository.save(deadline)
     }

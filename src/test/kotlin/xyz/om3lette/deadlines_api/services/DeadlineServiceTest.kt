@@ -1,7 +1,9 @@
 package xyz.om3lette.deadlines_api.services
 
 import io.mockk.CapturingSlot
+import io.mockk.Runs
 import io.mockk.every
+import io.mockk.just
 import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.verify
@@ -33,6 +35,7 @@ import xyz.om3lette.deadlines_api.exceptions.enums.ErrorCode
 import xyz.om3lette.deadlines_api.exceptions.type.StatusCodeException
 import xyz.om3lette.deadlines_api.services.notifications.DeadlineNotificationPlannerService
 import xyz.om3lette.deadlines_api.services.permission.PermissionService
+import java.time.Instant
 import java.util.Optional
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -255,6 +258,97 @@ class DeadlineServiceTest {
 
             verify(exactly = 1) { permissionService.hasAccess(null, deadlineScope()) }
             verify(exactly = 1) { userScopeRepository.findAllDeadlineAssignees(deadline.id) }
+        }
+    }
+
+    @Nested
+    inner class PatchDeadline {
+        @BeforeEach
+        fun commonHappyStubs() {
+            every { permissionService.canUpdate(issuer, deadlineScope()) } returns true
+            every { deadlineRepository.save(deadline) } returns deadline
+            every { deadlineNotificationPlannerService.deleteNotifications(deadline) } just Runs
+            every { deadlineNotificationPlannerService.reconcileNotifications(deadline, any()) } just Runs
+        }
+
+        @Test
+        fun `completing deadline deletes all scheduled notifications`() {
+            deadlineService.patchDeadline(issuer, deadline.id, null, null, true, null)
+
+            assertTrue(deadline.isCompleted)
+            verify(exactly = 1) { deadlineNotificationPlannerService.deleteNotifications(deadline) }
+            verify(exactly = 0) { deadlineNotificationPlannerService.reconcileNotifications(any(), any()) }
+        }
+
+        @Test
+        fun `reopening deadline reschedules notifications`() {
+            deadline.isCompleted = true
+
+            deadlineService.patchDeadline(issuer, deadline.id, null, null, false, null)
+
+            assertEquals(false, deadline.isCompleted)
+            verify(exactly = 1) { deadlineNotificationPlannerService.reconcileNotifications(deadline, any()) }
+            verify(exactly = 0) { deadlineNotificationPlannerService.deleteNotifications(any()) }
+        }
+
+        @Test
+        fun `changing due date on active deadline reschedules notifications`() {
+            val newDue = Instant.now().plusSeconds(60 * 60)
+
+            deadlineService.patchDeadline(issuer, deadline.id, null, null, null, newDue)
+
+            assertEquals(newDue, deadline.due)
+            verify(exactly = 1) { deadlineNotificationPlannerService.reconcileNotifications(deadline, any()) }
+            verify(exactly = 0) { deadlineNotificationPlannerService.deleteNotifications(any()) }
+        }
+
+        @Test
+        fun `changing due date on completed deadline does not schedule notifications`() {
+            deadline.isCompleted = true
+            val newDue = Instant.now().plusSeconds(60 * 60)
+
+            deadlineService.patchDeadline(issuer, deadline.id, null, null, null, newDue)
+
+            assertEquals(newDue, deadline.due)
+            verify(exactly = 0) { deadlineNotificationPlannerService.reconcileNotifications(any(), any()) }
+            verify(exactly = 0) { deadlineNotificationPlannerService.deleteNotifications(any()) }
+        }
+
+        @Test
+        fun `changing due date while completing only deletes notifications`() {
+            val newDue = Instant.now().plusSeconds(60 * 60)
+
+            deadlineService.patchDeadline(issuer, deadline.id, null, null, true, newDue)
+
+            assertAll(
+                { assertEquals(newDue, deadline.due) },
+                { assertTrue(deadline.isCompleted) },
+                { verify(exactly = 1) { deadlineNotificationPlannerService.deleteNotifications(deadline) } },
+                { verify(exactly = 0) { deadlineNotificationPlannerService.reconcileNotifications(any(), any()) } }
+            )
+        }
+
+        @Test
+        fun `changing due date while reopening reschedules once`() {
+            deadline.isCompleted = true
+            val newDue = Instant.now().plusSeconds(60 * 60)
+
+            deadlineService.patchDeadline(issuer, deadline.id, null, null, false, newDue)
+
+            assertAll(
+                { assertEquals(newDue, deadline.due) },
+                { assertEquals(false, deadline.isCompleted) },
+                { verify(exactly = 1) { deadlineNotificationPlannerService.reconcileNotifications(deadline, any()) } },
+                { verify(exactly = 0) { deadlineNotificationPlannerService.deleteNotifications(any()) } }
+            )
+        }
+
+        @Test
+        fun `keeping active deadline incomplete does not duplicate notifications`() {
+            deadlineService.patchDeadline(issuer, deadline.id, null, null, false, null)
+
+            verify(exactly = 0) { deadlineNotificationPlannerService.reconcileNotifications(any(), any()) }
+            verify(exactly = 0) { deadlineNotificationPlannerService.deleteNotifications(any()) }
         }
     }
 }

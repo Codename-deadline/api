@@ -3,6 +3,8 @@ package xyz.om3lette.deadlines_api.data.notifications.repo
 import jakarta.persistence.LockModeType
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Lock
+import org.springframework.data.jpa.repository.Modifying
+import org.springframework.data.jpa.repository.Query
 import xyz.om3lette.deadlines_api.data.notifications.enums.NotificationStatus
 import xyz.om3lette.deadlines_api.data.notifications.model.DeadlineNotification
 import xyz.om3lette.deadlines_api.data.scopes.deadline.model.Deadline
@@ -16,4 +18,8 @@ interface DeadlineNotificationRepository : JpaRepository<DeadlineNotification, L
         deadline: Deadline,
         status: NotificationStatus
     ): List<DeadlineNotification>
+
+    @Modifying
+    @Query("DELETE FROM DeadlineNotification dn WHERE dn.deadline = :deadline")
+    fun deleteAllByDeadline(deadline: Deadline): Int
 }

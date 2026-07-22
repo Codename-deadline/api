@@ -9,6 +9,7 @@ import xyz.om3lette.deadlines_api.data.notifications.repo.DeadlineNotificationRe
 import xyz.om3lette.deadlines_api.data.scopes.deadline.model.Deadline
 import java.time.Duration
 import java.time.Instant
+import java.time.temporal.ChronoUnit
 
 @Service
 class DeadlineNotificationPlannerService(
@@ -24,7 +25,8 @@ class DeadlineNotificationPlannerService(
         TimeRemaining.ONE_HOUR to Duration.ofHours(1),
         TimeRemaining.ONE_DAY to Duration.ofDays(1),
         TimeRemaining.ONE_WEEK to Duration.ofDays(7),
-        TimeRemaining.ONE_MONTH to Duration.ofSeconds(31556952L / 12)
+        TimeRemaining.ONE_MONTH to Duration.ofSeconds(31556952L / 12),
+        TimeRemaining.NO_TIME to Duration.ZERO
     )
 
     fun createNotifications(deadline: Deadline, now: Instant = Instant.now()) {
@@ -83,7 +85,14 @@ class DeadlineNotificationPlannerService(
         }
     }
 
+    @Transactional
+    fun deleteNotifications(deadline: Deadline) {
+        deadlineNotificationRepository.deleteAllByDeadline(deadline)
+    }
+
     private fun planNotifications(due: Instant, now: Instant): List<PlannedNotification> = reminderOffsets
-        .map { (type, offset) -> PlannedNotification(type, due.minus(offset)) }
+        .map { (type, offset) ->
+            PlannedNotification(type, due.minus(offset).truncatedTo(ChronoUnit.MINUTES))
+        }
         .filter { it.sendAt.isAfter(now) }
 }

@@ -13,6 +13,7 @@ import xyz.om3lette.deadlines_api.data.notifications.model.DeadlineNotification
 import xyz.om3lette.deadlines_api.data.notifications.repo.DeadlineNotificationRepository
 import xyz.om3lette.deadlines_api.data.scopes.deadline.model.Deadline
 import java.time.Instant
+import java.time.temporal.ChronoUnit
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
@@ -38,8 +39,15 @@ class DeadlineNotificationPlannerServiceTest {
 
         plannerService.createNotifications(deadline, now)
 
-        assertEquals(listOf(TimeRemaining.FIFTEEN_MINUTES), savedNotifications.captured.map { it.type })
-        assertEquals(now.plusSeconds(15 * 60), savedNotifications.captured.single().sendAt)
+        assertEquals(
+            listOf(TimeRemaining.FIFTEEN_MINUTES, TimeRemaining.NO_TIME),
+            savedNotifications.captured.map { it.type }
+        )
+        assertEquals(
+            now.plusSeconds(15 * 60),
+            savedNotifications.captured.single { it.type == TimeRemaining.FIFTEEN_MINUTES }.sendAt
+        )
+        assertEquals(deadline.due, savedNotifications.captured.single { it.type == TimeRemaining.NO_TIME }.sendAt)
     }
 
     @Test
@@ -47,18 +55,20 @@ class DeadlineNotificationPlannerServiceTest {
         deadline.due = now.plusSeconds(2 * 60 * 60)
         val pendingFifteenMinutes = notification(TimeRemaining.FIFTEEN_MINUTES, now.plusSeconds(5 * 60), NotificationStatus.PENDING)
         val pendingOneHour = notification(TimeRemaining.ONE_HOUR, now.plusSeconds(10 * 60), NotificationStatus.PENDING)
+        val pendingNoTime = notification(TimeRemaining.NO_TIME, now.plusSeconds(20 * 60), NotificationStatus.PENDING)
         val savedNotifications = slot<List<DeadlineNotification>>()
 
         every {
             deadlineNotificationRepository.findAllByDeadlineAndStatus(deadline, NotificationStatus.PENDING)
-        } returns listOf(pendingFifteenMinutes, pendingOneHour)
+        } returns listOf(pendingFifteenMinutes, pendingOneHour, pendingNoTime)
         every { deadlineNotificationRepository.saveAll(capture(savedNotifications)) } returnsArgument 0
 
         plannerService.reconcileNotifications(deadline, now)
 
         assertEquals(now.plusSeconds(105 * 60), pendingFifteenMinutes.sendAt)
         assertEquals(now.plusSeconds(60 * 60), pendingOneHour.sendAt)
-        assertEquals(listOf(pendingFifteenMinutes, pendingOneHour), savedNotifications.captured)
+        assertEquals(now.plusSeconds(2 * 60 * 60), pendingNoTime.sendAt)
+        assertEquals(listOf(pendingFifteenMinutes, pendingOneHour, pendingNoTime), savedNotifications.captured)
     }
 
     @Test
@@ -77,7 +87,10 @@ class DeadlineNotificationPlannerServiceTest {
         plannerService.reconcileNotifications(deadline, now)
 
         assertEquals(listOf(pendingOneHour), deletedNotifications.captured)
-        assertEquals(listOf(TimeRemaining.FIFTEEN_MINUTES), savedNotifications.captured.map { it.type })
+        assertEquals(
+            listOf(TimeRemaining.FIFTEEN_MINUTES, TimeRemaining.NO_TIME),
+            savedNotifications.captured.map { it.type }
+        )
     }
 
     @Test
@@ -114,7 +127,36 @@ class DeadlineNotificationPlannerServiceTest {
         verify(exactly = 0) { deadlineNotificationRepository.deleteAll(any<List<DeadlineNotification>>()) }
         assertEquals(NotificationStatus.IN_PROGRESS, inProgressOneHour.status)
         assertEquals(now.minusSeconds(60), inProgressOneHour.sendAt)
-        assertEquals(listOf(TimeRemaining.FIFTEEN_MINUTES), savedNotifications.captured.map { it.type })
+        assertEquals(
+            listOf(TimeRemaining.FIFTEEN_MINUTES, TimeRemaining.NO_TIME),
+            savedNotifications.captured.map { it.type }
+        )
+    }
+
+    @Test
+    fun `all notification times are rounded down to whole minutes`() {
+        deadline.due = Instant.parse("2026-08-20T23:59:59.999999999Z")
+        val savedNotifications = slot<List<DeadlineNotification>>()
+        every { deadlineNotificationRepository.saveAll(capture(savedNotifications)) } returnsArgument 0
+
+        plannerService.createNotifications(deadline, now)
+
+        assertEquals(TimeRemaining.entries.toSet(), savedNotifications.captured.map { it.type }.toSet())
+        assertTrue(savedNotifications.captured.all { it.sendAt.nano == 0 })
+        assertTrue(savedNotifications.captured.all { it.sendAt.epochSecond % 60 == 0L })
+        assertEquals(
+            deadline.due.truncatedTo(ChronoUnit.MINUTES),
+            savedNotifications.captured.single { it.type == TimeRemaining.NO_TIME }.sendAt
+        )
+    }
+
+    @Test
+    fun `deleteNotifications removes every notification for deadline`() {
+        every { deadlineNotificationRepository.deleteAllByDeadline(deadline) } returns 3
+
+        plannerService.deleteNotifications(deadline)
+
+        verify(exactly = 1) { deadlineNotificationRepository.deleteAllByDeadline(deadline) }
     }
 
     private fun notification(
