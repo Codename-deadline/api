@@ -69,6 +69,13 @@ class OtpService(
         fullName: String,
         language: Language?,
     ): OtpResponse {
+        if (
+            channel.type == OtpChanelType.MESSENGER
+            && userMessengerAccountRepository.existsByAccountId(identifier.toLong())
+        ) {
+            throw StatusCodeException(409, ErrorCode.INTEGRATION_ACCOUNT_ALREADY_IN_USE)
+        }
+
         val registerRequestId = otpRegisterRequestRepository.save(
             OtpRegisterRequest(
                 username = username,

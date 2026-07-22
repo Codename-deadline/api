@@ -15,6 +15,8 @@ interface UserMessengerAccountRepository : JpaRepository<UserMessengerAccount, L
 //    As the unique constraints are (messenger, accountId) not accountId
 //    fun findByAccountId(accountId: Long): Optional<UserMessengerAccount>
 
+    fun existsByAccountId(accountId: Long): Boolean
+
     fun findByMessengerAndAccountId(messenger: Messenger, accountId: Long): Optional<UserMessengerAccount>
 
     fun findAllByUserAndMessenger(user: User, messenger: Messenger): List<UserMessengerAccount>
