@@ -110,7 +110,15 @@ class DeadlineService(
         userScopeRepository.saveAll(deadlineAssigneeScopes)
         deadlineNotificationPlannerService.createNotifications(deadline, now)
 
-        return DeadlineCreatedResponse(deadline.id, deadlineAssigneeScopes.size)
+        return DeadlineCreatedResponse(
+            deadlineId = deadline.id,
+            assignees = deadlineAssigneeScopes.size,
+            globalRole = permissionService.getMaxRole(listOf(
+                PermissionContext.PermissionKey(ScopeType.DEADLINE, deadline.id),
+                PermissionContext.PermissionKey(ScopeType.THREAD, thread.id),
+                PermissionContext.PermissionKey(ScopeType.ORGANIZATION, thread.organization.id)
+            ))
+        )
     }
 
     fun deleteDeadline(issuer: User, deadlineId: Long) {

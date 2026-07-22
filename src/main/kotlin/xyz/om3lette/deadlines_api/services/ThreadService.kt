@@ -89,7 +89,14 @@ class ThreadService(
         }
 
         userScopeRepository.saveAll(threadAssigneeScopes)
-        return ThreadCreatedResponse(thread.id, threadAssigneeScopes.size)
+        return ThreadCreatedResponse(
+            threadId = thread.id,
+            assignees = threadAssigneeScopes.size,
+            globalRole = permissionService.getMaxRole(listOf(
+                PermissionContext.PermissionKey(ScopeType.THREAD, thread.id),
+                PermissionContext.PermissionKey(ScopeType.ORGANIZATION, thread.organization.id)
+            ))
+        )
     }
 
     fun deleteThread(issuer: User, threadId: Long) {

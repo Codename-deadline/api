@@ -102,6 +102,8 @@ class ThreadServiceTest {
         every {
             threadRepository.getThreadStats(listOf(thread.id))
         } returns listOf(ThreadStatsDTO(thread.id, 0, 0, 0))
+
+        every { permissionService.getMaxRole(any()) } returns ScopeRole.ORG_ADMIN
     }
 
     @Nested
