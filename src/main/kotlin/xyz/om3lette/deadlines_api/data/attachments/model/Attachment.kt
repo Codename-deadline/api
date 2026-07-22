@@ -20,7 +20,7 @@ data class Attachment(
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "ddl_attach_seq")
     val id: Long,
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false, unique = true, length = 64)
     val objectKey: String,
 
     @field:NotBlank

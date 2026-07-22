@@ -38,18 +38,18 @@ data class User(
     @Column(length = UserConstraints.FULL_NAME_MAX, nullable = false)
     var fullName: String,
 
-    @Column(name = "password")
+    @Column(name = "password", length = 64)
     var _password: String? = null,
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 3)
     var language: Language = Language.EN,
 
     @Column(nullable = false, columnDefinition = "TIMESTAMP WITH TIME ZONE")
     var lastPasswordChange: Instant = Instant.EPOCH,
 
     @Enumerated(value = EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 16)
     val role: UserRole = UserRole.USER,
 
     @OneToMany(mappedBy = "user", cascade = [CascadeType.ALL], orphanRemoval = true)

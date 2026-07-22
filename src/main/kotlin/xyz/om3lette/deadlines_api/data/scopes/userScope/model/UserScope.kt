@@ -32,7 +32,7 @@ data class UserScope(
     val scopeId: Long,
 
     @Enumerated(value = EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 16)
     var role: ScopeRole,
 
     @Column(nullable = false, columnDefinition = "TIMESTAMP WITH TIME ZONE")

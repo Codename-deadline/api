@@ -32,11 +32,11 @@ data class OrganizationInvitation(
     val organization: Organization,
 
     @Enumerated(value = EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 8)
     var status: InvitationStatus,
 
     @Enumerated(value = EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 16)
     val role: ScopeRole,
 
     @Column(nullable = false, columnDefinition = "TIMESTAMP WITH TIME ZONE")

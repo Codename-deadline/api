@@ -21,7 +21,7 @@ import xyz.om3lette.deadlines_api.data.integration.bot.enums.Messenger
 @Table(
     name = "bots",
     uniqueConstraints = [
-        UniqueConstraint(columnNames = ["bot_id", "messenger"])
+        UniqueConstraint(name = "uq_bots_messenger", columnNames = ["messenger"])
     ]
 )
 data class Bot(
@@ -30,7 +30,7 @@ data class Bot(
     val id: Long,
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 16)
     val messenger: Messenger,
 
     @Column(nullable = false)

@@ -42,7 +42,7 @@ data class Organization(
     var description: String?,
 
     @Enumerated(value = EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 8)
     var type: OrganizationType,
 
     @Column(nullable = false, columnDefinition = "TIMESTAMP WITH TIME ZONE")

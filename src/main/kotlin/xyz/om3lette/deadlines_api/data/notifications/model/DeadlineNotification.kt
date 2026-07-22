@@ -35,7 +35,7 @@ data class DeadlineNotification(
     var sendAt: Instant,
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 16)
     val type: TimeRemaining,
 
     @Convert(converter = NotificationStatusConverter::class)

@@ -8,5 +8,6 @@ enum class TimeRemaining {
     ONE_HOUR,
     ONE_DAY,
     ONE_WEEK,
-    ONE_MONTH;
+    ONE_MONTH,
+    NO_TIME;
 }

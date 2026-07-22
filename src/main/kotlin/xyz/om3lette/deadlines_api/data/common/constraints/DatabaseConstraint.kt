@@ -13,7 +13,7 @@ enum class DatabaseConstraint(val databaseName: String) {
     CK_ORGANIZATIONS_TYPE("ck_organizations_type"),
 
     PK_BOTS("pk_bots"),
-    UQ_BOTS_BOT_ID_MESSENGER("uq_bots_bot_id_messenger"),
+    UQ_BOTS_MESSENGER("uq_bots_messenger"),
     CK_BOTS_MESSENGER("ck_bots_messenger"),
 
     PK_THREADS("pk_threads"),

@@ -38,7 +38,7 @@ data class Chat(
     val messengerChatId: Long,
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 16)
     val messenger: Messenger,
 
     @field:Size(max = IntegrationConstraints.CHAT_TITLE_MAX)
@@ -50,7 +50,7 @@ data class Chat(
     val bot: Bot,
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 3)
     var language: Language = Language.RU,
 
     @Column(nullable = false, columnDefinition = "TIMESTAMP WITH TIME ZONE")

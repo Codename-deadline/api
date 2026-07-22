@@ -14,7 +14,7 @@ data class RefreshToken(
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "token_seq")
     val id: Long = 0,
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false, unique = true, length = 64)
     val jti: String,
 
     @Column(nullable = false, columnDefinition = "TIMESTAMP WITH TIME ZONE")

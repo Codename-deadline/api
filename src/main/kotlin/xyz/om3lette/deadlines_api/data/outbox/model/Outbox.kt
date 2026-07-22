@@ -21,17 +21,17 @@ data class Outbox(
     val notificationId: Long,
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 32)
     val source: OutboxSource,
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 16)
     val messenger: Messenger,
 
     @Column(nullable = false)
     val priority: Int,
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 64)
     val topic: String,
 
     @Type(JsonType::class)

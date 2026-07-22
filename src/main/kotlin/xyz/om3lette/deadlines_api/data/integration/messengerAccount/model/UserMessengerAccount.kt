@@ -38,7 +38,7 @@ data class UserMessengerAccount (
     val accountId: Long,
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 16)
     val messenger: Messenger
 ) {
     fun toResponse() = MessengerAccountDTO(
