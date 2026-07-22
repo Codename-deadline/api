@@ -38,7 +38,7 @@ class SecurityConfig(
             api("/auth/verify-password"),
             api("/auth/otp"),
             api("/auth/otp/verify"),
-            api("/metadata"),
+            api("/metadata/**"),
             api("/roles/metadata"),
             "/v3/api-docs/**",
             "/swagger-ui/**",

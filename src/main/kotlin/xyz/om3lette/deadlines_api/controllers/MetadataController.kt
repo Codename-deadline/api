@@ -16,4 +16,8 @@ class MetadataController(
     @GetMapping
     @Operation(summary = "Metadata SHA-256 hashes")
     fun getMetadataVersions() = metadataService.response
+
+    @GetMapping("/bots")
+    @Operation(summary = "Get a list of registered bots")
+    fun getRegisteredBots() = metadataService.registeredBots
 }

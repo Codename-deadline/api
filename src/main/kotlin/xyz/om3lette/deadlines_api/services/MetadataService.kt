@@ -3,12 +3,15 @@ package xyz.om3lette.deadlines_api.services
 import org.springframework.stereotype.Service
 import tools.jackson.databind.SerializationFeature
 import tools.jackson.databind.json.JsonMapper
+import xyz.om3lette.deadlines_api.data.integration.bot.dto.BotDTO
+import xyz.om3lette.deadlines_api.data.integration.bot.repo.BotRepository
 import xyz.om3lette.deadlines_api.data.metadata.response.MetadataResponse
 import java.security.MessageDigest
 
 @Service
 class MetadataService(
-    private val rolesService: RolesService
+    private val rolesService: RolesService,
+    private val botsRepository: BotRepository
 ) {
     private fun computeHash(obj: Any): String {
         val mapper = JsonMapper.builder()
@@ -24,7 +27,12 @@ class MetadataService(
 
     val response: MetadataResponse by lazy {
         MetadataResponse(
-            rolesMetadataVersion = computeHash(rolesService.metadata)
+            rolesMetadataVersion = computeHash(rolesService.metadata),
+            botsMetadataVersion = computeHash(registeredBots)
         )
+    }
+
+    val registeredBots: List<BotDTO> by lazy {
+        botsRepository.findAllDTOSortByMessenger()
     }
 }
