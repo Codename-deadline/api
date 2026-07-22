@@ -30,7 +30,7 @@ class OrganizationThreadController(
     @GetMapping
     @Operation(summary = "Get all organization threads")
     fun getThreads(
-        @AuthenticationPrincipal user: User,
+        @AuthenticationPrincipal user: User?,
         @PathVariable @Positive organizationId: Long,
         @RequestParam("page") @Min(PaginationConstraints.PAGE_MIN) pageNumber: Int
     ) = threadService.getThreadsByOrganization(user, organizationId, pageNumber, 10)

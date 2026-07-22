@@ -14,6 +14,7 @@ import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.assertAll
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
+import org.springframework.data.domain.PageImpl
 import xyz.om3lette.deadlines_api.DomainObjectBuilder
 import xyz.om3lette.deadlines_api.data.permissions.dto.PermissionRoleDTO
 import xyz.om3lette.deadlines_api.data.scopes.common.dto.UsernameRolePair
@@ -309,6 +310,70 @@ class OrganizationServiceTest {
             organizationService.removeMember(dummyUserBob, dummyOrganization.id, dummyUserAlice.username)
 
             verify(exactly = 1) { userScopeRepository.deleteByUserIdAndOrganizationId(dummyUserAlice.id, dummyOrganization.id) }
+        }
+    }
+
+    @Nested
+    inner class AnonymousReads {
+        @BeforeEach
+        fun commonHappyStubs() {
+            every { permissionService.hasAccess(null, any()) } returns true
+        }
+
+        @Test
+        fun `organization members are available through anonymous permission check`() {
+            every {
+                userScopeRepository.findAllByScopeIdAndScopeType(
+                    dummyOrganization.id,
+                    ScopeType.ORGANIZATION,
+                    any()
+                )
+            } returns PageImpl(emptyList())
+
+            organizationService.getOrganizationMembers(null, dummyOrganization.id, 0, 10)
+
+            verify(exactly = 1) { permissionService.hasAccess(null, any()) }
+            verify(exactly = 1) {
+                userScopeRepository.findAllByScopeIdAndScopeType(
+                    dummyOrganization.id,
+                    ScopeType.ORGANIZATION,
+                    any()
+                )
+            }
+        }
+
+        @Test
+        fun `member hints are available through anonymous permission check`() {
+            every {
+                userScopeRepository.findOrganizationMembersWithUsernameStartingWithIgnoreCase(
+                    dummyOrganization.id,
+                    "ali",
+                    any()
+                )
+            } returns listOf(dummyUserAlice.username)
+
+            val result = organizationService.getMemberUsernamesStartingWith(null, dummyOrganization.id, "Ali")
+
+            assertEquals(listOf(dummyUserAlice.username), result)
+            verify(exactly = 1) { permissionService.hasAccess(null, any()) }
+        }
+
+        @Test
+        fun `member hints are rejected before querying members when access is denied`() {
+            every { permissionService.hasAccess(null, any()) } returns false
+
+            val error = assertThrows<StatusCodeException> {
+                organizationService.getMemberUsernamesStartingWith(null, dummyOrganization.id, "Ali")
+            }
+
+            assertEquals(403, error.statusCode)
+            verify(exactly = 0) {
+                userScopeRepository.findOrganizationMembersWithUsernameStartingWithIgnoreCase(
+                    any(),
+                    any(),
+                    any()
+                )
+            }
         }
     }
 }

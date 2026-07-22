@@ -30,7 +30,7 @@ class ThreadDeadlineController(
     @GetMapping
     @Operation(summary = "Get all deadlines threads")
     fun getDeadlines(
-        @AuthenticationPrincipal user: User,
+        @AuthenticationPrincipal user: User?,
         @PathVariable @Positive threadId: Long,
         @RequestParam("page") @Min(PaginationConstraints.PAGE_MIN) pageNumber: Int
     ) = deadlineService.getDeadlinesByThread(user, threadId, pageNumber, 10)

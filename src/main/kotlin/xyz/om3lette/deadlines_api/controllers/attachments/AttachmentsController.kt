@@ -31,7 +31,7 @@ class AttachmentsController(
     @GetMapping("/{attachmentId}")
     @Operation(summary = "Get attachment")
     fun getAttachment(
-        @AuthenticationPrincipal user: User,
+        @AuthenticationPrincipal user: User?,
         @PathVariable @Positive attachmentId: Long,
         @RequestParam("disposition", required = false) disposition: String?
     ) = attachmentsService.getAttachment(user, attachmentId, disposition)
@@ -46,7 +46,7 @@ class AttachmentsController(
     @GetMapping("/{attachmentId}/metadata")
     @Operation(summary = "Get attachment metadata")
     fun getAttachmentMetadata(
-        @AuthenticationPrincipal user: User,
+        @AuthenticationPrincipal user: User?,
         @PathVariable @Positive attachmentId: Long
     ) = attachmentsService.getAttachmentMetadata(user, attachmentId)
 

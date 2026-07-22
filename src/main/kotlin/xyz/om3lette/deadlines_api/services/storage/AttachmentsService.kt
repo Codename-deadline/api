@@ -142,7 +142,7 @@ class AttachmentsService (
         }
     }
 
-    fun getAttachment(issuer: User, attachmentId: Long, disposition: String?): ResponseEntity<Void> {
+    fun getAttachment(issuer: User?, attachmentId: Long, disposition: String?): ResponseEntity<Void> {
         val attachment = getAttachmentByIdAndCheckPermissions(issuer, attachmentId)
         val presignedUrl = presignGetObjectUrl(attachment, AttachmentDisposition.from(disposition))
 
@@ -151,7 +151,7 @@ class AttachmentsService (
             .build()
     }
 
-    fun getAttachmentMetadata(issuer: User, attachmentId: Long): AttachmentResponse {
+    fun getAttachmentMetadata(issuer: User?, attachmentId: Long): AttachmentResponse {
         val attachment = getAttachmentByIdAndCheckPermissions(issuer, attachmentId)
         return attachment.toResponse(
             permissionService.buildDeadlineAttachmentPermissions(issuer, attachment)
@@ -159,7 +159,7 @@ class AttachmentsService (
     }
 
     fun getDeadlineAttachmentsMetadata(
-        issuer: User,
+        issuer: User?,
         deadlineId: Long
     ): List<AttachmentResponse> {
         val deadline = deadlineRepository.findByIdOr404(deadlineId, ErrorCode.DDL_NOT_FOUND)
@@ -174,7 +174,7 @@ class AttachmentsService (
     }
 
 
-    private fun getAttachmentByIdAndCheckPermissions(issuer: User, attachmentId: Long): Attachment {
+    private fun getAttachmentByIdAndCheckPermissions(issuer: User?, attachmentId: Long): Attachment {
         val attachment = attachmentRepository.findByIdOr404(attachmentId, ErrorCode.ATTACHMENT_NOT_FOUND)
         val deadline = attachment.deadline
         requirePermission(

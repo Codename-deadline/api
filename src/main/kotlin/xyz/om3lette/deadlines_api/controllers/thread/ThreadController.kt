@@ -62,7 +62,7 @@ class ThreadController(
         description = "Returns a list of explicit thread assignees. Higher role organization members are not included."
     )
     fun getAssignees(
-        @AuthenticationPrincipal user: User,
+        @AuthenticationPrincipal user: User?,
         @PathVariable @Positive threadId: Long,
         @RequestParam("page") @Min(PaginationConstraints.PAGE_MIN) pageNumber: Int
     ) = threadService.getThreadAssignees(user, threadId, pageNumber, 10)

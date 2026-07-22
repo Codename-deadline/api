@@ -10,11 +10,15 @@ import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertAll
 import org.junit.jupiter.api.assertThrows
+import org.springframework.data.domain.PageImpl
 import xyz.om3lette.deadlines_api.DomainObjectBuilder
 import xyz.om3lette.deadlines_api.db.constraintViolation
 import xyz.om3lette.deadlines_api.data.common.constraints.DatabaseConstraint
 import xyz.om3lette.deadlines_api.configs.properties.DeadlinesProperties
 import xyz.om3lette.deadlines_api.data.permissions.dto.DeadlineScope
+import xyz.om3lette.deadlines_api.data.permissions.dto.ThreadScope
+import xyz.om3lette.deadlines_api.data.scopes.deadline.dto.DeadlinePermissions
+import xyz.om3lette.deadlines_api.data.scopes.deadline.dto.DeadlineStatsDTO
 import xyz.om3lette.deadlines_api.data.scopes.deadline.model.Deadline
 import xyz.om3lette.deadlines_api.data.scopes.deadline.repo.DeadlineRepository
 import xyz.om3lette.deadlines_api.data.scopes.organization.model.Organization
@@ -211,6 +215,46 @@ class DeadlineServiceTest {
                 { assertEquals(deadline.id, savedUserScopeSlot.captured.scopeId) },
                 { assertEquals(ScopeRole.DDL_ASSIGNEE, savedUserScopeSlot.captured.role) }
             )
+        }
+    }
+
+    @Nested
+    inner class AnonymousReads {
+        @Test
+        fun `thread deadlines do not resolve user roles for anonymous access`() {
+            every { threadRepository.findById(thread.id) } returns Optional.of(thread)
+            every { permissionService.hasAccess(null, ThreadScope(thread)) } returns true
+            every { deadlineRepository.findAllByThread(thread, any()) } returns PageImpl(listOf(deadline))
+            every { deadlineRepository.getDeadlineStats(listOf(deadline.id)) } returns listOf(
+                DeadlineStatsDTO(deadline.id, assignees = 0, attachments = 0)
+            )
+            every { permissionService.buildDeadlinePermissions(null, deadline) } returns DeadlinePermissions(
+                update = false,
+                delete = false,
+                manageAssignees = false,
+                manageAttachments = false
+            )
+
+            val result = deadlineService.getDeadlinesByThread(null, thread.id, 0, 10)
+
+            assertAll(
+                { assertEquals(null, result.data.single().role) },
+                { assertEquals(null, result.data.single().globalRole) },
+                { verify(exactly = 0) { permissionService.prefetchUserRoles(any(), any(), any(), any()) } },
+                { verify(exactly = 0) { permissionService.getRole(any(), any()) } },
+                { verify(exactly = 0) { permissionService.getMaxRole(any()) } }
+            )
+        }
+
+        @Test
+        fun `anonymous deadline assignees use scope access check`() {
+            every { permissionService.hasAccess(null, deadlineScope()) } returns true
+            every { userScopeRepository.findAllDeadlineAssignees(deadline.id) } returns emptyList()
+
+            deadlineService.getDeadlineAssignees(null, deadline.id)
+
+            verify(exactly = 1) { permissionService.hasAccess(null, deadlineScope()) }
+            verify(exactly = 1) { userScopeRepository.findAllDeadlineAssignees(deadline.id) }
         }
     }
 }

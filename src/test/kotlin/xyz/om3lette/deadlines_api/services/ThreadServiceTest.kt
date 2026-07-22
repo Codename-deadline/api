@@ -499,6 +499,28 @@ class ThreadServiceTest {
             )
             verify(exactly = 1) { threadRepository.findAllByOrganization(organization, any()) }
         }
+
+        @Test
+        fun `anonymous organization threads do not resolve user roles`() {
+            every { permissionService.hasAccess(null, orgScope()) } returns true
+            every { threadRepository.findAllByOrganization(organization, any()) } returns PageImpl(listOf(thread))
+            every { permissionService.buildThreadPermissions(null, thread) } returns ThreadPermissions(
+                update = false,
+                delete = false,
+                manageAssignees = false,
+                createDeadlines = false
+            )
+
+            val result = threadService.getThreadsByOrganization(null, organization.id, 0, 5)
+
+            assertAll(
+                { assertEquals(null, result.data.single().role) },
+                { assertEquals(null, result.data.single().globalRole) },
+                { verify(exactly = 0) { permissionService.prefetchUserRoles(any(), any(), any(), any()) } },
+                { verify(exactly = 0) { permissionService.getRole(any(), any()) } },
+                { verify(exactly = 0) { permissionService.getMaxRole(any()) } }
+            )
+        }
     }
 
     @Nested
@@ -568,6 +590,18 @@ class ThreadServiceTest {
             verify(exactly = 1) { userScopeRepository.findAllByScopeIdAndScopeType(
                 any(), any(), any()
             ) }
+        }
+
+        @Test
+        fun `anonymous thread assignees use scope access check`() {
+            every { permissionService.hasAccess(null, thrScope()) } returns true
+
+            threadService.getThreadAssignees(null, thread.id, 0, 5)
+
+            verify(exactly = 1) { permissionService.hasAccess(null, thrScope()) }
+            verify(exactly = 1) {
+                userScopeRepository.findAllByScopeIdAndScopeType(thread.id, ScopeType.THREAD, any())
+            }
         }
     }
 }

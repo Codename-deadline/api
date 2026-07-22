@@ -14,6 +14,8 @@ import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
 import xyz.om3lette.deadlines_api.DomainObjectBuilder
 import xyz.om3lette.deadlines_api.configs.properties.UsersProperties
+import xyz.om3lette.deadlines_api.data.attachments.model.Attachment
+import xyz.om3lette.deadlines_api.data.attachments.reponse.AttachmentPermissions
 import xyz.om3lette.deadlines_api.data.permissions.dto.DeadlineScope
 import xyz.om3lette.deadlines_api.data.permissions.dto.OrganizationScope
 import xyz.om3lette.deadlines_api.data.permissions.dto.PermissionScope
@@ -36,6 +38,7 @@ import xyz.om3lette.deadlines_api.services.permission.PermissionContext
 import xyz.om3lette.deadlines_api.services.permission.PermissionService
 import xyz.om3lette.deadlines_api.util.user.isAdminOr
 import xyz.om3lette.deadlines_api.util.user.isAdminOrHasRoleAnd
+import java.time.Instant
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -427,6 +430,22 @@ class PermissionServiceTest {
             assertEquals(
                 DeadlinePermissions(update = false, delete = false, manageAssignees = false, manageAttachments = false),
                 permissionService.buildDeadlinePermissions(null, deadline)
+            )
+            assertEquals(
+                AttachmentPermissions(update = false, delete = false),
+                permissionService.buildDeadlineAttachmentPermissions(
+                    null,
+                    Attachment(
+                        id = 1,
+                        objectKey = "attachment-key",
+                        filename = "attachment.txt",
+                        mimeType = "text/plain",
+                        sizeBytes = 1,
+                        uploadedBy = nonAdmin,
+                        deadline = deadline,
+                        uploadedAt = Instant.EPOCH
+                    )
+                )
             )
         }
     }

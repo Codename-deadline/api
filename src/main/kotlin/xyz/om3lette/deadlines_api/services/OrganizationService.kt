@@ -171,7 +171,7 @@ class OrganizationService(
     }
 
     fun getOrganizationMembers(
-        issuer: User,
+        issuer: User?,
         organizationId: Long,
         pageNumber: Int,
         pageSize: Int
@@ -189,8 +189,18 @@ class OrganizationService(
         ).toPaginationResponse { it.toResponse() }
     }
 
-    fun getMemberUsernamesStartingWith(organizationId: Long, usernamePrefix: String): List<String> =
-            userScopeRepository.findOrganizationMembersWithUsernameStartingWithIgnoreCase(
-                organizationId, usernamePrefix.lowercase(), Pageable.ofSize(10)
-            )
+    fun getMemberUsernamesStartingWith(
+        issuer: User?,
+        organizationId: Long,
+        usernamePrefix: String
+    ): List<String> {
+        val organization = organizationRepository.findByIdOr404(organizationId, ErrorCode.ORG_NOT_FOUND)
+        requirePermission(
+            permissionService.hasAccess(issuer, OrganizationScope(organizationId, organization))
+        )
+
+        return userScopeRepository.findOrganizationMembersWithUsernameStartingWithIgnoreCase(
+            organizationId, usernamePrefix.lowercase(), Pageable.ofSize(10)
+        )
+    }
 }

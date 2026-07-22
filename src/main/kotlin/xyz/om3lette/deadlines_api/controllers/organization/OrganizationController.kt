@@ -90,7 +90,7 @@ class OrganizationController(
         description = "Returns a list of organization members. Higher role users are not included."
     )
     fun getMembers(
-        @AuthenticationPrincipal user: User,
+        @AuthenticationPrincipal user: User?,
         @PathVariable @Positive organizationId: Long,
         @RequestParam("page") @Min(PaginationConstraints.PAGE_MIN) pageNumber: Int,
         @RequestParam("size")
@@ -103,9 +103,10 @@ class OrganizationController(
     @GetMapping("/{organizationId}/members/hints")
     @Operation(summary = "Get a batch of organization member usernames starting with")
     fun getMemberUsernamesStartingWith(
+        @AuthenticationPrincipal user: User?,
         @PathVariable @Positive organizationId: Long,
         @RequestParam
         @Size(min = UserConstraints.USERNAME_HINT_MIN, max = UserConstraints.USERNAME_HINT_MAX)
         startsWith: String
-    ) = organizationService.getMemberUsernamesStartingWith(organizationId, startsWith)
+    ) = organizationService.getMemberUsernamesStartingWith(user, organizationId, startsWith)
 }

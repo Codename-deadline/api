@@ -176,7 +176,7 @@ class ThreadService(
         )
     }
 
-    private fun prepareThreadResponseData(user: User, threads: List<Thread>, prefetchRoles: Boolean = true): Map<Long, ThreadStatsDTO> {
+    private fun prepareThreadResponseData(user: User?, threads: List<Thread>, prefetchRoles: Boolean = true): Map<Long, ThreadStatsDTO> {
         val threadIds = mutableSetOf<Long>()
         val organizationIds = mutableSetOf<Long>()
 
@@ -186,7 +186,7 @@ class ThreadService(
         }
 
         val threadIdsList = threadIds.toList()
-        if (prefetchRoles) {
+        if (user != null && prefetchRoles) {
             permissionService.prefetchUserRoles(
                 user,
                 orgIds = organizationIds.toList(),
@@ -198,17 +198,19 @@ class ThreadService(
             .associateBy { it.threadId }
     }
 
-    private fun mapThreadToFullResponse(user: User, thread: Thread, stats: Map<Long, ThreadStatsDTO>) =
+    private fun mapThreadToFullResponse(user: User?, thread: Thread, stats: Map<Long, ThreadStatsDTO>) =
         thread.toResponse(stats[thread.id]!!, permissionService.buildThreadPermissions(user, thread)).withRole(
-            permissionService.getRole(thread.id, ScopeType.THREAD),
-            permissionService.getMaxRole(
-                listOf(
-                    PermissionContext.PermissionKey(ScopeType.THREAD, thread.id),
-                    PermissionContext.PermissionKey(ScopeType.ORGANIZATION, thread.organization.id)
-                )
-            ).takeIf {
-                // The goal is to not return a "read only" role
-                maxRole -> maxRole.isHigherThan(ScopeRole.THR_ASSIGNEE)
+            user?.let { permissionService.getRole(thread.id, ScopeType.THREAD) },
+            user?.let {
+                permissionService.getMaxRole(
+                    listOf(
+                        PermissionContext.PermissionKey(ScopeType.THREAD, thread.id),
+                        PermissionContext.PermissionKey(ScopeType.ORGANIZATION, thread.organization.id)
+                    )
+                ).takeIf {
+                    // The goal is to not return a "read only" role
+                    maxRole -> maxRole.isHigherThan(ScopeRole.THR_ASSIGNEE)
+                }
             }
         )
 
@@ -230,7 +232,7 @@ class ThreadService(
     }
 
     fun getThreadsByOrganization(
-        issuer: User,
+        issuer: User?,
         organizationId: Long,
         pageNumber: Int,
         pageSize: Int
@@ -269,7 +271,7 @@ class ThreadService(
     }
 
     fun getThreadAssignees(
-        issuer: User,
+        issuer: User?,
         threadId: Long,
         pageNumber: Int,
         pageSize: Int

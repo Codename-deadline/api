@@ -153,10 +153,15 @@ class PermissionService(
             )
         }
 
-    fun buildDeadlineAttachmentPermissions(issuer: User, ddlAttachment: Attachment) = AttachmentPermissions(
-        update = canUpdateDeadlineAttachment(issuer, ddlAttachment),
-        delete = canDeleteDeadlineAttachment(issuer, ddlAttachment),
-    )
+    fun buildDeadlineAttachmentPermissions(issuer: User?, ddlAttachment: Attachment) =
+        if (issuer == null) {
+            AttachmentPermissions(update = false, delete = false)
+        } else {
+            AttachmentPermissions(
+                update = canUpdateDeadlineAttachment(issuer, ddlAttachment),
+                delete = canDeleteDeadlineAttachment(issuer, ddlAttachment),
+            )
+        }
 
     /*
         Thread permissions:

@@ -256,7 +256,7 @@ class DeadlineService(
     }
 
     fun getDeadlinesByThread(
-        issuer: User,
+        issuer: User?,
         threadId: Long,
         pageNumber: Int,
         pageSize: Int
@@ -326,7 +326,7 @@ class DeadlineService(
     }
 
     fun getDeadlineAssignees(
-        issuer: User,
+        issuer: User?,
         deadlineId: Long
     ): List<UserScopeResponse> {
         val deadline = deadlineRepository.findByIdOr404(deadlineId, ErrorCode.DDL_NOT_FOUND)

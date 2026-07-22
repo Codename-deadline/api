@@ -71,7 +71,7 @@ class DeadlineController(
                       "Higher role users in the organization or thread are not included."
     )
     fun getAssignees(
-        @AuthenticationPrincipal user: User,
+        @AuthenticationPrincipal user: User?,
         @PathVariable @Positive deadlineId: Long
     ) = deadlineService.getDeadlineAssignees(user, deadlineId)
 

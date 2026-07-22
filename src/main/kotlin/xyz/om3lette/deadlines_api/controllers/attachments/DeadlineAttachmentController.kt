@@ -37,7 +37,7 @@ class DeadlineAttachmentController(
     @GetMapping
     @Operation(summary = "Get metadata of all deadline attachments")
     fun getDeadlineAttachmentsMetadata(
-        @AuthenticationPrincipal user: User,
+        @AuthenticationPrincipal user: User?,
         @PathVariable @Positive deadlineId: Long
     ) = attachmentsService.getDeadlineAttachmentsMetadata(user, deadlineId)
 }

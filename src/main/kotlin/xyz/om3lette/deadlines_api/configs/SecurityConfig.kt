@@ -45,9 +45,10 @@ class SecurityConfig(
             "/actuator/health",
         )
         val SEMI_PUBLIC_GET_URLS = arrayOf(
-            Regex('^' + api("/organizations/[0-9]+") + '$'),
-            Regex('^' + api("/threads/[0-9]+") + '$'),
-            Regex('^' + api("/deadlines/[0-9]+") + '$'),
+            Regex('^' + api("/organizations/[0-9]+(?:/.*)?") + '$'),
+            Regex('^' + api("/threads/[0-9]+(?:/.*)?") + '$'),
+            Regex('^' + api("/deadlines/[0-9]+(?:/.*)?") + '$'),
+            Regex('^' + api("/attachments/[0-9]+(?:/.*)?") + '$'),
         )
 
         fun isSemiPublicGet(method: String, requestUri: String): Boolean =
