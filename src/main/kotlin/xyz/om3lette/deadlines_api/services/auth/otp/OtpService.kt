@@ -6,6 +6,7 @@ import org.springframework.security.authentication.BadCredentialsException
 import org.springframework.stereotype.Service
 import xyz.om3lette.deadlines_api.configs.properties.OtpProperties
 import xyz.om3lette.deadlines_api.data.integration.bot.enums.Language
+import xyz.om3lette.deadlines_api.data.common.validation.IanaTimeZones
 import xyz.om3lette.deadlines_api.data.integration.bot.enums.Messenger
 import xyz.om3lette.deadlines_api.data.integration.messengerAccount.repo.UserMessengerAccountRepository
 import xyz.om3lette.deadlines_api.data.jwt.dto.TokenPair
@@ -68,6 +69,7 @@ class OtpService(
         username: String,
         fullName: String,
         language: Language?,
+        timeZone: String,
     ): OtpResponse {
         if (
             channel.type == OtpChanelType.MESSENGER
@@ -82,7 +84,8 @@ class OtpService(
                 fullName = fullName,
                 language = language,
                 identifier = identifier,
-                channel = channel
+                channel = channel,
+                timeZone = timeZone
             )
         ).id
         return OtpResponse(
@@ -171,7 +174,8 @@ class OtpService(
                 registerRequest.fullName,
                 registerRequest.channel,
                 registerRequest.language,
-                registerRequest.identifier
+                registerRequest.identifier,
+                registerRequest.timeZone ?: IanaTimeZones.DEFAULT
             )
             OtpSignInResponse.OK(authSessionService.issueSession(user))
         } finally {

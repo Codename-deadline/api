@@ -3,6 +3,7 @@ package xyz.om3lette.deadlines_api.data.otp.request.provider
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Size
 import xyz.om3lette.deadlines_api.data.otp.constraints.OtpConstraints
+import xyz.om3lette.deadlines_api.data.common.validation.IanaTimeZone
 import xyz.om3lette.deadlines_api.data.user.constraints.UserConstraints
 
 data class TmaRegisterRequest(
@@ -11,5 +12,8 @@ data class TmaRegisterRequest(
     val initData: String,
 
     @field:Size(min = UserConstraints.USERNAME_MIN, max = UserConstraints.USERNAME_MAX)
-    val username: String?
+    val username: String?,
+
+    @field:IanaTimeZone
+    val timeZone: String
 )

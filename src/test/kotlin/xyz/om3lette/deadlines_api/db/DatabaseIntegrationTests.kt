@@ -344,7 +344,8 @@ class DatabaseIntegrationTests {
                 "Rolled Back User",
                 OtpChannel.TELEGRAM,
                 Language.EN,
-                "7777"
+                "7777",
+                "Etc/UTC"
             )
         }
 

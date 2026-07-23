@@ -12,5 +12,7 @@ data class UserResponse(
 
     val joinedAt: Instant,
 
-    val language: Language
+    val language: Language,
+
+    val timeZone: String
 )

@@ -29,7 +29,8 @@ class AuthWithOtpController(
         request.channel,
         request.username,
         request.fullName,
-        request.language
+        request.language,
+        request.timeZone
     )
 
     @PostMapping("/verify-password")

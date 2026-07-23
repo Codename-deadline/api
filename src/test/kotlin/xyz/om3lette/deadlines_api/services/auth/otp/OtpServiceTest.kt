@@ -8,6 +8,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import xyz.om3lette.deadlines_api.DomainObjectBuilder
 import xyz.om3lette.deadlines_api.configs.properties.OtpProperties
+import xyz.om3lette.deadlines_api.data.common.validation.IanaTimeZones
 import xyz.om3lette.deadlines_api.data.jwt.dto.TokenPair
 import xyz.om3lette.deadlines_api.data.otp.response.OtpSignInResponse
 import xyz.om3lette.deadlines_api.data.user.model.User
@@ -102,6 +103,41 @@ class OtpServiceTest {
             fullName = user.fullName,
             language = user.language,
             identifier = "123",
+            channel = OtpChannel.TELEGRAM,
+            timeZone = "Europe/Paris"
+        )
+        every { otpVerificationService.verifyAndConsume(otpId, "123456") } returns VerifiedOtp(
+            OtpPurpose.REGISTRATION,
+            registerRequest.id.toString()
+        )
+        every { otpRegisterRequestRepository.findById(registerRequest.id) } returns Optional.of(registerRequest)
+        every {
+            userRegistrationService.registerExternalUser(
+                registerRequest.username,
+                registerRequest.fullName,
+                registerRequest.channel,
+                registerRequest.language,
+                registerRequest.identifier,
+                registerRequest.timeZone!!
+            )
+        } returns user
+        every { authSessionService.issueSession(user) } returns tokenPair
+        every { otpRegisterRequestRepository.deleteById(registerRequest.id) } returns Unit
+
+        val result = assertIs<OtpSignInResponse.OK>(otpService.verifyOtpAndFulfillRequest(otpId, "123456"))
+
+        assertEquals(tokenPair, result.tokenPair)
+        verify(exactly = 1) { otpRegisterRequestRepository.deleteById(registerRequest.id) }
+    }
+
+    @Test
+    fun `registration otp defaults legacy registration request timezone to Etc UTC`() {
+        val otpId = UUID.randomUUID()
+        val registerRequest = OtpRegisterRequest(
+            username = user.username,
+            fullName = user.fullName,
+            language = user.language,
+            identifier = "123",
             channel = OtpChannel.TELEGRAM
         )
         every { otpVerificationService.verifyAndConsume(otpId, "123456") } returns VerifiedOtp(
@@ -115,7 +151,8 @@ class OtpServiceTest {
                 registerRequest.fullName,
                 registerRequest.channel,
                 registerRequest.language,
-                registerRequest.identifier
+                registerRequest.identifier,
+                IanaTimeZones.DEFAULT
             )
         } returns user
         every { authSessionService.issueSession(user) } returns tokenPair

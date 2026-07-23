@@ -1,8 +1,8 @@
 package xyz.om3lette.deadlines_api.data.user.request
 
-import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Size
 import xyz.om3lette.deadlines_api.data.integration.bot.enums.Language
+import xyz.om3lette.deadlines_api.data.common.validation.IanaTimeZone
 import xyz.om3lette.deadlines_api.data.user.constraints.UserConstraints
 
 data class PatchUserRequest(
@@ -13,4 +13,7 @@ data class PatchUserRequest(
     val fullName: String?,
 
     val language: Language?,
+
+    @field:IanaTimeZone
+    val timeZone: String?,
 )

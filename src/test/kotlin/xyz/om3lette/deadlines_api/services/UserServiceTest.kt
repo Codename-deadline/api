@@ -24,11 +24,12 @@ class UserServiceTest {
         every { userRepository.existsByUsernameIgnoreCase("after") } returns false
         every { userRepository.save(user) } returns user
 
-        userService.patchUser(user, "after", "After Name", Language.RU)
+        userService.patchUser(user, "after", "After Name", Language.RU, "Asia/Tokyo")
 
         assertEquals("after", user.username)
         assertEquals("After Name", user.fullName)
         assertEquals(Language.RU, user.language)
+        assertEquals("Asia/Tokyo", user.timeZone)
         verify(exactly = 1) { userRepository.save(user) }
     }
 
@@ -38,7 +39,7 @@ class UserServiceTest {
         every { userRepository.existsByUsernameIgnoreCase("taken") } returns true
 
         val error = assertThrows<StatusCodeException> {
-            userService.patchUser(user, "taken", user.fullName, user.language)
+            userService.patchUser(user, "taken", user.fullName, user.language, null)
         }
 
         assertEquals(409, error.statusCode)

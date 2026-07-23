@@ -11,6 +11,8 @@ import org.springframework.security.core.userdetails.UserDetails
 import xyz.om3lette.deadlines_api.data.integration.bot.enums.Language
 import xyz.om3lette.deadlines_api.data.integration.messengerAccount.model.UserMessengerAccount
 import xyz.om3lette.deadlines_api.data.otp.enums.AppAuthority
+import xyz.om3lette.deadlines_api.data.common.validation.IanaTimeZone
+import xyz.om3lette.deadlines_api.data.common.validation.IanaTimeZones
 import xyz.om3lette.deadlines_api.data.user.constraints.UserConstraints
 import xyz.om3lette.deadlines_api.data.user.enums.UserRole
 import xyz.om3lette.deadlines_api.data.user.response.MinimalUserResponse
@@ -45,6 +47,10 @@ data class User(
     @Column(nullable = false, length = 3)
     var language: Language = Language.EN,
 
+    @field:IanaTimeZone
+    @Column(nullable = false, length = IanaTimeZones.MAX_LENGTH)
+    var timeZone: String,
+
     @Column(nullable = false, columnDefinition = "TIMESTAMP WITH TIME ZONE")
     var lastPasswordChange: Instant = Instant.EPOCH,
 
@@ -77,11 +83,12 @@ data class User(
         "username" to _username,
         "fullName" to fullName,
         "joinedAt" to joinedAt,
-        "language" to language
+        "language" to language,
+        "timeZone" to timeZone
     )
 
     fun toResponse() = UserResponse(
-        id, username, fullName, joinedAt, language
+        id, username, fullName, joinedAt, language, timeZone
     )
 
     fun toMinimalResponse() = MinimalUserResponse(

@@ -3,6 +3,7 @@ package xyz.om3lette.deadlines_api.data.otp.request
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Size
 import xyz.om3lette.deadlines_api.data.common.validation.KnownPattern
+import xyz.om3lette.deadlines_api.data.common.validation.IanaTimeZone
 import xyz.om3lette.deadlines_api.data.common.validation.enums.KnownPatternReason
 import xyz.om3lette.deadlines_api.data.integration.bot.enums.Language
 import xyz.om3lette.deadlines_api.data.otp.constraints.OtpConstraints
@@ -28,5 +29,8 @@ data class RegisterOtpRequest(
     @field:Size(min = UserConstraints.FULL_NAME_MIN, max = UserConstraints.FULL_NAME_MAX)
     val fullName: String,
 
-    val language: Language
+    val language: Language,
+
+    @field:IanaTimeZone
+    val timeZone: String
 )

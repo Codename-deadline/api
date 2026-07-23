@@ -23,7 +23,7 @@ class UserService(
 
     fun deleteUser(user: User) = userRepository.delete(user)
 
-    fun patchUser(user: User, username: String?, fullName: String?, language: Language?) {
+    fun patchUser(user: User, username: String?, fullName: String?, language: Language?, timeZone: String?) {
         if (!username.isNullOrBlank()) {
             if (!username.equals(user.username, ignoreCase = true) && userRepository.existsByUsernameIgnoreCase(username)) {
                 throw StatusCodeException(409, ErrorCode.USER_ALREADY_EXISTS)
@@ -32,6 +32,7 @@ class UserService(
         }
         if (!fullName.isNullOrBlank()) user.fullName = fullName
         if (language != null) user.language = language
+        if (timeZone != null) user.timeZone = timeZone
 
         userRepository.save(user)
     }

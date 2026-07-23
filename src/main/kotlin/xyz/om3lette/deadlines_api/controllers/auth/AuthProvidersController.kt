@@ -20,5 +20,5 @@ class AuthProvidersController(
     @Operation(summary = "Register new user using TMA init-data")
     fun tmaRegister(
         @Valid @RequestBody request: TmaRegisterRequest
-    ) = tmaAuthProvider.register(request.initData, request.username)
+    ) = tmaAuthProvider.register(request.initData, request.username, request.timeZone)
 }

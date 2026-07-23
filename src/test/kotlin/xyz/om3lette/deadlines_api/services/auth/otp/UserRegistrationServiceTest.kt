@@ -34,12 +34,14 @@ class UserRegistrationServiceTest {
             "  Full Name  ",
             OtpChannel.TELEGRAM,
             Language.RU,
-            "1234"
+            "1234",
+            "Europe/Moscow"
         )
 
         assertEquals("username", result.username)
         assertEquals("Full Name", result.fullName)
         assertEquals(Language.RU, result.language)
+        assertEquals("Europe/Moscow", result.timeZone)
         assertEquals(1234, savedAccount.captured.accountId)
         assertEquals(result, savedAccount.captured.user)
     }
@@ -55,7 +57,8 @@ class UserRegistrationServiceTest {
                 "Full Name",
                 OtpChannel.TELEGRAM,
                 Language.EN,
-                "1234"
+                "1234",
+                "Etc/UTC"
             )
         }
 
@@ -74,7 +77,8 @@ class UserRegistrationServiceTest {
                 "Full Name",
                 OtpChannel.TELEGRAM,
                 Language.EN,
-                "1234"
+                "1234",
+                "Etc/UTC"
             )
         }
 

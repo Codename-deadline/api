@@ -72,6 +72,7 @@ object DomainObjectBuilder {
         fullName: String = "Test User",
         password: String? = null,
         language: Language = Language.EN,
+        timeZone: String = "Etc/UTC",
         role: UserRole = UserRole.USER,
         joinedAt: Instant = Instant.now(),
         lastPasswordChange: Instant = Instant.EPOCH
@@ -83,6 +84,7 @@ object DomainObjectBuilder {
             fullName = fullName,
             _password = password,
             language = language,
+            timeZone = timeZone,
             lastPasswordChange = lastPasswordChange,
             role = role
         )

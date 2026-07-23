@@ -28,7 +28,8 @@ class UserRegistrationService(
         fullName: String,
         channel: OtpChannel,
         language: Language?,
-        identifier: String
+        identifier: String,
+        timeZone: String
     ): User {
         val user = try {
             userRepository.saveAndFlush(
@@ -36,7 +37,8 @@ class UserRegistrationService(
                     _username = username.trim(),
                     joinedAt = Instant.now(),
                     fullName = fullName.trim(),
-                    language = language ?: Language.EN
+                    language = language ?: Language.EN,
+                    timeZone = timeZone
                 )
             )
         } catch (error: DataIntegrityViolationException) {

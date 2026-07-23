@@ -19,5 +19,7 @@ data class OtpRegisterRequest(
 
     val identifier: String,
 
-    val channel: OtpChannel
+    val channel: OtpChannel,
+
+    val timeZone: String? = null
 )

@@ -16,17 +16,19 @@ object DatabaseObjectBuilder {
         username: String,
         fullName: String = "Database Test User",
         language: Language = Language.EN,
+        timeZone: String = "Etc/UTC",
         role: UserRole = UserRole.USER
     ) {
         jdbc.update(
             """
-            INSERT INTO users (id, username, joined_at, full_name, language, last_password_change, role)
-            VALUES (?, ?, now(), ?, ?, now(), ?)
+            INSERT INTO users (id, username, joined_at, full_name, language, time_zone, last_password_change, role)
+            VALUES (?, ?, now(), ?, ?, ?, now(), ?)
             """.trimIndent(),
             id,
             username,
             fullName,
             language.name,
+            timeZone,
             role.name
         )
     }

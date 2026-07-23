@@ -16,6 +16,8 @@ import jakarta.persistence.UniqueConstraint
 import jakarta.validation.constraints.Size
 import org.hibernate.annotations.OnDelete
 import org.hibernate.annotations.OnDeleteAction
+import xyz.om3lette.deadlines_api.data.common.validation.IanaTimeZone
+import xyz.om3lette.deadlines_api.data.common.validation.IanaTimeZones
 import xyz.om3lette.deadlines_api.data.integration.constraints.IntegrationConstraints
 import xyz.om3lette.deadlines_api.data.integration.bot.enums.Language
 import xyz.om3lette.deadlines_api.data.integration.bot.enums.Messenger
@@ -53,7 +55,8 @@ data class Chat(
     @Column(nullable = false, length = 3)
     var language: Language = Language.RU,
 
-    @Column(nullable = false)
+    @field:IanaTimeZone
+    @Column(nullable = false, length = IanaTimeZones.MAX_LENGTH)
     var timeZone: String,
 
     @Column(nullable = false, columnDefinition = "TIMESTAMP WITH TIME ZONE")

@@ -24,7 +24,8 @@ class TmaAuthProvider(
 
     fun register(
         initData: String,
-        preferredUsername: String?
+        preferredUsername: String?,
+        timeZone: String
     ): TokenPair {
         if (!isValid(initData, botToken)) throw StatusCodeException(403, ErrorCode.AUTH_INVALID_CREDENTIALS)
         val data: InitData = parse(initData)
@@ -43,11 +44,12 @@ class TmaAuthProvider(
         }
 
         val user = userRegistrationService.registerExternalUser(
-            userData.username!!,
+            username,
             fullName,
             OtpChannel.TELEGRAM,
             language,
-            userData.id.toString()
+            userData.id.toString(),
+            timeZone
         )
         return authSessionService.issueSession(user)
     }

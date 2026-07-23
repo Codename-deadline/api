@@ -43,7 +43,7 @@ class UserController(
     fun patchUser(
         @AuthenticationPrincipal user: User,
         @Valid @RequestBody request: PatchUserRequest
-    ) = userService.patchUser(user, request.username, request.fullName, request.language)
+    ) = userService.patchUser(user, request.username, request.fullName, request.language, request.timeZone)
 
     @GetMapping("/linked-accounts")
     @Operation(summary = "Get user's linked messenger accounts")

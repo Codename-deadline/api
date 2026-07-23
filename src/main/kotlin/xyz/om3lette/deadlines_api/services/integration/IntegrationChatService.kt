@@ -6,6 +6,7 @@ import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import xyz.om3lette.deadlines_api.data.common.constraints.DatabaseConstraint
+import xyz.om3lette.deadlines_api.data.common.validation.IanaTimeZones
 import xyz.om3lette.deadlines_api.data.integration.bot.enums.Language
 import xyz.om3lette.deadlines_api.data.integration.bot.enums.Messenger
 import xyz.om3lette.deadlines_api.data.integration.bot.repo.BotRepository
@@ -18,7 +19,6 @@ import xyz.om3lette.deadlines_api.data.integration.constraints.IntegrationConstr
 import xyz.om3lette.deadlines_api.data.integration.messengerAccount.repo.UserMessengerAccountRepository
 import xyz.om3lette.deadlines_api.util.jpaRepository.violatesConstraint
 import java.time.Instant
-import java.time.ZoneId
 
 @Service
 class IntegrationChatService(
@@ -142,7 +142,7 @@ class IntegrationChatService(
     }
 
     private fun requireValidTimeZone(timeZone: String, language: Language) {
-        if (timeZone !in ZoneId.getAvailableZoneIds()) {
+        if (!IanaTimeZones.isValid(timeZone)) {
             throw grpcException(Status.INVALID_ARGUMENT, IntegrationResultKey.INVALID_TIME_ZONE, language)
         }
     }
