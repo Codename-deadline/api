@@ -4,7 +4,7 @@ plugins {
     kotlin("plugin.jpa") version "2.3.21"
 	id("org.springframework.boot") version "4.1.0"
 	id("io.spring.dependency-management") version "1.1.7"
-    id("com.google.protobuf") version "0.9.6"
+    id("com.google.protobuf") version "0.10.0"
 }
 
 group = "xyz.om3lette"
@@ -39,13 +39,13 @@ dependencies {
         exclude(module = "lz4-java")
     }
     // Original package is archived. Community maintained fork.
-    implementation("at.yawk.lz4:lz4-java:1.11.0")
+    implementation("at.yawk.lz4:lz4-java:1.11.1")
 
-    implementation("io.hypersistence:hypersistence-utils-hibernate-73:3.15.3")
-    implementation("tools.jackson.module:jackson-module-kotlin:3.2.0")
+    implementation("io.hypersistence:hypersistence-utils-hibernate-73:3.15.4")
+    implementation("tools.jackson.module:jackson-module-kotlin:3.2.1")
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("redis.clients:jedis")
-	implementation(platform("software.amazon.awssdk:bom:2.46.17"))
+	implementation(platform("software.amazon.awssdk:bom:2.49.1"))
 	implementation("software.amazon.awssdk:s3")
 	implementation("software.amazon.awssdk:apache-client")
 	implementation("org.apache.tika:tika-core:3.3.1")
@@ -55,7 +55,7 @@ dependencies {
     runtimeOnly("io.jsonwebtoken:jjwt-impl:0.13.0")
     runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.13.0")
 
-	implementation("org.postgresql:postgresql")
+	implementation("org.postgresql:postgresql:42.7.13")
 
 	testImplementation("org.springframework.boot:spring-boot-starter-test") {
 		exclude(module = "mockito-core")
