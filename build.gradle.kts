@@ -41,8 +41,6 @@ dependencies {
     // Original package is archived. Community maintained fork.
     implementation("at.yawk.lz4:lz4-java:1.11.0")
 
-    implementation("io.github.sanvew:telegram-init-data:1.0.0")
-
     implementation("io.hypersistence:hypersistence-utils-hibernate-73:3.15.3")
     implementation("tools.jackson.module:jackson-module-kotlin:3.2.0")
 	implementation("org.jetbrains.kotlin:kotlin-reflect")

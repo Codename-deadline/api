@@ -78,15 +78,6 @@ data class User(
 
     override fun isEnabled() = true
 
-    fun toMap() = mapOf(
-        "id" to id,
-        "username" to _username,
-        "fullName" to fullName,
-        "joinedAt" to joinedAt,
-        "language" to language,
-        "timeZone" to timeZone
-    )
-
     fun toResponse() = UserResponse(
         id, username, fullName, joinedAt, language, timeZone
     )

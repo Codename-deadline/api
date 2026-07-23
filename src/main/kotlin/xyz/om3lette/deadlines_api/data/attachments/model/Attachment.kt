@@ -47,16 +47,6 @@ data class Attachment(
     @Column(nullable = false, columnDefinition = "TIMESTAMP WITH TIME ZONE")
     var uploadedAt: Instant
 ) {
-    fun toMap() = mapOf(
-        "id" to id,
-        "filename" to filename,
-        "mimeType" to (mimeType),
-        "sizeBytes" to (sizeBytes),
-        "uploadedBy" to uploadedBy?.toMap(),
-        "attachedTo" to deadline.id,
-        "uploadedAt" to uploadedAt
-    )
-
     fun toResponse(permissions: AttachmentPermissions) = AttachmentResponse(
         id,
         filename,

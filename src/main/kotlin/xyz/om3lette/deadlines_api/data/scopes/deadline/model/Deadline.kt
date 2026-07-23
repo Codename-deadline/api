@@ -50,15 +50,6 @@ data class Deadline(
     val notifications: MutableList<DeadlineNotification> = mutableListOf(),
 
 ) {
-    fun toMap() = mapOf(
-        "id" to id,
-        "title" to title,
-        "description" to description,
-        "createdAt" to createdAt,
-        "due" to due,
-        "isCompleted" to isCompleted
-    )
-
     fun toDTO() = DeadlineDTO(
         id, title, description, createdAt, due, isCompleted, thread.id
     )

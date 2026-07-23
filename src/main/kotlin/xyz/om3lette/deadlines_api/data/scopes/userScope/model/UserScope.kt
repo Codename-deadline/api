@@ -51,12 +51,6 @@ data class UserScope(
         newEntity = false
     }
 
-    fun toMap() = mapOf(
-        "user" to user.toMap(),
-        "role" to role,
-        "assignedAt" to assignedAt
-    )
-
     fun toDTO() = ScopeRoleDTO(
         role, scopeId, scopeType
     )

@@ -54,13 +54,6 @@ data class Thread(
     val deadlines: MutableList<Deadline> = mutableListOf(),
 
 ) {
-    fun toMap() = mapOf(
-        "id" to id,
-        "title" to title,
-        "description" to description,
-        "organizationId" to organization.id
-    )
-
     fun toDTO() = ThreadDTO(
         id, title, description, organization.id, createdAt
     )

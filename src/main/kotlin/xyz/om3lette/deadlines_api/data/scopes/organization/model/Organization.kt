@@ -56,14 +56,6 @@ data class Organization(
     @OnDelete(action = OnDeleteAction.CASCADE)
     val invitations: MutableList<OrganizationInvitation> = mutableListOf()
 ) {
-    fun toMap() = mapOf(
-        "id" to id,
-        "title" to title,
-        "description" to description,
-        "type" to type,
-        "createdAt" to createdAt
-    )
-
     fun toDTO() = OrganizationDTO(
         id, title, description, type, createdAt
     )

@@ -45,17 +45,6 @@ data class OrganizationInvitation(
     @Column(columnDefinition = "TIMESTAMP WITH TIME ZONE")
     var answeredAt: Instant? = null
 ) {
-    fun toMap() = mapOf(
-        "id" to id,
-        "invitedBy" to invitedBy.toMap(),
-        "invitedUser" to invitedUser.toMap(),
-        "organization" to organization.toMap(),
-        "status" to status.toString(),
-        "role" to role.toString(),
-        "createdAt" to createdAt,
-        "answeredAt" to answeredAt
-    )
-
     fun toResponse() = OrganizationInvitationResponse(
         id,
         invitedBy.toMinimalResponse(),
