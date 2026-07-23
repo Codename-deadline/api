@@ -44,8 +44,9 @@ object IntegrationTestFixtures {
         messenger: Messenger = Messenger.TELEGRAM,
         title: String = "Deadlines chat",
         language: Language = Language.EN,
+        timeZone: String = "Etc/UTC",
         bot: Bot = bot(),
-    ) = Chat(id, messengerChatId, messenger, title, bot, language, Instant.parse("2026-07-08T07:00:00Z"))
+    ) = Chat(id, messengerChatId, messenger, title, bot, language, timeZone, Instant.parse("2026-07-08T07:00:00Z"))
 
     fun integrationProperties(fallbackLanguage: Language = Language.EN) =
         IntegrationProperties(fallbackLanguage = fallbackLanguage)

@@ -104,7 +104,8 @@ class DeadlineNotificationCustomRepositoryImpl(
                     organization_id,
                     organization_title,
                     messenger,
-                    language
+                    language,
+                    time_zone
                 FROM selected s
                 JOIN chats c ON c.id = s.chat_id
             ),
@@ -131,6 +132,7 @@ class DeadlineNotificationCustomRepositoryImpl(
                     'private.integration.notifications',
                     jsonb_build_object(
                         'chatId', messenger_chat_id,
+                        'timeZone', time_zone,
                         'timeRemaining', type,
                         'language', language,
                         'organization', jsonb_build_object(

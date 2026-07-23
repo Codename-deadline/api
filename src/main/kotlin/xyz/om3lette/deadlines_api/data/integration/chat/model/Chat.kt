@@ -53,6 +53,9 @@ data class Chat(
     @Column(nullable = false, length = 3)
     var language: Language = Language.RU,
 
+    @Column(nullable = false)
+    var timeZone: String,
+
     @Column(nullable = false, columnDefinition = "TIMESTAMP WITH TIME ZONE")
     val registeredAt: Instant,
 

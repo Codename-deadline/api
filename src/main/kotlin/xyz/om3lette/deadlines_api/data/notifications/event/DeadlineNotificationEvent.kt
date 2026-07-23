@@ -22,6 +22,7 @@ data class RawThread(
 
 data class DeadlineNotificationEvent(
     val chatId: Long,
+    val timeZone: String,
     val language: Language,
     val deadline: RawDeadline,
     val timeRemaining: TimeRemaining,

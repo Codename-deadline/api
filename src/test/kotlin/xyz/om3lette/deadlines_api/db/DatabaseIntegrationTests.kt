@@ -24,6 +24,7 @@ import xyz.om3lette.deadlines_api.data.integration.bot.enums.Language
 import xyz.om3lette.deadlines_api.data.integration.bot.enums.Messenger
 import xyz.om3lette.deadlines_api.data.common.constraints.DatabaseConstraint
 import xyz.om3lette.deadlines_api.data.integration.common.enums.IntegrationResultKey
+import xyz.om3lette.deadlines_api.data.notifications.repo.DeadlineNotificationRepository
 import xyz.om3lette.deadlines_api.data.scopes.deadline.repo.DeadlineRepository
 import xyz.om3lette.deadlines_api.data.scopes.organization.repo.OrganizationRepository
 import xyz.om3lette.deadlines_api.data.scopes.thread.repo.ThreadRepository
@@ -86,6 +87,9 @@ class DatabaseIntegrationTests {
 
     @Autowired
     private lateinit var integrationChatService: IntegrationChatService
+
+    @Autowired
+    private lateinit var deadlineNotificationRepository: DeadlineNotificationRepository
 
     @Test
     @Transactional
@@ -369,7 +373,8 @@ class DatabaseIntegrationTests {
                 -1001630629206,
                 "Duplicate chat",
                 Language.EN.name,
-                issuerHasMessengerChatAdminRights = true
+                issuerHasMessengerChatAdminRights = true,
+                timeZone = "Etc/UTC"
             )
         }
 

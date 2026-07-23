@@ -18,6 +18,7 @@ import xyz.om3lette.deadlines_api.data.integration.constraints.IntegrationConstr
 import xyz.om3lette.deadlines_api.data.integration.messengerAccount.repo.UserMessengerAccountRepository
 import xyz.om3lette.deadlines_api.util.jpaRepository.violatesConstraint
 import java.time.Instant
+import java.time.ZoneId
 
 @Service
 class IntegrationChatService(
@@ -52,12 +53,14 @@ class IntegrationChatService(
         messengerChatId: Long,
         chatTitle: String,
         languageName: String,
+        timeZone: String,
         issuerHasMessengerChatAdminRights: Boolean,
     ): IntegrationResult {
         val issuerContext = getIssuerContext(messenger, issuerMessengerAccountId)
         integrationPermissionValidator.requireChatManagementPermission(issuerContext, issuerHasMessengerChatAdminRights)
 
         val language = Language.entries.firstOrNull { it.name == languageName } ?: issuerContext.language
+        requireValidTimeZone(timeZone, language)
 
         val bot = botRepository.findByBotIdAndMessenger(botId, messenger).orElseThrow {
             logger.error("Bot with id $botId in messenger ${messenger.name} not found")
@@ -73,6 +76,7 @@ class IntegrationChatService(
                     chatTitle.take(IntegrationConstraints.CHAT_TITLE_MAX),
                     bot,
                     language,
+                    timeZone,
                     Instant.now()
                 )
             )
@@ -114,6 +118,7 @@ class IntegrationChatService(
         messengerChatId: Long,
         language: Language?,
         title: String?,
+        timeZone: String?,
         issuerHasMessengerChatAdminRights: Boolean,
     ): IntegrationResult {
         val issuerContext = getIssuerContext(messenger, issuerMessengerAccountId)
@@ -126,10 +131,19 @@ class IntegrationChatService(
                 issuerContext.language
             )
 
+        if (timeZone != null) requireValidTimeZone(timeZone, language ?: chat.language)
+
         if (language != null) chat.language = language
         if (title != null) chat.title = title.take(IntegrationConstraints.CHAT_TITLE_MAX)
+        if (timeZone != null) chat.timeZone = timeZone
         chatRepository.save(chat)
 
         return integrationResult(IntegrationResultKey.CHAT_INFO_UPDATE_SUCCESS, chat.language)
+    }
+
+    private fun requireValidTimeZone(timeZone: String, language: Language) {
+        if (timeZone !in ZoneId.getAvailableZoneIds()) {
+            throw grpcException(Status.INVALID_ARGUMENT, IntegrationResultKey.INVALID_TIME_ZONE, language)
+        }
     }
 }

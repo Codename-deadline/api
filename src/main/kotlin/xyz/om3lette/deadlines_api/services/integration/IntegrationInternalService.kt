@@ -139,12 +139,13 @@ class IntegrationInternalService(
         responseObserver: StreamObserver<GeneralResponse>
     ) = responseObserver.sendResult(
         integrationChatService.updateChatInfo(
-            request.issuerMessengerAccountId,
-            getMessengerOr500(request.messenger),
-            request.messengerChatId,
-            if (request.hasLanguage()) Language.valueOf(request.language.name) else null,
-            if (request.hasTitle()) request.title else null,
-            request.issuerHasMessengerChatAdminRights
+            issuerMessengerAccountId = request.issuerMessengerAccountId,
+            messenger = getMessengerOr500(request.messenger),
+            messengerChatId = request.messengerChatId,
+            language = if (request.hasLanguage()) Language.valueOf(request.language.name) else null,
+            title = if (request.hasTitle()) request.title else null,
+            timeZone = if (request.hasTimeZone()) request.timeZone else null,
+            issuerHasMessengerChatAdminRights = request.issuerHasMessengerChatAdminRights
         )
     )
 
@@ -153,13 +154,14 @@ class IntegrationInternalService(
         responseObserver: StreamObserver<GeneralResponse>
     ) = responseObserver.sendResult(
         integrationChatService.registerChat(
-            request.botId,
-            request.issuerMessengerAccountId,
-            getMessengerOr500(request.messenger),
-            request.messengerChatId,
-            request.chatTitle,
-            request.language,
-            request.issuerHasMessengerChatAdminRights
+            botId = request.botId,
+            issuerMessengerAccountId = request.issuerMessengerAccountId,
+            messenger = getMessengerOr500(request.messenger),
+            messengerChatId = request.messengerChatId,
+            chatTitle = request.chatTitle,
+            languageName = request.language,
+            timeZone = request.timeZone,
+            issuerHasMessengerChatAdminRights = request.issuerHasMessengerChatAdminRights
         )
     )
 

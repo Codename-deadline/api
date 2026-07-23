@@ -8,6 +8,8 @@ import io.mockk.runs
 import io.mockk.slot
 import io.mockk.verify
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.ValueSource
 import xyz.om3lette.deadlines_api.db.constraintViolation
 import xyz.om3lette.deadlines_api.data.common.constraints.DatabaseConstraint
 import xyz.om3lette.deadlines_api.data.integration.bot.enums.Language
@@ -64,7 +66,8 @@ class IntegrationChatServiceTest {
             IntegrationTestFixtures.MESSENGER_CHAT_ID,
             "Chat title",
             Language.RU.name,
-            issuerHasMessengerChatAdminRights = true
+            issuerHasMessengerChatAdminRights = true,
+            timeZone = "Europe/Moscow"
         )
 
         assertEquals(IntegrationResultKey.REGISTER_CHAT_SUCCESS.value(), result.key)
@@ -73,6 +76,7 @@ class IntegrationChatServiceTest {
         assertEquals("Chat title", savedChat.captured.title)
         assertEquals(bot, savedChat.captured.bot)
         assertEquals(Language.RU, savedChat.captured.language)
+        assertEquals("Europe/Moscow", savedChat.captured.timeZone)
     }
 
     @Test
@@ -93,7 +97,8 @@ class IntegrationChatServiceTest {
             IntegrationTestFixtures.MESSENGER_CHAT_ID,
             "Chat title",
             Language.EN.name,
-            issuerHasMessengerChatAdminRights = false
+            issuerHasMessengerChatAdminRights = false,
+            timeZone = "Etc/UTC"
         )
 
         assertEquals(IntegrationResultKey.REGISTER_CHAT_SUCCESS.value(), result.key)
@@ -113,10 +118,36 @@ class IntegrationChatServiceTest {
             IntegrationTestFixtures.MESSENGER_CHAT_ID,
             "Chat title",
             "UNKNOWN",
-            issuerHasMessengerChatAdminRights = true
+            issuerHasMessengerChatAdminRights = true,
+            timeZone = "Etc/UTC"
         )
 
         assertEquals(user.language, result.language)
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = ["Europe/Nowhere", "+02:00", ""])
+    fun `registerChat rejects unsupported or raw offset time zones`(timeZone: String) {
+        everyAccountExists()
+        every { permissionService.canManageIntegrationChat(user, true) } returns true
+
+        val exception = assertFailsWith<GrpcKeyLocaleException> {
+            service.registerChat(
+                IntegrationTestFixtures.BOT_ID,
+                IntegrationTestFixtures.ISSUER_ACCOUNT_ID,
+                Messenger.TELEGRAM,
+                IntegrationTestFixtures.MESSENGER_CHAT_ID,
+                "Chat title",
+                Language.EN.name,
+                issuerHasMessengerChatAdminRights = true,
+                timeZone = timeZone
+            )
+        }
+
+        assertEquals(Status.INVALID_ARGUMENT, exception.status)
+        assertEquals(IntegrationResultKey.INVALID_TIME_ZONE.value(), exception.key)
+        assertEquals(Language.EN, exception.language)
+        verify(exactly = 0) { chatRepository.saveAndFlush(any()) }
     }
 
     @Test
@@ -138,7 +169,8 @@ class IntegrationChatServiceTest {
             IntegrationTestFixtures.MESSENGER_CHAT_ID,
             "x".repeat(IntegrationConstraints.CHAT_TITLE_MAX + 10),
             Language.EN.name,
-            issuerHasMessengerChatAdminRights = true
+            issuerHasMessengerChatAdminRights = true,
+            timeZone = "Etc/UTC"
         )
 
         assertEquals(IntegrationConstraints.CHAT_TITLE_MAX, savedChat.captured.title.length)
@@ -156,7 +188,8 @@ class IntegrationChatServiceTest {
                 IntegrationTestFixtures.MESSENGER_CHAT_ID,
                 "Chat title",
                 Language.EN.name,
-                issuerHasMessengerChatAdminRights = true
+                issuerHasMessengerChatAdminRights = true,
+                timeZone = "Etc/UTC"
             )
         }
 
@@ -180,7 +213,8 @@ class IntegrationChatServiceTest {
                 IntegrationTestFixtures.MESSENGER_CHAT_ID,
                 "Chat title",
                 Language.EN.name,
-                issuerHasMessengerChatAdminRights = false
+                issuerHasMessengerChatAdminRights = false,
+                timeZone = "Etc/UTC"
             )
         }
 
@@ -205,7 +239,8 @@ class IntegrationChatServiceTest {
                 IntegrationTestFixtures.MESSENGER_CHAT_ID,
                 "Chat title",
                 Language.EN.name,
-                issuerHasMessengerChatAdminRights = true
+                issuerHasMessengerChatAdminRights = true,
+                timeZone = "Etc/UTC"
             )
         }
 
@@ -231,7 +266,8 @@ class IntegrationChatServiceTest {
                 IntegrationTestFixtures.MESSENGER_CHAT_ID,
                 "Chat title",
                 Language.EN.name,
-                issuerHasMessengerChatAdminRights = true
+                issuerHasMessengerChatAdminRights = true,
+                timeZone = "Etc/UTC"
             )
         }
 
@@ -321,7 +357,7 @@ class IntegrationChatServiceTest {
     }
 
     @Test
-    fun `updateChatInfo updates title and language`() {
+    fun `updateChatInfo updates title language and time zone`() {
         val chat = IntegrationTestFixtures.chat(language = Language.EN, title = "Old")
         everyAccountExists()
         every { permissionService.canManageIntegrationChat(user, true) } returns true
@@ -338,17 +374,19 @@ class IntegrationChatServiceTest {
             IntegrationTestFixtures.MESSENGER_CHAT_ID,
             Language.RU,
             "New",
-            issuerHasMessengerChatAdminRights = true
+            issuerHasMessengerChatAdminRights = true,
+            timeZone = "America/New_York"
         )
 
         assertEquals(IntegrationResultKey.CHAT_INFO_UPDATE_SUCCESS.value(), result.key)
         assertEquals(Language.RU, chat.language)
         assertEquals("New", chat.title)
+        assertEquals("America/New_York", chat.timeZone)
     }
 
     @Test
     fun `updateChatInfo keeps existing fields when title and language are null`() {
-        val chat = IntegrationTestFixtures.chat(language = Language.EN, title = "Old")
+        val chat = IntegrationTestFixtures.chat(language = Language.EN, title = "Old", timeZone = "Asia/Tokyo")
         everyAccountExists()
         every { permissionService.canManageIntegrationChat(user, true) } returns true
         every {
@@ -364,11 +402,46 @@ class IntegrationChatServiceTest {
             IntegrationTestFixtures.MESSENGER_CHAT_ID,
             null,
             null,
-            issuerHasMessengerChatAdminRights = true
+            issuerHasMessengerChatAdminRights = true,
+            timeZone = null
         )
 
         assertEquals(Language.EN, chat.language)
         assertEquals("Old", chat.title)
+        assertEquals("Asia/Tokyo", chat.timeZone)
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = ["Not/AZone", "-05:00"])
+    fun `updateChatInfo rejects invalid time zones without changing the chat`(timeZone: String) {
+        val chat = IntegrationTestFixtures.chat(language = Language.EN, title = "Old", timeZone = "Etc/UTC")
+        everyAccountExists()
+        every { permissionService.canManageIntegrationChat(user, true) } returns true
+        every {
+            chatRepository.findByMessengerChatIdAndMessenger(
+                IntegrationTestFixtures.MESSENGER_CHAT_ID, Messenger.TELEGRAM
+            )
+        } returns chat
+
+        val exception = assertFailsWith<GrpcKeyLocaleException> {
+            service.updateChatInfo(
+                IntegrationTestFixtures.ISSUER_ACCOUNT_ID,
+                Messenger.TELEGRAM,
+                IntegrationTestFixtures.MESSENGER_CHAT_ID,
+                Language.RU,
+                "New",
+                issuerHasMessengerChatAdminRights = true,
+                timeZone = timeZone
+            )
+        }
+
+        assertEquals(Status.INVALID_ARGUMENT, exception.status)
+        assertEquals(IntegrationResultKey.INVALID_TIME_ZONE.value(), exception.key)
+        assertEquals(Language.RU, exception.language)
+        assertEquals(Language.EN, chat.language)
+        assertEquals("Old", chat.title)
+        assertEquals("Etc/UTC", chat.timeZone)
+        verify(exactly = 0) { chatRepository.save(any()) }
     }
 
     @Test
@@ -388,7 +461,8 @@ class IntegrationChatServiceTest {
                 IntegrationTestFixtures.MESSENGER_CHAT_ID,
                 Language.RU,
                 "New",
-                issuerHasMessengerChatAdminRights = true
+                issuerHasMessengerChatAdminRights = true,
+                timeZone = "Etc/UTC"
             )
         }
 
@@ -407,7 +481,8 @@ class IntegrationChatServiceTest {
                 IntegrationTestFixtures.MESSENGER_CHAT_ID,
                 Language.RU,
                 "New",
-                issuerHasMessengerChatAdminRights = true
+                issuerHasMessengerChatAdminRights = true,
+                timeZone = "Etc/UTC"
             )
         }
 
@@ -429,7 +504,8 @@ class IntegrationChatServiceTest {
                 IntegrationTestFixtures.MESSENGER_CHAT_ID,
                 Language.RU,
                 "New",
-                issuerHasMessengerChatAdminRights = false
+                issuerHasMessengerChatAdminRights = false,
+                timeZone = "Etc/UTC"
             )
         }
 

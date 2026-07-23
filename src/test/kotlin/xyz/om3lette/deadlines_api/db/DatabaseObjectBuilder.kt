@@ -107,19 +107,21 @@ object DatabaseObjectBuilder {
         botId: Long,
         title: String = "Database Test Chat",
         messenger: Messenger = Messenger.TELEGRAM,
-        language: Language = Language.EN
+        language: Language = Language.EN,
+        timeZone: String = "Etc/UTC"
     ) {
         jdbc.update(
             """
-            INSERT INTO chats (id, messenger_chat_id, messenger, title, bot_id, language, registered_at)
-            VALUES (?, ?, ?, ?, ?, ?, now())
+            INSERT INTO chats (id, messenger_chat_id, messenger, title, bot_id, language, time_zone, registered_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, now())
             """.trimIndent(),
             id,
             messengerChatId,
             messenger.name,
             title,
             botId,
-            language.name
+            language.name,
+            timeZone
         )
     }
 

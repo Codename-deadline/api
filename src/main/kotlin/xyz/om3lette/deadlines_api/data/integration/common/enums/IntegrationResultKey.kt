@@ -30,6 +30,7 @@ enum class IntegrationResultKey(private val template: String) {
 
     CHAT_ALREADY_REGISTERED("errors.chat_already_registered"),
     CHAT_NOT_FOUND("errors.chat_not_found"),
+    INVALID_TIME_ZONE("errors.invalid_time_zone"),
 
     ORGANIZATION_ACCESS_DENIED("errors.organization_access_denied"),
     ORGANIZATION_NOT_FOUND("errors.organization_not_found"),
